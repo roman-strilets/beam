@@ -27,21 +27,12 @@
 #include "../../utility/blobmap.h"
 #include "../../core/unittest/mini_blockchain.h"
 #include "../../bvm/bvm2.h"
-#include "../../bvm/ManagerStd.h"
 #include "../../bvm/evm.h"
 
 #ifndef LOG_VERBOSE_ENABLED
     #define LOG_VERBOSE_ENABLED 0
 #endif
 #include "utility/logger.h"
-
-namespace Shaders {
-#	define HOST_BUILD
-#	include "../bvm/Shaders/common.h"
-#	include "../bvm/Shaders/sidechain_pos/contract_l2.h"
-#	include "../bvm/Shaders/pbft/pbft_dpos.h"
-#	include "../bvm/Shaders/pbft/pbft_stat.h"
-} // namespace Shaders
 
 namespace ECC {
 
@@ -103,7 +94,6 @@ namespace beam
 {
 	ByteBuffer g_Treasury;
 	Key::IKdf::Ptr g_pTreasuryKdf;
-	ContractID g_cidBridge;
 
 	Amount get_Emission(const HeightRange& hr, Amount base = Rules::get().Emission.Value0)
 	{
@@ -1780,158 +1770,7 @@ namespace beam
 		DeleteFile(g_sz3);
 	}
 
-	namespace bvm2
-	{
-		void Compile(ByteBuffer& res, const char* sz, Processor::Kind kind)
-		{
-			std::FStream fs;
-			fs.Open(sz, true, true);
-
-			res.resize(static_cast<size_t>(fs.get_Remaining()));
-			if (!res.empty())
-				fs.read(&res.front(), res.size());
-
-			bvm2::Processor::Compile(res, res, kind);
-		}
-
-	}
-
-	struct PbftTreasuryBuilderBase
-	{
-		Treasury::Data::Group& m_Tg;
-		PbftTreasuryBuilderBase(Treasury::Data::Group& tg)
-			:m_Tg(tg)
-		{
-		}
-
-		void FixOffset(ECC::Scalar::Native& sk, bool isOutp)
-		{
-			if (isOutp)
-				sk = -sk;
-			m_Tg.m_Data.m_Offset = ECC::Scalar::Native(m_Tg.m_Data.m_Offset) + sk;
-		}
-	};
-
-
-    struct PbftTreasuryBuilder_Dpos
-		:public PbftTreasuryBuilderBase
-    {
-        ContractID m_Cid;
-        Shaders::PBFT_DPOS::Settings m_Settings;
-
-        PbftTreasuryBuilder_Dpos(Treasury::Data::Group& tg)
-			:PbftTreasuryBuilderBase(tg)
-        {
-            ZeroObject(m_Settings);
-        }
-
-        void Init()
-        {
-			m_Tg.m_Aid = m_Settings.m_aidStake;
-
-            auto pKrn = std::make_unique<beam::TxKernelContractCreate>();
-			beam::bvm2::Compile(pKrn->m_Data, "pbft/pbft_dpos.wasm", beam::bvm2::Processor::Kind::Contract);
-
-            pKrn->m_Args.resize(sizeof(Shaders::PBFT_DPOS::Method::Create));
-            auto& args = *(Shaders::PBFT_DPOS::Method::Create*) &pKrn->m_Args.front();
-            ZeroObject(args);
-
-            args.m_Settings.m_aidStake = ByteOrder::to_le(m_Settings.m_aidStake);
-            args.m_Settings.m_hUnbondLock = ByteOrder::to_le(m_Settings.m_hUnbondLock);
-            args.m_Settings.m_MinValidatorStake = ByteOrder::to_le(m_Settings.m_MinValidatorStake);
-
-            ECC::Scalar::Native sk;
-            sk.GenRandomNnz();
-            ECC::Point::Native ptFunds(beam::Zero);
-            pKrn->Sign(&sk, 1, ptFunds, nullptr);
-
-            bvm2::get_Cid(m_Cid, pKrn->m_Data, pKrn->m_Args);
-
-            m_Tg.m_Data.m_vKernels.push_back(std::move(pKrn));
-            FixOffset(sk, true);
-        }
-
-        void AddValidator(const Block::Pbft::Address& addr, const ECC::Point& pkDelegator, Amount stake)
-        {
-            auto pKrn = std::make_unique<beam::TxKernelContractInvoke>();
-            pKrn->m_Cid = m_Cid;
-
-            pKrn->m_Args.resize(sizeof(Shaders::PBFT_DPOS::Method::ValidatorRegister));
-            auto& args = *(Shaders::PBFT_DPOS::Method::ValidatorRegister*)&pKrn->m_Args.front();
-            pKrn->m_iMethod = args.s_iMethod;
-
-            ZeroObject(args);
-            args.m_Commission_cpc = 500;
-			args.m_Stake = ByteOrder::to_le(stake);
-            args.m_Validator = Cast::Down<ECC::uintBig>(addr);
-            args.m_Delegator = pkDelegator;
-
-			ECC::Point::Native ptFunds(Zero);
-			CoinID::Generator(m_Settings.m_aidStake).AddValue(ptFunds, stake);
-
-            ECC::Scalar::Native sk;
-            sk.GenRandomNnz();
-            pKrn->Sign(&sk, 1, ptFunds, nullptr);
-
-            m_Tg.m_Data.m_vKernels.push_back(std::move(pKrn));
-            FixOffset(sk, true);
-
-            m_Tg.m_Value += MultiWord::From(stake);
-        }
-    };
-
-    struct PbftTreasuryBuilder_Stat
-		:public PbftTreasuryBuilderBase
-    {
-		typedef Shaders::PBFT_STAT::Method::Create::ValidatorInit ValidatorInit;
-		std::vector<ValidatorInit> m_vInit;
-
-		using PbftTreasuryBuilderBase::PbftTreasuryBuilderBase;
-
-		void AddValidator(const Block::Pbft::Address& addr, const ECC::Point& /* pkDelegator */, Amount stake)
-		{
-			AddValidator(addr, stake);
-		}
-
-		void AddValidator(const Block::Pbft::Address& addr, Amount stake)
-		{
-			auto& x = m_vInit.emplace_back();
-			x.m_Address = Cast::Down<ECC::uintBig>(addr);
-			x.m_Weight = stake;
-		}
-
-        void Export()
-        {
-			verify_test(!m_vInit.empty());
-
-            auto pKrn = std::make_unique<beam::TxKernelContractCreate>();
-			beam::bvm2::Compile(pKrn->m_Data, "pbft/pbft_stat.wasm", beam::bvm2::Processor::Kind::Contract);
-
-            pKrn->m_Args.resize(sizeof(Shaders::PBFT_STAT::Method::Create) + sizeof(ValidatorInit) * m_vInit.size());
-            auto& args = *(Shaders::PBFT_STAT::Method::Create*) &pKrn->m_Args.front();
-            ZeroObject(args);
-			args.m_Count = ByteOrder::to_le(static_cast<uint32_t>(m_vInit.size()));
-
-			for (uint32_t i = 0; i < m_vInit.size(); i++)
-			{
-				const auto& src = m_vInit[i];
-				auto& dst = args.get_VI()[i];
-
-				dst.m_Address = src.m_Address;
-				dst.m_Weight = ByteOrder::to_le(src.m_Weight);
-			}
-
-            ECC::Scalar::Native sk;
-            sk.GenRandomNnz();
-            ECC::Point::Native ptFunds(beam::Zero);
-            pKrn->Sign(&sk, 1, ptFunds, nullptr);
-
-            m_Tg.m_Data.m_vKernels.push_back(std::move(pKrn));
-            FixOffset(sk, true);
-        }
-
-    };
-	void TestNodeClientProto(Rules& r, bool bTestPbft, bool bTestBridge)
+	void TestNodeClientProto(Rules& r)
 	{
 		auto logger = beam::Logger::create(BEAM_LOG_LEVEL_DEBUG, BEAM_LOG_LEVEL_DEBUG);
 
@@ -1946,16 +1785,8 @@ namespace beam
 		node.m_Cfg.m_Listen.ip(INADDR_ANY);
 		node.m_Cfg.m_MiningThreads = 1;
 
-		if (bTestPbft)
-		{
-			node.m_Keys.SetSingleKey(g_pTreasuryKdf);
-			node.m_Keys.m_pMiner = node.m_Keys.m_pGeneric;
-		}
-		else
-		{
-			ECC::SetRandom(node);
-			node.m_Cfg.m_TestMode.m_FakePowSolveTime_ms = 100;
-		}
+		ECC::SetRandom(node);
+		node.m_Cfg.m_TestMode.m_FakePowSolveTime_ms = 100;
 
 		node.m_Cfg.m_Horizon.m_Branching = 6;
 		node.m_Cfg.m_Horizon.m_Sync.Hi = 10;
@@ -1984,66 +1815,6 @@ namespace beam
 
 		ECC::SetRandom(node2);
 
-		if (bTestPbft || bTestBridge)
-		{
-			r.SetForksFrom(0, 0);
-
-			auto td = beam::BuildTreasuryData();
-
-			if (bTestPbft)
-			{
-				r.SetParamsPbft(576);
-
-				//PbftTreasuryBuilder_Dpos tb(td.m_vGroups.emplace_back());
-				PbftTreasuryBuilder_Stat tb(td.m_vGroups.emplace_back());
-				tb.m_Tg.m_Value = Zero;
-				tb.m_Tg.m_Data.m_Offset = Zero;
-
-				//tb.m_Settings.m_hUnbondLock = 10;
-				//tb.m_Settings.m_MinValidatorStake = Rules::Coin * 100;
-				//tb.m_Settings.m_aidStake = 7;
-				//tb.Init();
-
-				ECC::Scalar::Native sk;
-				Block::Pbft::Address addr;
-				ECC::Point ptDelegator(Zero); // not used yet
-
-				Block::Pbft::DeriveValidatorAddress(*node.m_Keys.m_pMiner, addr, sk);
-				tb.AddValidator(addr, ptDelegator, Rules::Coin * 500);
-
-				Block::Pbft::DeriveValidatorAddress(*node2.m_Keys.m_pMiner, addr, sk);
-				tb.AddValidator(addr, ptDelegator, Rules::Coin * 600);
-
-				tb.Export();
-			}
-
-			if (bTestBridge)
-			{
-				r.CA.ForeignEnd = 1'000'000;
-
-				// add L2 bridge
-				auto pKrn = std::make_unique<beam::TxKernelContractCreate>();
-				beam::bvm2::Compile(pKrn->m_Data, "sidechain_pos/contract_l2.wasm", beam::bvm2::Processor::Kind::Contract);
-
-				beam::bvm2::get_Cid(g_cidBridge, pKrn->m_Data, pKrn->m_Args);
-
-				ECC::Scalar::Native sk;
-				ECC::SetRandom(sk);
-				ECC::Point::Native ptFunds(beam::Zero);
-				pKrn->Sign(&sk, 1, ptFunds, nullptr);
-
-				auto& tx = td.m_vGroups.back().m_Data;
-				tx.m_vKernels.push_back(std::move(pKrn));
-
-				sk = -sk;
-				tx.m_Offset = ECC::Scalar::Native(tx.m_Offset) + sk;
-			}
-
-
-			beam::FinalizeTreasuryData(r, td);
-
-		}
-
 		r.UpdateChecksum();
 
 
@@ -2057,8 +1828,6 @@ namespace beam
 			NodeProcessor* m_pProc1 = nullptr;
 			NodeProcessor* m_pProc2 = nullptr;
 
-			std::vector<NodeProcessor*> m_vBridgeUpd;
-
 			std::vector<Block::SystemState::Full> m_vStates;
 
 			std::set<ECC::Point> m_UtxosBeingSpent;
@@ -2068,7 +1837,6 @@ namespace beam
 			uint32_t m_nChainWorkProofsPending = 0;
 			uint32_t m_nBbsMsgsPending = 0;
 			uint32_t m_nRecoveryPending = 0;
-			std::list<std::pair<Height, Merkle::Hash> > m_queProofLogsExpected;
 
 			struct
 			{
@@ -2083,15 +1851,6 @@ namespace beam
 				bool m_EvtEmitted = false;
 
 			} m_Assets;
-
-			struct
-			{
-				Height m_pStage[9]; // ctor, list, deposit, proof, print, withdraw, print, dtor, logs
-				uint32_t m_Done = 0;
-				bvm2::ContractID m_Cid;
-				bool m_VarProof = false;
-
-			} m_Contract;
 
 			Height m_hEvtsNext = 0;
 			bool m_bEvtsPending = false;
@@ -2154,7 +1913,6 @@ namespace beam
 					m_queProofsExpected.empty() &&
 					m_queProofsKrnExpected.empty() &&
 					m_queProofsStateExpected.empty() &&
-					m_queProofLogsExpected.empty() &&
 					!m_nChainWorkProofsPending;
 			}
 
@@ -2445,15 +2203,6 @@ namespace beam
                 Evm::Address m_addrMyContract;
             } m_Evm;
 
-			struct Bridge
-			{
-				Height m_hEmitted = 0;
-				Height m_hEmitConfirmed = 0;
-				Merkle::Hash m_hvEmitID;
-				PeerID m_pidOwner;
-				const uint32_t m_KrnProofIdx = 0x20000001;
-			} m_Bridge;
-
 			struct AchievementTester
 			{
 				bool m_AllDone = true;
@@ -2488,11 +2237,7 @@ namespace beam
 				t.Test(m_Shielded.m_SpendConfirmed, "Shielded spend not confirmed");
 				t.Test(m_Shielded.m_EvtAdd, "Shielded Add event didn't arrive");
 				t.Test(m_Shielded.m_EvtSpend, "Shielded Spend event didn't arrive");
-				t.Test(m_Contract.m_VarProof, "Contract variable proof not received");
                 t.Test(m_Evm.m_DeployConfirmed, "EVM Contract wasn't deployed");
-
-				if (Rules::get().CA.ForeignEnd)
-					t.Test(m_Bridge.m_hEmitConfirmed, "Bridge emission not confirmed");
 
 				return t.m_AllDone;
 			}
@@ -2562,16 +2307,6 @@ namespace beam
 					proto::GetAssetsListAt msgOut2;
 					msgOut2.m_Height = MaxHeight;
 					Send(msgOut2);
-				}
-
-				if (m_Bridge.m_hEmitted && !m_Bridge.m_hEmitConfirmed)
-				{
-					proto::GetProofKernel2 msgOut2;
-					msgOut2.m_ID = m_Bridge.m_hvEmitID;
-					msgOut2.m_Fetch = true;
-					Send(msgOut2);
-
-					m_queProofsKrnExpected.push_back(m_Bridge.m_KrnProofIdx);
 				}
 
                 if (m_Evm.m_hDeployed && !m_Evm.m_DeployConfirmed)
@@ -2678,8 +2413,6 @@ namespace beam
 					{
 						MaybeCreateAsset(msgTx, val);
 						MaybeEmitAsset(msgTx, val);
-						MaybeEmitBridgedAsset(msgTx, val);
-						MaybeInvokeContract(msgTx, val);
                         MaybeDeployEvmContract(msgTx, val);
                         MaybeInvokeEvmContract(msgTx, val);
 						m_Wallet.MakeTxOutput(*msgTx.m_Transaction, msg.m_Description.get_Height(), 2, val);
@@ -2789,405 +2522,6 @@ namespace beam
 				return true;
 			}
 
-			bool MaybeEmitBridgedAsset(proto::NewTransaction& msg, Amount& val)
-			{
-				if (!Rules::get().CA.ForeignEnd)
-					return false;
-
-				if (m_Bridge.m_hEmitted)
-					return false;
-
-				const Amount nFee = Rules::Coin / 10;
-				if (val < nFee)
-					return false;
-
-				const Block::SystemState::Full& s = m_vStates.back();
-				if (!Rules::get().IsPastFork_<3>(s.get_Height() + 1))
-					return false;
-
-				val -= nFee;
-
-				CoinID cid(Zero);
-				cid.m_Value = Rules::Coin * 900;
-				cid.m_AssetID = 0; // emit def asset
-
-				ECC::Scalar::Native pSkKrn[2], skOut;
-				ECC::SetRandom(pSkKrn[0]);
-				ECC::SetRandom(pSkKrn[1]);
-
-#pragma pack (push, 1)
-				// copied from sidechain_pos/contract_l2.h
-				struct BridgeOp
-				{
-					Asset::ID m_Aid;
-					Amount m_Amount;
-					uint64_t m_Cookie;
-					ECC::Point m_pk;
-				};
-#pragma pack (pop)
-
-				TxKernelContractInvoke::Ptr pKrn(new TxKernelContractInvoke);
-				pKrn->m_Cid = g_cidBridge;
-				pKrn->m_Fee = nFee;
-				pKrn->m_iMethod = 2;
-				pKrn->m_Height.m_Min = s.get_Height() + 1;
-
-				pKrn->m_Args.resize(sizeof(BridgeOp));
-				{
-					auto& op = *reinterpret_cast<BridgeOp*>(&pKrn->m_Args.front());
-					op.m_Aid = cid.m_AssetID;
-					op.m_Amount = cid.m_Value;
-					op.m_Cookie = 14;
-
-					ECC::Point::Native pt = ECC::Context::get().G * pSkKrn[0];
-					op.m_pk = pt;
-
-					CoinID::Worker wrk(cid);
-					pt = Zero;
-					wrk.AddValue(pt);
-					pt = -pt;
-
-					pKrn->Sign(pSkKrn, 2, pt, nullptr);
-					m_Bridge.m_hvEmitID = pKrn->get_ID();
-
-					m_Bridge.m_pidOwner = Cast::Up<PeerID>(op.m_pk.m_X);
-
-					m_pProc1->BridgeAddInfo(m_Bridge.m_pidOwner, HeightPos(2), cid.m_AssetID, cid.m_Value);
-					m_pProc2->BridgeAddInfo(m_Bridge.m_pidOwner, HeightPos(2), cid.m_AssetID, cid.m_Value);
-				}
-
-				msg.m_Transaction->m_vKernels.push_back(std::move(pKrn));
-				m_Wallet.UpdateOffset(*msg.m_Transaction, pSkKrn[1], true);
-
-				Output::Ptr pOutp(new Output);
-				pOutp->Create(s.get_Height() + 1, skOut, *m_Wallet.m_pKdf, cid, *m_Wallet.m_pKdf);
-
-				msg.m_Transaction->m_vOutputs.push_back(std::move(pOutp));
-				m_Wallet.UpdateOffset(*msg.m_Transaction, skOut, true);
-
-				m_Bridge.m_hEmitted = s.get_Height() + 1;
-				printf("Emitting bridged asset...\n");
-
-				return true;
-			}
-
-			struct MyManager
-				:public bvm2::ManagerStd
-			{
-				MyClient& m_This;
-
-				bool m_Done = false;
-				bool m_Err = false;
-
-				MyManager(MyClient& me)
-					:m_This(me)
-				{
-				}
-
-				void OnDone(const std::exception* pExc) override
-				{
-					m_Done = true;
-					m_Err = !!pExc;
-
-					m_This.m_Contract.m_Done++;
-
-					if (m_This.m_pMan)
-					{
-						if (!m_Err)
-							printf("manager shader: %s\n", m_Out.str().c_str());
-
-						//m_This.m_pMan.reset();
-					}
-				}
-
-				struct DelayedStart
-					:public io::IdleEvt
-				{
-					void OnSchedule() override
-					{
-						cancel();
-						get_ParentObj().StartRun(1);
-					}
-
-					IMPLEMENT_GET_PARENT_OBJ(MyManager, m_DelayedStart)
-
-				} m_DelayedStart;
-
-				std::map<uint32_t, ECC::Hash::Value> m_Slots;
-
-				bool SlotLoad(ECC::Hash::Value& hv, uint32_t iSlot) override
-				{
-					auto it = m_Slots.find(iSlot);
-					if (m_Slots.end() == it)
-						return false;
-
-					hv = it->second;
-					return true;
-				}
-
-				void SlotSave(const ECC::Hash::Value& hv, uint32_t iSlot) override
-				{
-					m_Slots[iSlot] = hv;
-				}
-
-				void SlotErase(uint32_t iSlot) override
-				{
-					auto it = m_Slots.find(iSlot);
-					if (m_Slots.end() != it)
-						m_Slots.erase(it);
-				}
-
-				void SelectContext(bool /* bDependent */, uint32_t /* nChargeNeeded */) override
-				{
-					m_Context.m_Height = m_This.m_vStates.empty() ? 0 : m_This.m_vStates.back().get_Height();
-				}
-
-			};
-
-			std::unique_ptr<MyManager> m_pMan;
-
-			struct MyNetwork
-				:public proto::FlyClient::INetwork
-			{
-				MyClient& m_This;
-				MyNetwork(MyClient& me) :m_This(me) {}
-
-				void Connect() override {}
-				void Disconnect() override {}
-				void BbsSubscribe(BbsChannel, Timestamp, proto::FlyClient::IBbsReceiver*) override {}
-
-				proto::FlyClient::Request::Ptr m_pReq;
-
-				void PostRequestInternal(proto::FlyClient::Request& r) override
-				{
-					switch (r.get_Type())
-					{
-					case proto::FlyClient::Request::Type::ContractVars:
-						m_This.Send(Cast::Up<proto::FlyClient::RequestContractVars>(r).m_Msg);
-						break;
-
-					case proto::FlyClient::Request::Type::ContractLogs:
-						m_This.Send(Cast::Up<proto::FlyClient::RequestContractLogs>(r).m_Msg);
-						break;
-
-					case proto::FlyClient::Request::Type::ContractVar:
-						m_This.Send(Cast::Up<proto::FlyClient::RequestContractVar>(r).m_Msg);
-						break;
-
-					default:
-						return;
-					}
-
-					m_pReq = &r;
-				}
-
-				void OnComplete2()
-				{
-					auto pReq = std::move(m_pReq);
-					pReq->m_pTrg->OnComplete(*pReq);
-				}
-
-				void OnMsg(proto::ContractVars&& msg)
-				{
-					if (m_pReq && m_pReq->m_pTrg)
-					{
-						auto& x = Cast::Up<proto::FlyClient::RequestContractVars>(*m_pReq);
-						x.m_Res = std::move(msg);
-						OnComplete2();
-					}
-				}
-
-				void OnMsg(proto::ContractLogs&& msg)
-				{
-					if (m_pReq && m_pReq->m_pTrg)
-					{
-						auto& x = Cast::Up<proto::FlyClient::RequestContractLogs>(*m_pReq);
-						x.m_Res = std::move(msg);
-						OnComplete2();
-					}
-				}
-
-				void OnMsg(proto::ContractVar&& msg)
-				{
-					if (m_pReq && m_pReq->m_pTrg)
-					{
-						auto& x = Cast::Up<proto::FlyClient::RequestContractVar>(*m_pReq);
-						x.m_Res = std::move(msg);
-						OnComplete2();
-					}
-				}
-			};
-
-			std::shared_ptr<MyNetwork> m_pMyNetwork;
-
-			bool MaybeInvokeContract(proto::NewTransaction& msg, Amount& val)
-			{
-				const Block::SystemState::Full& s = m_vStates.back();
-				if (!Rules::get().IsPastFork_<3>(s.get_Height() + 1))
-					return false;
-
-				if (m_pMan)
-				{
-					auto& proc = *m_pMan;
-					if (!proc.m_Done)
-						return false; // pending
-
-					if (!proc.m_InvokeData.m_vec.empty())
-					{
-						bvm2::FundsMap fm;
-
-						HeightRange hr;
-						hr.m_Min = s.get_Height() + 1;
-
-						for (uint32_t i = 0; i < proc.m_InvokeData.m_vec.size(); i++)
-						{
-							const auto& cdata = proc.m_InvokeData.m_vec[i];
-							fm += cdata.m_Spend;
-							fm.AddSpend(0, cdata.get_FeeMin(hr.m_Min));
-
-							if (!cdata.m_iMethod)
-								bvm2::get_Cid(m_Contract.m_Cid, cdata.m_Data, cdata.m_Args);
-						}
-
-						AmountSigned valSpend = fm[0]; // including fees. Would be negative if we're receiving funds
-						if (valSpend > static_cast<AmountSigned>(val))
-							return false; // not enough funds
-
-						for (uint32_t i = 0; i < proc.m_InvokeData.m_vec.size(); i++)
-						{
-							const auto& x = proc.m_InvokeData.m_vec[i];
-							x.Generate(*msg.m_Transaction, *m_Wallet.m_pKdf, hr, x.get_FeeMin(hr.m_Min));
-						}
-
-						val -= valSpend;
-
-						printf("Invoking contract, action=%s...\n", proc.m_Args["action"].c_str());
-					}
-
-					m_pMan.reset();
-				}
-
-				if (m_Contract.m_Done == _countof(m_Contract.m_pStage))
-					return false;
-
-				if (m_Contract.m_Done && (s.get_Height() - m_Contract.m_pStage[m_Contract.m_Done - 1] < 4))
-					return false;
-
-				m_pMan = std::make_unique<MyManager>(*this);
-				MyManager& proc = *m_pMan;
-
-				proc.m_pPKdf = m_Wallet.m_pKdf;
-				proc.m_pKdf = m_Wallet.m_pKdf; // enable privileged mode!
-
-				bvm2::Compile(proc.m_BodyManager, "vault/app.wasm", bvm2::Processor::Kind::Manager);
-				bvm2::Compile(proc.m_BodyContract, "vault/contract.wasm", bvm2::Processor::Kind::Contract);
-
-				if (!m_pMyNetwork)
-					m_pMyNetwork = std::make_shared<MyNetwork>(*this);
-
-				proc.m_pNetwork = m_pMyNetwork;
-
-				if (m_Contract.m_Done)
-					proc.set_ArgBlob("cid", m_Contract.m_Cid);
-
-				switch (m_Contract.m_Done)
-				{
-				case 0: // ctor
-					proc.m_Args["role"] = "manager";
-					proc.m_Args["action"] = "create";
-					break;
-
-				case 1: // list
-					proc.m_Args["role"] = "manager";
-					proc.m_Args["action"] = "view";
-					break;
-
-				case 2: // deposit
-					proc.m_Args["role"] = "my_account";
-					proc.m_Args["action"] = "deposit";
-					proc.m_Args["amount"] = "700000";
-					break;
-
-				case 4:
-					proc.m_Args["role"] = "my_account";
-					proc.m_Args["action"] = "get_proof";
-					break;
-
-				case 5: // withdraw
-					proc.m_Args["role"] = "my_account";
-					proc.m_Args["action"] = "withdraw";
-					proc.m_Args["amount"] = "700000";
-					break;
-
-				case 7: // dtor
-					proc.m_Args["role"] = "manager";
-					proc.m_Args["action"] = "destroy";
-					break;
-
-				case 8: // logs
-					proc.m_Args["role"] = "manager";
-					proc.m_Args["action"] = "view_logs";
-
-					{
-						// proofs for logs. Don't include height=0, we can't get proof for it
-						NodeDB::ContractLog::Walker wlk;
-						for (m_pProc1->get_DB().ContractLogEnum(wlk, HeightPos(1), HeightPos(MaxHeight)); wlk.MoveNext(); )
-						{
-							proto::GetContractLogProof msgOut;
-							msgOut.m_Pos = wlk.m_Entry.m_Pos;
-							Send(msgOut);
-
-							auto& x = m_queProofLogsExpected.emplace_back();
-							x.first = wlk.m_Entry.m_Pos.m_Height;
-							Block::get_HashContractLog(x.second, wlk.m_Entry.m_Key, wlk.m_Entry.m_Val, wlk.m_Entry.m_Pos.m_Pos);
-						}
-					}
-
-					break;
-
-				default: // print
-					proc.m_Args["role"] = "my_account";
-					proc.m_Args["action"] = "view";
-
-				}
-
-				m_Contract.m_pStage[m_Contract.m_Done] = s.get_Height();
-
-				printf("manager shader, action=%s...\n", proc.m_Args["action"].c_str());
-				proc.m_DelayedStart.start();
-
-
-				return true;
-			}
-
-			void OnMsg(proto::ContractVars&& msg) override
-			{
-				if (m_pMyNetwork)
-					m_pMyNetwork->OnMsg(std::move(msg));
-			}
-
-			void OnMsg(proto::ContractLogs&& msg) override
-			{
-				if (m_pMyNetwork)
-					m_pMyNetwork->OnMsg(std::move(msg));
-			}
-
-			void OnMsg(proto::ContractVar&& msg) override
-			{
-				if (m_pMyNetwork)
-				{
-					if (!msg.m_Proof.empty() && m_pMyNetwork->m_pReq && (proto::FlyClient::Request::ContractVar == m_pMyNetwork->m_pReq->get_Type()))
-					{
-						auto& r = Cast::Up<proto::FlyClient::RequestContractVar>(*m_pMyNetwork->m_pReq);
-						verify_test(m_vStates.back().IsValidProofContract(r.m_Msg.m_Key, msg.m_Value, msg.m_Proof));
-
-						m_Contract.m_VarProof = true;
-					}
-
-					m_pMyNetwork->OnMsg(std::move(msg));
-				}
-			}
-
 			const Block::SystemState::Full* FindState(Height h)
 			{
 				for (size_t i = m_vStates.size(); i--; )
@@ -3199,21 +2533,6 @@ namespace beam
 
 				return nullptr;
 			}
-
-			void OnMsg(proto::ContractLogProof&& msg) override
-			{
-				verify_test(!m_queProofLogsExpected.empty());
-				auto& x = m_queProofLogsExpected.front();
-
-				// find the block. In PBFT thi
-				const auto* pHdr = FindState(x.first);
-				verify_test(pHdr);
-				if (pHdr)
-					verify_test(pHdr->IsValidProofLog(x.second, msg.m_Proof));
-
-				m_queProofLogsExpected.pop_front();
-			}
-
 
 			void MaybeAskEvents()
 			{
@@ -3427,16 +2746,6 @@ namespace beam
 
                         }
 
-						if (msg.m_Kernel->get_ID() == m_Bridge.m_hvEmitID)
-						{
-							verify_test(msg.m_Kernel->get_Subtype() == TxKernel::Subtype::ContractInvoke);
-
-							if (!m_Bridge.m_hEmitConfirmed && pHdr)
-							{
-								printf("Bridged emission confirmed confirmed\n");
-								m_Bridge.m_hEmitConfirmed = pHdr->get_Height();
-							}
-						}
 					}
 				}
 				else
@@ -3631,13 +2940,8 @@ namespace beam
 
 		node.m_Keys.m_Accounts.m_vAdd.push_back(cl.m_Wallet2.m_pKdf);
 
-		ByteBuffer bufParser;
-		bvm2::Compile(bufParser, "Explorer/Parser.wasm", bvm2::Processor::Kind::Manager);
-
 		node.m_Cfg.m_ProcessorParams.m_RichInfoFlags =
-			NodeProcessor::StartParams::RichInfo::On |
-			NodeProcessor::StartParams::RichInfo::UpdShader;
-		node.m_Cfg.m_ProcessorParams.m_RichParser = bufParser;
+			NodeProcessor::StartParams::RichInfo::On;
 
 		node.Initialize();
 
@@ -3815,12 +3119,6 @@ namespace beam
 		node.PrintTxos();
 
 		NodeProcessor& proc = node.get_Processor();
-
-		if (Rules::get().CA.ForeignEnd)
-		{
-			NodeProcessor::ForeignDetailsPacked fdp;
-			verify_test(proc.FindExternalAssetEmit(cl.m_Bridge.m_pidOwner, true, fdp));
-		}
 
 		Block::Number h0 = proc.m_Cursor.m_Full.m_Number;
 		proc.ManualRollbackTo(Block::Number(h0.v - 5));
@@ -4121,353 +3419,6 @@ namespace beam
 		}
 	}
 
-	struct Waiter
-	{
-		io::Timer::Ptr m_pTimer;
-		bool m_Ok;
-
-		void OnTimer()
-		{
-			m_Ok = false;
-			TestFailed("timeout", __LINE__);
-			StopSafe(false);
-		}
-
-		bool StopSafe(bool bRes)
-		{
-			if (!m_pTimer)
-				return false;
-
-			m_pTimer->cancel();
-			m_pTimer.reset();
-			io::Reactor::get_Current().stop();
-
-			m_Ok = bRes;
-			return true;
-		}
-
-		bool Wait()
-		{
-			m_Ok = true;
-			m_pTimer = io::Timer::create(io::Reactor::get_Current());
-			m_pTimer->start(2000000, false, [this]() { return (this->OnTimer)(); });
-
-			io::Reactor::get_Current().run();
-			StopSafe(false); // would propagate foreign stop
-
-			return m_Ok;
-		}
-	};
-
-	bool PerformRequestSync(proto::FlyClient::INetwork& net, proto::FlyClient::Request& r)
-	{
-		struct MyHandler
-			:public proto::FlyClient::Request::IHandler
-		{
-			Waiter m_W;
-
-			void OnComplete(proto::FlyClient::Request&) override
-			{
-				m_W.StopSafe(true);
-			}
-		};
-
-		MyHandler h;
-		net.PostRequest(r, h);
-
-		bool bRes = h.m_W.Wait();
-
-		r.m_pTrg = nullptr;
-		return bRes;
-	}
-
-	void TestDependentTxs()
-	{
-		io::Reactor::Ptr pReactor(io::Reactor::create());
-		io::Reactor::Scope scope(*pReactor);
-
-		struct MyFlyClient
-			:public proto::FlyClient
-		{
-			Block::SystemState::HistoryMap m_Hist;
-			Key::IKdf::Ptr m_pKdf;
-			Waiter* m_pW = nullptr;
-
-
-			Block::SystemState::IHistory& get_History() override
-			{
-				return m_Hist;
-			}
-
-			void OnNewTip() override
-			{
-				if (m_pW)
-				{
-					m_pW->StopSafe(true);
-					m_pW = nullptr;
-				}
-			}
-
-			void get_Kdf(Key::IKdf::Ptr& pOut) override {
-				pOut = m_pKdf;
-			}
-			void get_OwnerKdf(Key::IPKdf::Ptr& pOut) override {
-				pOut = m_pKdf;
-			}
-
-
-		};
-
-
-		MyFlyClient fc;
-		ECC::SetRandom(fc.m_pKdf);
-
-		Node node;
-		node.m_Cfg.m_sPathLocal = g_sz;
-		node.m_Cfg.m_Listen.port(g_Port);
-		node.m_Cfg.m_Listen.ip(INADDR_ANY);
-		node.m_Cfg.m_MiningThreads = 0;
-		node.m_Cfg.m_Treasury = g_Treasury;
-		node.m_Keys.SetSingleKey(fc.m_pKdf);
-		node.m_Keys.m_pMiner = node.m_Keys.m_pGeneric;
-		node.Initialize();
-		node.m_PostStartSynced = true;
-
-		RaiseNumberTo(node, Block::Number(20));
-
-		Node node2;
-		node2.m_Cfg.m_sPathLocal = g_sz2;
-		node2.m_Cfg.m_MiningThreads = 0;
-		ECC::SetRandom(node2);
-
-		io::Address& addr = node2.m_Cfg.m_Connect.emplace_back();
-		addr.resolve("127.0.0.1");
-		addr.port(g_Port);
-		node2.Initialize();
-
-
-		auto pNet = std::make_shared<proto::FlyClient::NetworkStd>(fc);
-		pNet->m_Cfg.m_vNodes.push_back(addr);
-
-		pNet->Connect();
-
-		struct MyManager
-			:public bvm2::ManagerStd
-		{
-			Waiter* m_pW = nullptr;
-			bool m_Done;
-			bool m_Err;
-
-			std::list<CoinID> m_lstCoins;
-			std::vector<Merkle::Hash> m_vKrnIds;
-
-			void OnDone(const std::exception* pExc) override
-			{
-				m_Done = true;
-				m_Err = !!pExc;
-
-				if (m_pW)
-					m_pW->StopSafe(!m_Err);
-			}
-
-			void RunSync0(uint32_t iMethod)
-			{
-				m_Done = false;
-				m_Err = false;
-
-				StartRun(iMethod);
-			}
-
-			void RunSync1()
-			{
-				if (m_Done)
-					return;
-
-				{
-					Waiter wt;
-					m_pW = &wt;
-					wt.Wait();
-					m_pW = nullptr;
-				}
-
-				if (!m_Done)
-					// propagate it
-					io::Reactor::get_Current().stop();
-			}
-
-			void RunSync(uint32_t iMethod)
-			{
-				RunSync0(iMethod);
-				RunSync1();
-			}
-
-			Transaction::Ptr BuildTx()
-			{
-				Height hTx = m_Context.m_Height + 1;
-
-				auto pTx = std::make_shared<Transaction>();
-				pTx->m_Offset = Zero;
-
-				bvm2::FundsMap fm;
-
-				for (uint32_t i = 0; i < m_InvokeData.m_vec.size(); i++)
-				{
-					const auto& cdata = m_InvokeData.m_vec[i];
-
-					Amount fee;
-					if (cdata.IsAdvanced())
-						fee = cdata.m_Adv.m_Fee; // can't change!
-					else
-						fee = cdata.get_FeeMin(hTx);
-
-					cdata.Generate(*pTx, *m_pKdf, hTx, fee);
-
-					auto& krn = *pTx->m_vKernels.back();
-					m_vKrnIds.push_back(krn.get_ID());
-
-					fm += cdata.m_Spend;
-					fm[0] += fee;
-				}
-
-				ECC::Scalar::Native kOff(pTx->m_Offset);
-
-				auto valSpend = fm[0];
-				while (valSpend > 0)
-				{
-					if (m_lstCoins.empty())
-					{
-						TestFailed("no funds", __LINE__);
-						return nullptr;
-					}
-
-					CoinID cid = m_lstCoins.front();
-					m_lstCoins.pop_front();
-
-					Input::Ptr pInp = std::make_unique<Input>();
-
-					ECC::Scalar::Native sk;
-					CoinID::Worker(cid).Create(sk, pInp->m_Commitment, *m_pKdf);
-					pTx->m_vInputs.push_back(std::move(pInp));
-					kOff += sk;
-
-					valSpend -= cid.m_Value;
-				}
-
-				if (valSpend < 0)
-				{
-					Output::Ptr pOutp = std::make_unique<Output>();
-
-					CoinID cid(Zero);
-					cid.m_Type = Key::Type::Change;
-					cid.m_Value = -valSpend;
-					ECC::GenRandom(&cid.m_Idx, sizeof(cid.m_Idx));
-
-					m_lstCoins.push_front(cid); // reuse in the next tx
-
-					ECC::Scalar::Native sk;
-					pOutp->Create(hTx, sk, *m_pKdf, cid, *m_pKdf);
-
-					pTx->m_vOutputs.push_back(std::move(pOutp));
-					kOff += -sk;
-				}
-
-				pTx->m_Offset = kOff;
-				pTx->Normalize();
-				return pTx;
-			}
-
-			void BuildAndSend(proto::FlyClient::INetwork& net)
-			{
-				RunSync(1);
-				verify_test(!m_InvokeData.m_vec.empty());
-
-				proto::FlyClient::RequestTransaction::Ptr pReq(new proto::FlyClient::RequestTransaction);
-				pReq->m_Msg.m_Transaction = BuildTx();
-
-				if (m_Context.m_pParent)
-					pReq->m_Msg.m_Context = std::make_unique<Merkle::Hash>(*m_Context.m_pParent);
-
-				pReq->m_Msg.m_Fluff = true;
-
-				verify_test(beam::PerformRequestSync(*m_pNetwork, *pReq));
-				verify_test(proto::TxStatus::Ok == pReq->m_Res.m_Value);
-			}
-
-		} man;
-
-
-		{
-			proto::FlyClient::RequestEvents::Ptr pReq(new proto::FlyClient::RequestEvents);
-			verify_test(PerformRequestSync(*pNet, *pReq));
-
-			Block::SystemState::Full s;
-			fc.m_Hist.get_Tip(s);
-
-			struct MyParser :public proto::Event::IGroupParser
-			{
-				Height m_hMaxMaturity;
-				std::list<CoinID>* m_pCoins;
-
-				void OnEventType(proto::Event::Utxo& evt) override
-				{
-					if ((evt.m_Maturity <= m_hMaxMaturity) && !evt.m_Cid.m_AssetID)
-						m_pCoins->push_back(evt.m_Cid);
-				}
-			} p;
-
-			p.m_hMaxMaturity = s.get_Height();
-			p.m_pCoins = &man.m_lstCoins;
-			p.Proceed(pReq->m_Res.m_Events);
-
-			verify_test(!man.m_lstCoins.empty());
-		}
-
-		man.m_EnforceDependent = true;
-		man.m_pHist = &fc.m_Hist;
-		man.m_pNetwork = pNet;
-		man.m_pKdf = fc.m_pKdf;
-		man.m_pPKdf = fc.m_pKdf;
-
-		bvm2::Compile(man.m_BodyManager, "vault/app.wasm", bvm2::Processor::Kind::Manager);
-		bvm2::Compile(man.m_BodyContract, "vault/contract.wasm", bvm2::Processor::Kind::Contract);
-
-		// 1. Deploy
-
-		man.m_Args["role"] = "manager";
-		man.m_Args["action"] = "create";
-		man.BuildAndSend(*pNet);
-
-		bvm2::ContractID cid;
-		bvm2::get_Cid(cid, man.m_BodyContract, Blob(nullptr, 0));
-		man.set_ArgBlob("cid", cid);
-
-		// 2. Deposit
-		Amount valDeposit = 25 * Rules::Coin;
-
-		man.m_Args["role"] = "my_account";
-		man.m_Args["action"] = "deposit";
-		man.m_Args["amount"] = std::to_string(valDeposit);
-		man.BuildAndSend(*pNet);
-
-		// 3. Withdraw
-		valDeposit = 22 * Rules::Coin;
-
-		man.m_Args["action"] = "withdraw";
-		man.m_Args["amount"] = std::to_string(valDeposit);
-		man.BuildAndSend(*pNet);
-
-		RaiseNumberTo(node, Block::Number(21));
-
-		// make sure everything's included in the block
-		for (uint32_t i = 0; i < man.m_vKrnIds.size(); i++)
-		{
-			const auto& hv = man.m_vKrnIds[i];
-
-			Height h = node.get_Processor().get_DB().FindKernel(hv);
-			verify_test(h == 21);
-		}
-	}
-
 
 
 }
@@ -4569,10 +3520,7 @@ void TestAll()
 	printf("Node <---> Client test (with proofs)...\n");
 	fflush(stdout);
 
-	beam::TestNodeClientProto(r, false, false);
-	beam::DeleteFile(beam::g_sz);
-	beam::DeleteFile(beam::g_sz2);
-	beam::TestNodeClientProto(r, true, true);
+	beam::TestNodeClientProto(r);
 
 	{
 		auto logger = beam::Logger::create(BEAM_LOG_LEVEL_DEBUG, BEAM_LOG_LEVEL_DEBUG);
@@ -4633,12 +3581,6 @@ void TestAll()
 	r.UpdateChecksum();
 
 	beam::TestFlyClient();
-	beam::DeleteFile(beam::g_sz);
-
-	printf("Node <---> Dependent txs test...\n");
-	fflush(stdout);
-
-	beam::TestDependentTxs();
 	beam::DeleteFile(beam::g_sz);
 	beam::DeleteFile(beam::g_sz2);
 }

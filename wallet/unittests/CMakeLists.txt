@@ -2,30 +2,8 @@ cmake_minimum_required(VERSION 3.13)
 
 add_definitions( -DSQLITE_HAS_CODEC )
 
-set(TEST_SHADERS test_shader.cpp)
-
 add_library(wallet_test_node STATIC wallet_test_node.cpp)
 target_link_libraries(wallet_test_node PUBLIC node wallet)
-
-configure_file("../../bvm/Shaders/vault/contract.wasm" "${CMAKE_CURRENT_BINARY_DIR}/vault/contract.wasm" COPYONLY)
-configure_file("../../bvm/Shaders/vault/app.wasm" "${CMAKE_CURRENT_BINARY_DIR}/vault/app.wasm" COPYONLY)
-configure_file("../../bvm/Shaders/vault_anon/contract.wasm" "${CMAKE_CURRENT_BINARY_DIR}/vault_anon/contract.wasm" COPYONLY)
-configure_file("../../bvm/Shaders/vault_anon/app.wasm" "${CMAKE_CURRENT_BINARY_DIR}/vault_anon/app.wasm" COPYONLY)
-configure_file("../../bvm/Shaders/upgradable2/contract.wasm" "${CMAKE_CURRENT_BINARY_DIR}/upgradable2/contract.wasm" COPYONLY)
-configure_file("../../bvm/Shaders/upgradable2/Test/test_v0.wasm" "${CMAKE_CURRENT_BINARY_DIR}/upgradable2/Test/test_v0.wasm" COPYONLY)
-configure_file("../../bvm/Shaders/upgradable2/Test/test_v1.wasm" "${CMAKE_CURRENT_BINARY_DIR}/upgradable2/Test/test_v1.wasm" COPYONLY)
-configure_file("../../bvm/Shaders/upgradable2/Test/test_app.wasm" "${CMAKE_CURRENT_BINARY_DIR}/upgradable2/Test/test_app.wasm" COPYONLY)
-configure_file("../../bvm/Shaders/upgradable3/Test/test_v0.wasm" "${CMAKE_CURRENT_BINARY_DIR}/upgradable3/Test/test_v0.wasm" COPYONLY)
-configure_file("../../bvm/Shaders/upgradable3/Test/test_v0_migrate.wasm" "${CMAKE_CURRENT_BINARY_DIR}/upgradable3/Test/test_v0_migrate.wasm" COPYONLY)
-configure_file("../../bvm/Shaders/upgradable3/Test/test_v1.wasm" "${CMAKE_CURRENT_BINARY_DIR}/upgradable3/Test/test_v1.wasm" COPYONLY)
-configure_file("../../bvm/Shaders/upgradable3/Test/test_app.wasm" "${CMAKE_CURRENT_BINARY_DIR}/upgradable3/Test/test_app.wasm" COPYONLY)
-configure_file("../../bvm/Shaders/dao-vault/app.wasm" "${CMAKE_CURRENT_BINARY_DIR}/dao-vault/app.wasm" COPYONLY)
-configure_file("../../bvm/Shaders/dao-vault/contract.wasm" "${CMAKE_CURRENT_BINARY_DIR}/dao-vault/contract.wasm" COPYONLY)
-configure_file("../../bvm/Shaders/sidechain_pos/contract_l1.wasm" "${CMAKE_CURRENT_BINARY_DIR}/sidechain_pos/contract_l1.wasm" COPYONLY)
-configure_file("../../bvm/Shaders/sidechain_pos/contract_l2.wasm" "${CMAKE_CURRENT_BINARY_DIR}/sidechain_pos/contract_l2.wasm" COPYONLY)
-configure_file("../../bvm/Shaders/sidechain_pos/app.wasm" "${CMAKE_CURRENT_BINARY_DIR}/sidechain_pos/app.wasm" COPYONLY)
-configure_file("../../bvm/Shaders/pbft/pbft_dpos.wasm" "${CMAKE_CURRENT_BINARY_DIR}/pbft/pbft_dpos.wasm" COPYONLY)
-configure_file("../../bvm/Shaders/pbft/pbft_stat.wasm" "${CMAKE_CURRENT_BINARY_DIR}/pbft/pbft_stat.wasm" COPYONLY)
 
 
 add_test_snippet(wallet_test wallet node mnemonic wallet_client wallet_api wallet_test_node)
@@ -36,27 +14,6 @@ add_test_snippet(wallet_api_test wallet_api)
 add_test_snippet(wallet_assets_test core node wallet_core pow assets wallet_test_node)
 add_test_snippet(news_channels_test wallet_client node)
 add_test_snippet(broadcasting_test broadcast_gateway node)
-
-if (BEAM_TEST_SHADERS)
-    add_test_snippet(wallet_contract_test wallet_test_node)
-
-    function (add_shader shader )
-        add_custom_command(TARGET wallet_contract_test 
-                       PRE_BUILD 
-                       COMMAND clang -O3 
-                                --target=wasm32 -I ${PROJECT_SOURCE_DIR}/bvm 
-                                -std=c++17 
-                                -fno-rtti 
-                                -Wl,--export-dynamic,--no-entry,--allow-undefined -nostdlib 
-                                ${CMAKE_CURRENT_SOURCE_DIR}/shaders/${shader}.cpp --output ${shader}.wasm
-                        COMMENT "Building shader ${shader}..."
-                        VERBATIM
-    )
-    endfunction()
-
-    add_shader(test_contract)
-    add_shader(test_app)
-endif()
 
 if (BEAM_ASSET_SWAP_SUPPORT)
     add_test_snippet(dex_board_test dex_board)
