@@ -28,13 +28,6 @@
 #include "wallet/client/wallet_client.h"
 #include "wallet/client/extensions/broadcast_gateway/broadcast_router.h"
 #include "wallet/core/wallet_network.h"
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-#include <boost/algorithm/string.hpp>
-#include <boost/serialization/nvp.hpp>
-#include <boost/multiprecision/cpp_dec_float.hpp>
-#include "wallet/client/extensions/offers_board/offers_protocol_handler.h"
-#include "wallet/client/extensions/offers_board/swap_offers_board.h"
-#endif  // BEAM_ATOMIC_SWAP_SUPPORT
 
 #ifdef BEAM_ASSET_SWAP_SUPPORT
 #include "wallet/client/extensions/dex_board/dex_board.h"
@@ -50,24 +43,6 @@ const unsigned int FAKE_SEED = 10283UL;
 const char WALLET_DB_PATH[] = "explorer-wallet.db";
 const char WALLET_DB_PASS[] = "1";
 
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-std::string SwapAmountToString(Amount swapAmount, wallet::AtomicSwapCoin swapCoin)
-{
-    auto decimals = std::lround(std::log10(wallet::UnitsPerCoin(swapCoin)));
-    boost::multiprecision::cpp_dec_float_50 preciseAmount(swapAmount);
-    preciseAmount /= wallet::UnitsPerCoin(swapCoin);
-
-    std::stringstream ss;
-    ss << std::fixed << std::setprecision(decimals) << preciseAmount;
-    auto str = ss.str();
-
-    const auto point = std::use_facet< std::numpunct<char>>(ss.getloc()).decimal_point();
-    boost::algorithm::trim_right_if(str, boost::is_any_of("0"));
-    boost::algorithm::trim_right_if(str, [point](const char ch) {return ch == point; });
-
-    return str;
-}
-#endif  // BEAM_ATOMIC_SWAP_SUPPORT
 
 const char* hash_to_hex(char* buf, const Merkle::Hash& hash) {
     return to_hex(buf, hash.m_pData, hash.nBytes);
@@ -226,14 +201,6 @@ public:
         _dexBoard = std::make_shared<wallet::DexBoard>(*_broadcastRouter, _dexCtlGateway, *_walletDB);
 #endif  // BEAM_ASSET_SWAP_SUPPORT
 
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-        _offerBoardProtocolHandler =
-            std::make_shared<wallet::OfferBoardProtocolHandler>(_walletDB->get_SbbsKdf());
-        _offersBulletinBoard = std::make_shared<wallet::SwapOffersBoard>(
-            *_broadcastRouter, *_offerBoardProtocolHandler, _walletDB);
-        _walletDbSubscriber = std::make_unique<WalletDbSubscriber>(
-                    static_cast<wallet::IWalletDbObserver*>(_offersBulletinBoard.get()), _walletDB);
-#endif  // BEAM_ATOMIC_SWAP_SUPPORT
     }
 
     virtual ~Adapter() {
@@ -2996,106 +2963,6 @@ private:
         return result;
     }
 
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-    json get_swap_offers() override
-    {
-        auto offers = _offersBulletinBoard->getOffersList();
-
-        json result = json::array();
-        for(auto& offer : offers)
-        {
-            result.push_back( json {
-                {"status", offer.m_status},
-                {"status_string", swapOfferStatusToString(offer.m_status)},
-                {"txId", std::to_string(offer.m_txId)},
-                {"beam_amount", std::to_string(wallet::PrintableAmount(offer.amountBeam(), true))},
-                {"swap_amount", SwapAmountToString(offer.amountSwapCoin(), offer.swapCoinType())},
-                {"swap_currency", std::to_string(offer.swapCoinType())},
-                {"time_created", format_timestamp(wallet::kTimeStampFormat3x3, offer.timeCreated() * 1000, false)},
-                {"min_height", offer.minHeight()},
-                {"height_expired", offer.minHeight() + offer.peerResponseHeight()},
-                {"is_beam_side", offer.isBeamSide()},
-            });
-        }
-
-        return result;
-    }
-
-    json get_swap_totals() override
-    {
-        auto offers = _offersBulletinBoard->getOffersList();
-
-        Amount beamAmount = 0,
-               bitcoinAmount = 0,
-               litecoinAmount = 0,
-               qtumAmount = 0,
-            //    bitcoinCashAmount = 0,
-               dogecoinAmount = 0,
-               dashAmount = 0,
-               ethereumAmount = 0,
-               daiAmount = 0,
-               usdtAmount = 0,
-               wbtcAmount = 0;
-
-        for(auto& offer : offers)
-        {
-            beamAmount += offer.amountBeam();
-            switch (offer.swapCoinType())
-            {
-                case wallet::AtomicSwapCoin::Bitcoin :
-                    bitcoinAmount += offer.amountSwapCoin();
-                    break;
-                case wallet::AtomicSwapCoin::Litecoin :
-                    litecoinAmount += offer.amountSwapCoin();
-                    break;
-                case wallet::AtomicSwapCoin::Qtum :
-                    qtumAmount += offer.amountSwapCoin();
-                    break;
-                // case wallet::AtomicSwapCoin::Bitcoin_Cash :
-                //     bitcoinCashAmount += offer.amountSwapCoin();
-                //     break;
-                case wallet::AtomicSwapCoin::Dogecoin :
-                    dogecoinAmount += offer.amountSwapCoin();
-                    break;
-                case wallet::AtomicSwapCoin::Dash :
-                    dashAmount += offer.amountSwapCoin();
-                    break;
-                case wallet::AtomicSwapCoin::Ethereum:
-                    ethereumAmount += offer.amountSwapCoin();
-                    break;
-                case wallet::AtomicSwapCoin::Dai:
-                    daiAmount += offer.amountSwapCoin();
-                    break;
-                case wallet::AtomicSwapCoin::Usdt:
-                    usdtAmount += offer.amountSwapCoin();
-                    break;
-                case wallet::AtomicSwapCoin::WBTC:
-                    wbtcAmount += offer.amountSwapCoin();
-                    break;
-                default :
-                    BEAM_LOG_ERROR() << "Unknown swap coin type";
-                    return false;
-            }
-        }
-
-        json obj = json{
-            { "total_swaps_count", offers.size()},
-            { "beams_offered", std::to_string(wallet::PrintableAmount(beamAmount, true)) },
-            { "bitcoin_offered", SwapAmountToString(bitcoinAmount, wallet::AtomicSwapCoin::Bitcoin)},
-            { "litecoin_offered", SwapAmountToString(litecoinAmount, wallet::AtomicSwapCoin::Litecoin)},
-            { "qtum_offered", SwapAmountToString(qtumAmount, wallet::AtomicSwapCoin::Qtum)},
-            // { "bicoin_cash_offered", SwapAmountToString(bitcoinCashAmount, wallet::AtomicSwapCoin::Bitcoin_Cash)},
-            { "dogecoin_offered", SwapAmountToString(dogecoinAmount, wallet::AtomicSwapCoin::Dogecoin)},
-            { "dash_offered", SwapAmountToString(dashAmount, wallet::AtomicSwapCoin::Dash)},
-            { "ethereum_offered", SwapAmountToString(ethereumAmount, wallet::AtomicSwapCoin::Ethereum)},
-            { "dai_offered", SwapAmountToString(daiAmount, wallet::AtomicSwapCoin::Dai)},
-            { "usdt_offered", SwapAmountToString(usdtAmount, wallet::AtomicSwapCoin::Usdt)},
-            { "wbtc_offered", SwapAmountToString(wbtcAmount, wallet::AtomicSwapCoin::WBTC)}
-        };
-
-        return obj;
-    }
-#endif  // BEAM_ATOMIC_SWAP_SUPPORT
 
 #ifdef BEAM_ASSET_SWAP_SUPPORT
     json get_asset_swaps() override
@@ -3193,12 +3060,6 @@ private:
     wallet::IRawCommGateway _dexCtlGateway;
     wallet::DexBoard::Ptr _dexBoard;
 #endif  // BEAM_ASSET_SWAP_SUPPORT
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-    std::shared_ptr<wallet::OfferBoardProtocolHandler> _offerBoardProtocolHandler;
-    wallet::SwapOffersBoard::Ptr _offersBulletinBoard;
-    using WalletDbSubscriber = wallet::ScopedSubscriber<wallet::IWalletDbObserver, wallet::IWalletDB>;
-    std::unique_ptr<WalletDbSubscriber> _walletDbSubscriber;
-#endif  // BEAM_ATOMIC_SWAP_SUPPORT
 };
 
 IAdapter::Ptr create_adapter(Node& node) {

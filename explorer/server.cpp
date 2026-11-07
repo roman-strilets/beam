@@ -802,16 +802,6 @@ OnRequest(peers)
     return _backend.get_peers();
 }
 
-OnRequest(swap_offers)
-{
-    return _backend.get_swap_offers();
-}
-
-OnRequest(swap_totals)
-{
-    return _backend.get_swap_totals();
-}
-
 OnRequest(asset_swaps)
 {
     return _backend.get_asset_swaps();

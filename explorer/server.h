@@ -27,8 +27,6 @@
     macro(blocks) \
     macro(hdrs) \
     macro(peers) \
-    macro(swap_offers) \
-    macro(swap_totals) \
     macro(asset_swaps) \
     macro(asset_swaps_totals) \
     macro(contracts) \

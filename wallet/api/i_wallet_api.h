@@ -23,7 +23,6 @@
 #include "wallet/core/node_network.h"
 #include "wallet/ipfs/ipfs.h"
 #include "base/api_errors.h"
-#include "i_swaps_provider.h"
 #include "sync_mode.h"
 
 #ifdef BEAM_ASSET_SWAP_SUPPORT
@@ -72,7 +71,6 @@ namespace beam::wallet
         std::string appId;
         std::string appName;
         IShadersManager::Ptr contracts;
-        ISwapsProvider::Ptr swaps;
         IWalletDB::Ptr walletDB;
         Wallet::Ptr wallet;
         NodeNetwork::Ptr nodeNetwork;

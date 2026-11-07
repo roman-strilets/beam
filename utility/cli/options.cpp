@@ -90,25 +90,12 @@ namespace beam
         const char* NODE_PEER = "peer";
         const char* NODE_PEERS_PERSISTENT = "peers_persistent";
         const char* PASS = "pass";
-        const char* SET_SWAP_SETTINGS = "set_swap_settings";
-        const char* ACTIVE_CONNECTION = "active_connection";
-        const char* SWAP_WALLET_PASS = "swap_wallet_pass";
-        const char* SWAP_WALLET_USER = "swap_wallet_user";
-        const char* ALTCOIN_SETTINGS_RESET = "reset";
-        const char* SHOW_SWAP_SETTINGS = "show_swap_settings";
-        const char* ELECTRUM_SEED = "electrum_seed";
-        const char* GENERATE_ELECTRUM_SEED = "generate_electrum_seed";
-        const char* SELECT_SERVER_AUTOMATICALLY = "select_server_automatically";
-        const char* ELECTRUM_ADDR = "electrum_addr";
-        const char* ADDRESSES_TO_RECEIVE = "addresses_to_receive";
-        const char* ADDRESSES_FOR_CHANGE = "addresses_for_change";
         const char* AMOUNT = "amount";
         const char* AMOUNT_FULL = "amount,a";
         const char* RECEIVER_ADDR = "receiver_addr";
         const char* RECEIVER_ADDR_FULL = "receiver_addr,r";
         const char* NODE_ADDR = "node_addr";
         const char* NODE_ADDR_FULL = "node_addr,n";
-        const char* SWAP_WALLET_ADDR = "swap_wallet_addr";
         const char* COMMAND = "command";
         const char* LISTEN = "listen";
         const char* TREASURY = "treasury";
@@ -200,16 +187,6 @@ namespace beam
         const char* GENERATE_RECOVERY_PATH = "generate_recovery";
         const char* RECOVERY_AUTO_PATH = "recovery_auto_path";
         const char* RECOVERY_AUTO_PERIOD = "recovery_auto_period";
-        const char* SWAP_INIT = "swap_init";
-        const char* SWAP_ACCEPT = "swap_accept";
-        const char* SWAP_TOKEN = "swap_token";
-        const char* SWAP_AMOUNT = "swap_amount";
-        const char* SWAP_FEERATE = "swap_feerate";
-        const char* ESTIMATE_SWAP_FEERATE = "recommended_fee_rate";
-        const char* GET_BALANCE = "get_balance";
-        const char* SWAP_COIN = "swap_coin";
-        const char* SWAP_BEAM_SIDE = "swap_beam_side";
-        const char* SWAP_TX_HISTORY = "swap_tx_history";
         const char* NODE_POLL_PERIOD = "node_poll_period";
         const char* WITH_SYNC_PIPES = "sync_pipes";
         const char* PROXY_USE = "proxy";
@@ -227,13 +204,6 @@ namespace beam
         const char* BRIDGE_NETWORK_L1 = "bridge_network_l1";
         const char* BRIDGE_DH = "bridge_height_delay";
 
-        // ethereum
-        const char* ETHEREUM_SEED = "ethereum_seed";
-        const char* INFURA_PROJECT_ID = "infura_project_id";
-        const char* ACCOUNT_INDEX = "account_index";
-        const char* SHOULD_CONNECT = "should_connect";
-        const char* ETH_GAS_PRICE = "eth_gas_price";
-        const char* ETH_SWAP_AMOUNT = "eth_swap_amount";
         // values
         const char* EXPIRATION_TIME_24H   = "24h";
         const char* EXPIRATION_TIME_AUTO  = "auto";
@@ -530,32 +500,6 @@ namespace beam
         uidebug.add_options()
             (cli::APPS_REMOTE_DEBUG_PORT, po::value<uint32_t>()->default_value(0), "contracts applications remote debug port");
 
-        po::options_description swap_options("Atomic swap");
-        swap_options.add_options()
-            (cli::ALTCOIN_SETTINGS_RESET, po::value<std::string>(), "reset altcoin's settings [core|electrum]")
-            (cli::ACTIVE_CONNECTION, po::value<string>(), "set active connection [core|electrum|none]")
-            (cli::ELECTRUM_SEED, po::value<string>(), "bitcoin electrum seed(use space as separator)")
-            (cli::GENERATE_ELECTRUM_SEED, "generate new electrum seed")
-            (cli::SELECT_SERVER_AUTOMATICALLY, po::value<bool>(), "select electrum server automatically")
-            (cli::ELECTRUM_ADDR, po::value<string>(), "set electrum wallet address")
-            (cli::ADDRESSES_TO_RECEIVE, po::value<Positive<uint32_t>>(), "number of electrum receiving addresses")
-            (cli::ADDRESSES_FOR_CHANGE, po::value<Positive<uint32_t>>(), "number of electrum change addresses")
-            (cli::SWAP_WALLET_ADDR, po::value<string>(), "rpc address of the swap wallet")
-            (cli::SWAP_WALLET_USER, po::value<string>(), "rpc user name for the swap wallet")
-            (cli::SWAP_WALLET_PASS, po::value<string>(), "rpc password for the swap wallet")
-            (cli::SWAP_COIN, po::value<string>(), "swap coin currency (BTC/LTC/QTUM/DASH/DOGE/ETH)")
-            (cli::SWAP_AMOUNT, po::value<Positive<Amount>>(), "swap amount in the smallest unit of the coin (e.g. satoshi for BTC)")
-            (cli::SWAP_FEERATE, po::value<Positive<Amount>>(), "specific feerate you are willing to pay (the smallest unit of the coin per KB)")
-            (cli::SWAP_BEAM_SIDE, "should be always set by the swap party who owns BEAM")
-            (cli::SWAP_TX_HISTORY, "print swap transaction history in info command")
-            (cli::SWAP_TOKEN, po::value<string>(), "transaction token for atomic swap")
-            (cli::ETHEREUM_SEED, po::value<string>(), "ethereum seed(use space as separator)")
-            (cli::INFURA_PROJECT_ID, po::value<string>(), "infura project ID")
-            (cli::ACCOUNT_INDEX, po::value<Nonnegative<uint32_t>>(), "ethereum account index")
-            (cli::SHOULD_CONNECT, po::value<bool>(), "connect to ethereum [true|false]")
-            (cli::ETH_GAS_PRICE, po::value<Positive<Amount>>(), "gas price in gwei")
-            (cli::ETH_SWAP_AMOUNT, po::value<string>(), "swap amount in the ethereums or tokens");
-
         po::options_description wallet_assets_options("Confidential assets");
         wallet_assets_options.add_options()
             (cli::ASSET_ID,         po::value<Positive<uint32_t>>(), "asset ID")
@@ -617,7 +561,6 @@ namespace beam
         {
             options.add(wallet_options);
             options.add(wallet_treasury_options);
-            options.add(swap_options);
 
             if(Rules::get().CA.Enabled)
             {
@@ -625,7 +568,6 @@ namespace beam
             }
 
             visible_options.add(wallet_options);
-            visible_options.add(swap_options);
 
             if(Rules::get().CA.Enabled)
             {

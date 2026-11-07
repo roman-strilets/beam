@@ -136,7 +136,6 @@ namespace beam::wallet
                     ApiInitData data;
                     auto iwtres      = boost::any_cast<IWTResult>(aptr);
                     data.contracts   = std::move(iwtres.shaders);
-                    data.swaps       = nullptr;
                     data.wallet      = client->getWallet();
                     data.walletDB    = client->getWalletDB();
                     data.appId       = appid;

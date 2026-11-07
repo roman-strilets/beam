@@ -24,12 +24,6 @@
 #include "wallet/core/secstring.h"
 #include "wallet/core/strings_resources.h"
 #include "wallet/core/contracts/shaders_manager.h"
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-#include "wallet/transactions/swaps/common.h"
-#include "wallet/transactions/swaps/utils.h"
-#include "wallet/transactions/swaps/swap_tx_description.h"
-#include "swaps.h"
-#endif // BEAM_ATOMIC_SWAP_SUPPORT
 
 #include "wallet/transactions/assets/assets_reg_creators.h"
 #include "keykeeper/local_private_key_keeper.h"
@@ -168,21 +162,7 @@ namespace
 
     std::string interpretStatusCliImpl(const beam::wallet::TxDescription& tx)
     {
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-        AtomicSwapTransaction::State state = wallet::AtomicSwapTransaction::State::Initial;
-        if (tx.m_txType == TxType::AtomicSwap)
-        {
-            if (auto value = tx.GetParameter<AtomicSwapTransaction::State>(wallet::TxParameterID::State); value)
-                state = *value;
-            return wallet::getSwapTxStatus(state);
-        }
-        else
-        {
-#endif  // BEAM_ATOMIC_SWAP_SUPPORT
-            return beam::wallet::interpretStatus(tx);
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-        }
-#endif  // BEAM_ATOMIC_SWAP_SUPPORT
+        return beam::wallet::interpretStatus(tx);
     }
 
     std::string TxDetailsInfo(const IWalletDB::Ptr& walletDB, const TxID& txID)
@@ -198,34 +178,6 @@ namespace
 
         if (addressType == TxAddressType::AtomicSwap)
         {
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-            Amount swapAmount = 0u;
-            AtomicSwapCoin swapCoin = AtomicSwapCoin::Bitcoin;
-            bool isBeamSide = true;
-            bool bSuccess = storage::getTxParameter(*walletDB, txID, TxParameterID::AtomicSwapAmount, swapAmount);
-            bSuccess = bSuccess && storage::getTxParameter(*walletDB, txID, TxParameterID::AtomicSwapCoin, swapCoin);
-            bSuccess = bSuccess && storage::getTxParameter(*walletDB, txID, TxParameterID::AtomicSwapIsBeamSide, isBeamSide);
-
-            if (bSuccess)
-            {
-                SwapTxDescription swapDescription(desc);
-                auto swapToken = swapDescription.getToken();
-
-                if (swapToken)
-                {
-                    std::ostringstream s;
-
-                    s << "Type:              " << "atomic swap" << std::endl;
-                    s << "Swap coin:         " << std::to_string(swapCoin) << std::endl;
-                    s << "Beam side:         " << isBeamSide << std::endl;
-                    s << "Beam amount:       " << PrintableAmount(desc.m_amount) << std::endl;
-                    s << "Swap amount:       " << std::to_string(swapAmount) << std::endl;
-                    s << "Swap token:        " << *swapToken << std::endl;
-
-                    return s.str();
-                }
-            }
-#endif // BEAM_ATOMIC_SWAP_SUPPORT
             return "";
         }
 
@@ -1711,56 +1663,6 @@ namespace
             std::cout << "If you wish to see the list of UXTOs or transaction history use\n\t--" << cli::UTXO_LIST << "  or  --" << cli::TX_HISTORY << "  parameters correspondingly" << std::endl;
         }
 
-        #ifdef BEAM_ATOMIC_SWAP_SUPPORT
-        if (vm.count(cli::SWAP_TX_HISTORY))
-        {
-            auto txHistory = walletDB->getTxHistory(wallet::TxType::AtomicSwap);
-            if (txHistory.empty())
-            {
-                cout << kSwapTxHistoryEmpty << endl;
-            }
-            else
-            {
-                const array<uint8_t, 6> columnWidths{ {20, 26, 18, 15, 23, 33} };
-                cout << boost::format(kSwapTxHistoryTableHead)
-                    % boost::io::group(left, setw(columnWidths[0]), kTxHistoryColumnDatetTime)
-                    % boost::io::group(right, setw(columnWidths[1]), kTxHistoryColumnAmount)
-                    % boost::io::group(right, setw(columnWidths[2]), kTxHistoryColumnSwapAmount)
-                    % boost::io::group(left, setw(columnWidths[3]), kTxHistoryColumnSwapType)
-                    % boost::io::group(left, setw(columnWidths[4]), kTxHistoryColumnStatus)
-                    % boost::io::group(left, setw(columnWidths[5]), kTxHistoryColumnId)
-                    << std::endl;
-
-                for (auto& tx : txHistory) {
-                    Amount swapAmount = 0;
-                    storage::getTxParameter(*walletDB, tx.m_txId, wallet::kDefaultSubTxID,
-                        wallet::TxParameterID::AtomicSwapAmount, swapAmount);
-                    bool isBeamSide = false;
-                    storage::getTxParameter(*walletDB, tx.m_txId, wallet::kDefaultSubTxID,
-                        wallet::TxParameterID::AtomicSwapIsBeamSide, isBeamSide);
-
-                    AtomicSwapCoin swapCoin = AtomicSwapCoin::Unknown;
-                    storage::getTxParameter(*walletDB, tx.m_txId, wallet::kDefaultSubTxID,
-                        wallet::TxParameterID::AtomicSwapCoin, swapCoin);
-
-                    stringstream ss;
-                    ss << (isBeamSide ? kBEAM : to_string(swapCoin)) << " <--> "
-                        << (!isBeamSide ? kBEAM : to_string(swapCoin));
-
-                    cout << boost::format(kSwapTxHistoryTableFormat)
-                        % boost::io::group(left, setw(columnWidths[0]),
-                            format_timestamp(kTimeStampFormat3x3, tx.m_createTime * 1000, false))
-                        % boost::io::group(right, setw(columnWidths[1]),
-                            to_string(PrintableAmount(tx.m_amount, true)))
-                        % boost::io::group(right, setw(columnWidths[2]), swapAmount)
-                        % boost::io::group(right, setw(columnWidths[3]), ss.str())
-                        % boost::io::group(left, setw(columnWidths[4]), interpretStatusCliImpl(tx))
-                        % boost::io::group(left, setw(columnWidths[5]), to_hex(tx.m_txId.data(), tx.m_txId.size()))
-                        << std::endl;
-                }
-            }
-        }
-        #endif
     }
 
     int ShowWalletInfo(const po::variables_map& vm)
@@ -2447,9 +2349,6 @@ namespace
             lelantus::RegisterCreators(*wallet, walletDB);
 #endif
 
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-            RegisterSwapTxCreators(wallet, walletDB);
-#endif  // BEAM_ATOMIC_SWAP_SUPPORT
 #ifdef BEAM_CONFIDENTIAL_ASSETS_SUPPORT
             if (Rules::get().CA.Enabled && wallet::g_AssetsEnabled)
             {
@@ -2924,105 +2823,6 @@ namespace
             });
     }
 
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-    int InitSwap(const po::variables_map& vm)
-    {
-        return DoWalletFunc(vm, [](auto&& vm, auto&& wallet, auto&& walletDB, auto& currentTxID)
-            {
-                if (!wallet->IsWalletInSync())
-                {
-                    return -1;
-                }
-
-                currentTxID = InitSwap(vm, walletDB, *wallet);
-                if (!currentTxID)
-                {
-                    return -1;
-                }
-
-                return 0;
-            });
-    }
-
-    int AcceptSwap(const po::variables_map& vm)
-    {
-        return DoWalletFunc(vm, [](auto&& vm, auto&& wallet, auto&& walletDB, auto& currentTxID)
-            {
-                currentTxID = AcceptSwap(vm, walletDB, *wallet);
-                if (!currentTxID)
-                {
-                    return -1;
-                }
-                return 0;
-            });
-    }
-
-    int SetSwapSettings(const po::variables_map& vm)
-    {
-        if (vm.count(cli::SWAP_COIN) > 0)
-        {
-            auto swapCoin = wallet::from_string(vm[cli::SWAP_COIN].as<string>());
-            auto walletDB = OpenDataBase(vm);
-            if (HasActiveSwapTx(walletDB, swapCoin))
-            {
-                BEAM_LOG_ERROR() << "You cannot change settings while you have transactions in progress. Please wait until transactions are completed and try again.";
-                return -1;
-            }
-
-            return SetSwapSettings(vm, walletDB, swapCoin);
-        }
-
-        BEAM_LOG_ERROR() << "swap_coin should be specified";
-        return -1;
-    }
-
-    int ShowSwapSettings(const po::variables_map& vm)
-    {
-        if (vm.count(cli::SWAP_COIN) > 0)
-        {
-            auto walletDB = OpenDataBase(vm);
-            auto swapCoin = wallet::from_string(vm[cli::SWAP_COIN].as<string>());
-
-            ShowSwapSettings(vm, walletDB, swapCoin);
-            return 0;
-        }
-
-        BEAM_LOG_ERROR() << "swap_coin should be specified";
-        return -1;
-    }
-
-    int EstimateSwapFeerate(const po::variables_map& vm)
-    {
-        if (vm.count(cli::SWAP_COIN) > 0)
-        {
-            auto walletDB = OpenDataBase(vm);
-            auto swapCoin = wallet::from_string(vm[cli::SWAP_COIN].as<string>());
-            Amount feeRate = EstimateSwapFeerate(swapCoin, walletDB);
-
-            cout << "estimate fee rate = " << feeRate << endl;
-            return 0;
-        }
-
-        BEAM_LOG_ERROR() << "swap_coin should be specified";
-        return -1;
-    }
-
-    int GetBalance(const po::variables_map& vm)
-    {
-        if (vm.count(cli::SWAP_COIN) > 0)
-        {
-            auto walletDB = OpenDataBase(vm);
-            auto swapCoin = wallet::from_string(vm[cli::SWAP_COIN].as<string>());
-            Amount balance = GetBalance(swapCoin, walletDB);
-
-            cout << "avaible: " << balance << endl;
-            return 0;
-        }
-
-        BEAM_LOG_ERROR() << "swap_coin should be specified";
-        return -1;
-    }
-#endif // BEAM_ATOMIC_SWAP_SUPPORT
 
     int IssueAsset(const po::variables_map& vm)
     {
@@ -3546,14 +3346,6 @@ int main(int argc, char* argv[])
         {cli::IMPORT_DATA,          ImportWalletData,               "import wallet data from a JSON file"},
         {cli::BLOCK_DETAILS,        ShowBlockDetails,               "print information about specified block"},
         {cli::IMPORT_RECOVERY,      ImportRecovery,                 "import block data from recovery file"},
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-        {cli::SWAP_INIT,            InitSwap,                       "initialize atomic swap"},
-        {cli::SWAP_ACCEPT,          AcceptSwap,                     "accept atomic swap offer"},
-        {cli::SET_SWAP_SETTINGS,    SetSwapSettings,                "set generic atomic swap settings"},
-        {cli::SHOW_SWAP_SETTINGS,   ShowSwapSettings,               "print BTC/LTC/QTUM/DASH/DOGE/ETH-specific swap settings"},
-        {cli::ESTIMATE_SWAP_FEERATE, EstimateSwapFeerate,           "estimate BTC/LTC/QTUM/DASH/DOGE/ETH-specific fee rate"},
-        {cli::GET_BALANCE,          GetBalance,                     "get BTC/LTC/QTUM/DASH/DOGE/ETH balance"},
-#endif // BEAM_ATOMIC_SWAP_SUPPORT
         {cli::GET_ADDRESS,            GetAddress,                   "generate transaction address for a specific receiver (identifiable by SBBS address or wallet's signature)"},
         {cli::SET_CONFIRMATIONS_COUNT, SetConfirmationsCount,       "set count of confirmations before you can't spend coin"},
         {cli::GET_CONFIRMATIONS_COUNT, GetConfirmationsCount,       "get count of confirmations before you can't spend coin"},

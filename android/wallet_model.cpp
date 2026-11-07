@@ -678,14 +678,6 @@ void WalletModel::onAddresses(bool own, const std::vector<WalletAddress>& addres
     env->DeleteLocalRef(addrArray);
 }
 
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-void WalletModel::onSwapOffersChanged(ChangeAction action, const std::vector<SwapOffer>& offers)
-{
-    BEAM_LOG_DEBUG() << "onSwapOffersChanged()";
-
-    // TODO
-}
-#endif  // BEAM_ATOMIC_SWAP_SUPPORT
 
 void WalletModel::onGeneratedNewAddress(const WalletAddress& address)
 {
@@ -1018,21 +1010,6 @@ void WalletModel::onExportTxHistoryToCsv(const std::string& data)
     env->DeleteLocalRef(jdata);
 }
 
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-void WalletModel::onExportAtomicSwapTxHistoryToCsv(const std::string& data) 
-{
-    BEAM_LOG_DEBUG() << "onExportAtomicSwapTxHistoryToCsv()";
-
-    JNIEnv* env = Android_JNI_getEnv();
-
-    jmethodID callback = env->GetStaticMethodID(WalletListenerClass, "onExportAtomicSwapTxHistoryToCsv", "(Ljava/lang/String;)V");
-
-    jstring jdata = env->NewStringUTF(data.c_str());
-
-    env->CallStaticVoidMethod(WalletListenerClass, callback, jdata);
-    env->DeleteLocalRef(jdata);
-}
-#endif // BEAM_ATOMIC_SWAP_SUPPORT
 
 #ifdef BEAM_ASSET_SWAP_SUPPORT
 void WalletModel::onExportAssetsSwapTxHistoryToCsv(const std::string& data) 

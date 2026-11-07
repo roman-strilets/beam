@@ -1,8 +1,0 @@
-add_subdirectory(chain)
-add_subdirectory(config)
-add_subdirectory(formats)
-add_subdirectory(machine)
-add_subdirectory(math)
-add_subdirectory(message)
-add_subdirectory(utility)
-add_subdirectory(wallet)

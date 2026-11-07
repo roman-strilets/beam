@@ -44,10 +44,6 @@
 #include "wallet/ipfs/ipfs_config.h"
 #endif
 
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-#include "extensions/offers_board/swap_offers_observer.h"
-#include "extensions/offers_board/swap_offer.h"
-#endif
 
 #include <thread>
 #include <atomic>
@@ -97,14 +93,10 @@ namespace beam::wallet
         std::set<Asset::ID> nzAssets;
     };
 
-    class SwapOffersBoard;
     class Filter;
 
     class WalletClient
         : private IWalletObserver
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-        , private ISwapOffersObserver
-#endif  // BEAM_ATOMIC_SWAP_SUPPORT
         , private IWalletModelAsync
         , private IWalletDB::IRecoveryProgress
         , private INodeConnectionObserver
@@ -225,9 +217,6 @@ namespace beam::wallet
         virtual void onExportDataToJson(const std::string& data) {}
         virtual void onPostFunctionToClientContext(MessageFunction&& func) {}
         virtual void onExportTxHistoryToCsv(const std::string& data) {}
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-        virtual void onExportAtomicSwapTxHistoryToCsv(const std::string& data) {}
-#endif // BEAM_ATOMIC_SWAP_SUPPORT
 #ifdef BEAM_ASSET_SWAP_SUPPORT
         virtual void onExportAssetsSwapTxHistoryToCsv(const std::string& data) {}
 #endif  // BEAM_ASSET_SWAP_SUPPORT
@@ -253,9 +242,6 @@ namespace beam::wallet
         void onVerificationInfo(const std::vector<VerificationInfo>&) override {}
         virtual void onPublicAddress(const std::string& publicAddr) {}
 
-        #ifdef BEAM_ATOMIC_SWAP_SUPPORT
-        void onSwapOffersChanged(ChangeAction, const std::vector<SwapOffer>& offers) override {}
-        #endif
 
         #ifdef BEAM_IPFS_SUPPORT
         virtual void onIPFSStatus(bool running, const std::string& error, unsigned int peercnt) {}
@@ -287,13 +273,6 @@ namespace beam::wallet
         void getAllUtxosStatus() override;
         void getAddresses(bool own) override;
 
-        #ifdef BEAM_ATOMIC_SWAP_SUPPORT
-        void getSwapOffers() override;
-        void publishSwapOffer(const SwapOffer& offer) override;
-        void loadSwapParams() override;
-        void storeSwapParams(const beam::ByteBuffer& params) override;
-        void CreateSwapTxParams(Amount amount, Amount beamFee, AtomicSwapCoin swapCoin, Amount swapAmount, Amount swapFeeRate, bool isBeamSide, Height responseTime, AsyncCallback<TxParameters&&>&& callback) override;
-        #endif
 
         #ifdef BEAM_IPFS_SUPPORT
         void setIPFSConfig(asio_ipfs::config&&) override;
@@ -450,9 +429,6 @@ namespace beam::wallet
         std::weak_ptr<VerificationProvider> m_verificationProvider;
         std::shared_ptr<NotificationCenter> m_notificationCenter;
 
-        #ifdef BEAM_ATOMIC_SWAP_SUPPORT
-        std::weak_ptr<SwapOffersBoard> m_offersBulletinBoard;
-        #endif  // BEAM_ATOMIC_SWAP_SUPPORT
 
         uint32_t m_connectedNodesCount;
         uint32_t m_trustedConnectionCount;

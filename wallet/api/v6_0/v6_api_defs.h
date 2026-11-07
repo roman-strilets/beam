@@ -17,27 +17,10 @@
 #include "wallet/core/wallet.h"
 #include "wallet/api/base/api_base.h"
 #include "wallet/api/base/api_errors_imp.h"
-#include "wallet/client/extensions/offers_board/swap_offer.h"
 #include "bvm/invoke_data.h"
 
 namespace beam::wallet
 {
-#if defined(BEAM_ATOMIC_SWAP_SUPPORT)
-#define V6_SWAP_METHODS(macro) \
-    macro(OffersList,         "swap_offers_list",          API_READ_ACCESS,  API_SYNC, APPS_BLOCKED)  \
-    macro(OffersBoard,        "swap_offers_board",         API_READ_ACCESS,  API_SYNC, APPS_BLOCKED)  \
-    macro(CreateOffer,        "swap_create_offer",         API_WRITE_ACCESS, API_SYNC, APPS_BLOCKED)  \
-    macro(PublishOffer,       "swap_publish_offer",        API_WRITE_ACCESS, API_SYNC, APPS_BLOCKED)  \
-    macro(AcceptOffer,        "swap_accept_offer",         API_WRITE_ACCESS, API_SYNC, APPS_BLOCKED)  \
-    macro(OfferStatus,        "swap_offer_status",         API_READ_ACCESS,  API_SYNC, APPS_BLOCKED)  \
-    macro(DecodeToken,        "swap_decode_token",         API_READ_ACCESS,  API_SYNC, APPS_BLOCKED)  \
-    macro(GetBalance,         "swap_get_balance",          API_READ_ACCESS,  API_SYNC, APPS_BLOCKED)  \
-    macro(RecommendedFeeRate, "swap_recommended_fee_rate", API_READ_ACCESS,  API_SYNC, APPS_BLOCKED)  \
-    macro(CancelOffer,        "swap_cancel_offer",         API_WRITE_ACCESS, API_SYNC, APPS_BLOCKED)
-#else  // !BEAM_ATOMIC_SWAP_SUPPORT
-#define V6_SWAP_METHODS(macro)
-#endif  // BEAM_ATOMIC_SWAP_SUPPORT
-
 #define V6_API_METHODS(macro) \
     macro(CreateAddress,         "create_address",          API_WRITE_ACCESS, API_SYNC,  APPS_ALLOWED)   \
     macro(DeleteAddress,         "delete_address",          API_WRITE_ACCESS, API_SYNC,  APPS_ALLOWED)   \
@@ -65,8 +48,7 @@ namespace beam::wallet
     macro(ProcessInvokeData,     "process_invoke_data",     API_WRITE_ACCESS, API_ASYNC, APPS_ALLOWED)   \
     macro(BlockDetails,          "block_details",           API_READ_ACCESS,  API_ASYNC, APPS_ALLOWED)   \
     macro(CalcChange,            "calc_change",             API_READ_ACCESS,  API_SYNC,  APPS_ALLOWED)   \
-    macro(ChangePassword,        "change_password",         API_WRITE_ACCESS, API_SYNC,  APPS_BLOCKED)   \
-    V6_SWAP_METHODS(macro)
+    macro(ChangePassword,        "change_password",         API_WRITE_ACCESS, API_SYNC,  APPS_BLOCKED)
 
     struct CalcChange
     {
@@ -447,130 +429,4 @@ namespace beam::wallet
         };
     };
 
-    #if defined(BEAM_ATOMIC_SWAP_SUPPORT)
-    struct OfferInput
-    {
-        Amount beamAmount = 0;
-        Amount swapAmount = 0;
-        AtomicSwapCoin swapCoin = AtomicSwapCoin::Bitcoin;
-        bool isBeamSide = true;
-        Amount beamFee = 0;
-        Amount swapFeeRate = 0;
-        Height offerLifetime = 15;
-        std::string comment;
-    };
-
-    struct OffersList
-    {
-        struct
-        {
-            boost::optional<AtomicSwapCoin> swapCoin;
-            boost::optional<SwapOfferStatus> status;
-        } filter;
-        struct Response
-        {
-            std::vector<WalletAddress> addrList;
-            Height systemHeight;
-            std::vector<SwapOffer> list;
-        };
-    };
-
-    struct OffersBoard
-    {
-        struct
-        {
-            boost::optional<AtomicSwapCoin> swapCoin;
-        } filter;
-        struct Response
-        {
-            std::vector<WalletAddress> addrList;
-            Height systemHeight;
-            std::vector<SwapOffer> list;
-        };
-    };
-
-    struct CreateOffer : public OfferInput
-    {
-        CreateOffer() = default;
-        explicit CreateOffer(const OfferInput& oi) : OfferInput(oi) {}
-        struct Response
-        {
-            std::vector<WalletAddress> addrList;
-            Height systemHeight;
-            std::string token;
-            TxID txId;
-        };
-    };
-
-    struct PublishOffer
-    {
-        std::string token;
-        struct Response
-        {
-            std::vector<WalletAddress> addrList;
-            Height systemHeight;
-            SwapOffer offer;
-        };
-    };
-
-    struct AcceptOffer
-    {
-        std::string token;
-        Amount beamFee = 0;
-        Amount swapFeeRate = 0;
-        std::string comment;
-        struct Response
-        {
-            std::vector<WalletAddress> addrList;
-            Height systemHeight;
-            SwapOffer offer;
-        };
-    };
-
-    struct OfferStatus
-    {
-        TxID txId;
-        struct Response
-        {
-            Height systemHeight;
-            SwapOffer offer;
-        };
-    };
-
-    struct DecodeToken
-    {
-        std::string token;
-        struct Response
-        {
-            SwapOffer offer;
-            bool isMyOffer;
-            bool isPublic;
-        };
-    };
-
-    struct GetBalance
-    {
-        AtomicSwapCoin coin;
-        struct Response
-        {
-            Amount available;
-        };
-    };
-
-    struct RecommendedFeeRate
-    {
-        AtomicSwapCoin coin;
-        struct Response
-        {
-            Amount feeRate;
-        };
-    };
-
-    struct CancelOffer: public TxCancel
-    {
-        struct Response: public TxCancel::Response
-        {
-        };
-    };
-#endif  // BEAM_ATOMIC_SWAP_SUPPORT
 }

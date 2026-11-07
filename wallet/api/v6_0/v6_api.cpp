@@ -19,7 +19,6 @@ namespace beam::wallet
         : ApiBase(handler, init)
         , _wdb(init.walletDB)
         , _wallet(init.wallet)
-        , _swaps(init.swaps)
         , _contracts(init.contracts)
         #ifdef BEAM_IPFS_SUPPORT
         , _ipfs(init.ipfs)
@@ -89,17 +88,6 @@ namespace beam::wallet
 
         assertWalletThread();
         return _wallet;
-    }
-
-    ISwapsProvider::Ptr V6Api::getSwaps() const
-    {
-        if (_swaps == nullptr)
-        {
-            throw jsonrpc_exception(ApiError::NoSwapsError);
-        }
-
-        assertWalletThread();
-        return _swaps;
     }
 
     IShadersManager::Ptr V6Api::getContracts() const

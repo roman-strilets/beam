@@ -27,10 +27,6 @@
 #include "extensions/news_channels/wallet_updates_provider.h"
 #include "extensions/news_channels/exchange_rate_provider.h"
 #include "utility/fsutils.h"
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-#include "wallet/client/extensions/offers_board/swap_offers_board.h"
-#include "wallet/transactions/swaps/swap_transaction.h"
-#endif  // BEAM_ATOMIC_SWAP_SUPPORT
 #ifdef BEAM_LELANTUS_SUPPORT
 #include "wallet/transactions/lelantus/push_transaction.h"
 #endif // BEAM_LELANTUS_SUPPORT
@@ -158,33 +154,6 @@ struct WalletModelBridge : public Bridge<IWalletModelAsync>
         call_async(&IWalletModelAsync::loadFullAssetsList);
     }
 
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT    
-    void getSwapOffers() override
-    {
-		call_async(&IWalletModelAsync::getSwapOffers);
-    }
-
-    void publishSwapOffer(const wallet::SwapOffer& offer) override
-    {
-		call_async(&IWalletModelAsync::publishSwapOffer, offer);
-    }
-
-    void CreateSwapTxParams(Amount amount, Amount beamFee, AtomicSwapCoin swapCoin, Amount swapAmount, Amount swapFeeRate, bool isBeamSide, Height responseTime, AsyncCallback<TxParameters&&>&& callback) override
-    {
-        typedef void(IWalletModelAsync::* MethodType)(Amount, Amount, AtomicSwapCoin, Amount, Amount, bool, Height, AsyncCallback<TxParameters&&>&&);
-        call_async((MethodType)&IWalletModelAsync::CreateSwapTxParams, amount, beamFee, swapCoin, swapAmount, swapFeeRate, isBeamSide, responseTime, std::move(callback));
-    }
-
-    void loadSwapParams() override
-    {
-        call_async(&IWalletModelAsync::loadSwapParams);
-    }
-
-    void storeSwapParams(const beam::ByteBuffer& params) override
-    {
-        call_async(&IWalletModelAsync::storeSwapParams, params);
-    }
-#endif
 
 #ifdef BEAM_ASSET_SWAP_SUPPORT
     void loadDexOrderParams() override
@@ -798,13 +767,6 @@ namespace beam::wallet
                 using VerificationSubscriber = ScopedSubscriber<IVerificationObserver, VerificationProvider>;
 
                 std::shared_ptr<BroadcastRouter> broadcastRouter;
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-                using SwapOffersBoardSubscriber = ScopedSubscriber<ISwapOffersObserver, SwapOffersBoard>;
-                std::unique_ptr<OfferBoardProtocolHandler> protocolHandler;
-                std::shared_ptr<SwapOffersBoard> offersBulletinBoard;
-                std::unique_ptr<WalletDbSubscriber> walletDbSubscriber;
-                std::unique_ptr<SwapOffersBoardSubscriber> swapOffersBoardSubscriber;
-#endif
                 std::shared_ptr<BroadcastMsgValidator> broadcastValidator;
                 std::shared_ptr<WalletUpdatesProvider> walletUpdatesProvider;
                 std::shared_ptr<ExchangeRateProvider> exchangeRateProvider;
@@ -826,18 +788,6 @@ namespace beam::wallet
                     broadcastRouter = make_shared<BroadcastRouter>(nodeNetwork, *walletNetwork, std::make_shared<BroadcastRouter::BbsTsHolder>(m_walletDB));
                     m_broadcastRouter = broadcastRouter;
 
-                    // Swap offer board uses broadcasting messages
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-                    protocolHandler = make_unique<OfferBoardProtocolHandler>(m_walletDB->get_SbbsKdf());
-
-                    offersBulletinBoard = make_shared<SwapOffersBoard>(*broadcastRouter, *protocolHandler, m_walletDB);
-                    m_offersBulletinBoard = offersBulletinBoard;
-
-                    walletDbSubscriber = make_unique<WalletDbSubscriber>(
-                        static_cast<IWalletDbObserver*>(offersBulletinBoard.get()), m_walletDB);
-                    swapOffersBoardSubscriber = make_unique<SwapOffersBoardSubscriber>(
-                        static_cast<ISwapOffersObserver*>(this), offersBulletinBoard);
-#endif
                     // Broadcast validator initialization. It verifies messages signatures.
                     broadcastValidator = make_shared<BroadcastMsgValidator>();
                     {
@@ -1624,78 +1574,6 @@ namespace beam::wallet
         onAddresses(own, m_walletDB->getAddresses(own));
     }
 
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-    void WalletClient::getSwapOffers()
-    {
-        if (auto p = m_offersBulletinBoard.lock())
-        {
-            onSwapOffersChanged(ChangeAction::Reset, p->getOffersList());
-        }
-    }
-
-    void WalletClient::publishSwapOffer(const SwapOffer& offer)
-    {
-        if (auto p = m_offersBulletinBoard.lock())
-        {
-            try
-            {
-                p->publishOffer(offer);
-            }
-            catch (const std::runtime_error& e)
-            {
-                BEAM_LOG_ERROR() << offer.m_txId << e.what();
-            }
-        }
-    }
-
-    namespace {
-        const char* SWAP_PARAMS_NAME = "LastSwapParams";
-    }
-
-    void WalletClient::loadSwapParams()
-    {
-        ByteBuffer params;
-        m_walletDB->getBlob(SWAP_PARAMS_NAME, params);
-        onSwapParamsLoaded(params);
-    }
-
-    void WalletClient::storeSwapParams(const ByteBuffer& params)
-    {
-        m_walletDB->setVarRaw(SWAP_PARAMS_NAME, params.data(), params.size());
-    }
-
-    void WalletClient::CreateSwapTxParams(Amount amount, Amount beamFee, AtomicSwapCoin swapCoin, Amount swapAmount, Amount swapFeeRate, bool isBeamSide, Height responseTime, AsyncCallback<TxParameters&&>&& callback)
-    {
-        TxParameters res;
-        try
-        {
-            res = CreateSwapTransactionParameters();
-
-            FillSwapTxParams(
-                &res,
-                *m_walletDB,
-                getCurrentHeight(),
-                amount,
-                beamFee,
-                swapCoin,
-                swapAmount,
-                swapFeeRate,
-                isBeamSide,
-                responseTime);
-
-        }
-        catch (const std::exception& e)
-        {
-            BEAM_LOG_UNHANDLED_EXCEPTION() << "what = " << e.what();
-        }
-        catch (...) {
-            BEAM_LOG_UNHANDLED_EXCEPTION();
-        }
-
-        callback(std::move(res));
-    }
-
-#endif  // BEAM_ATOMIC_SWAP_SUPPORT
 
     void WalletClient::cancelTx(const TxID& id)
     {
@@ -2247,10 +2125,6 @@ namespace beam::wallet
     {
         auto data = ExportTxHistoryToCsv(*m_walletDB);
         onExportTxHistoryToCsv(data);
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-        auto dataAtomicSwap = ExportAtomicSwapTxHistoryToCsv(*m_walletDB);
-        onExportAtomicSwapTxHistoryToCsv(dataAtomicSwap);
-#endif // BEAM_ATOMIC_SWAP_SUPPORT
 
 #ifdef BEAM_ASSET_SWAP_SUPPORT
         auto dataAssetsSwap = ExportAssetsSwapTxHistoryToCsv(*m_walletDB);

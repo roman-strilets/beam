@@ -44,9 +44,6 @@ private:
     void onShieldedCoinChanged(beam::wallet::ChangeAction, const std::vector<beam::wallet::ShieldedCoin>&) override;
     void onAddressesChanged(beam::wallet::ChangeAction, const std::vector<beam::wallet::WalletAddress>& addresses) override;
     void onAddresses(bool own, const std::vector<beam::wallet::WalletAddress>& addrs) override;
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-    void onSwapOffersChanged(beam::wallet::ChangeAction action, const std::vector<beam::wallet::SwapOffer>& offers) override;
-#endif  // BEAM_ATOMIC_SWAP_SUPPORT
     void onGeneratedNewAddress(const beam::wallet::WalletAddress& walletAddr) override;
     void onGetAddress(const beam::wallet::WalletID& addr, const boost::optional<beam::wallet::WalletAddress>& address, size_t offlinePayments) override;
     void onSwapParamsLoaded(const beam::ByteBuffer& params) override;
@@ -66,9 +63,6 @@ private:
     void onExportDataToJson(const std::string& data) override;
     void onPostFunctionToClientContext(MessageFunction&& func) override;
     void onExportTxHistoryToCsv(const std::string& data) override;
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-    void onExportAtomicSwapTxHistoryToCsv(const std::string& data) override;
-#endif // BEAM_ATOMIC_SWAP_SUPPORT
 #ifdef BEAM_ASSET_SWAP_SUPPORT
     void onExportAssetsSwapTxHistoryToCsv(const std::string& data) override;
 #endif  // BEAM_ASSET_SWAP_SUPPORT

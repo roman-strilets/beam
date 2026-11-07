@@ -17,9 +17,6 @@
 #include "wallet/core/common_utils.h"
 #include "utility/fsutils.h"
 #include "bvm/ManagerStd.h"
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-#include "wallet/transactions/swaps/swap_tx_description.h"
-#endif // BEAM_ATOMIC_SWAP_SUPPORT
 
 namespace
 {
@@ -82,76 +79,6 @@ namespace beam::wallet
         return aid;
     }
 
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-    void AddSwapTxDetailsToJson(const TxDescription& tx, json& msg)
-    {
-        SwapTxDescription swapTx(tx);
-
-        msg["is_beam_side"] = swapTx.isBeamSide();
-        msg["swap_value"] = swapTx.getSwapAmount();
-
-        auto fee = swapTx.getFee();
-        if (fee)
-        {
-            msg["fee"] = *fee;
-        }
-        auto feeRate = swapTx.getSwapCoinFeeRate();
-        if (feeRate)
-        {
-            msg["swap_fee_rate"] = *feeRate;
-        }
-
-        auto beamLockTxKernelID = swapTx.getBeamTxKernelId<SubTxIndex::BEAM_LOCK_TX>();
-        if (beamLockTxKernelID)
-        {
-            msg["beam_lock_kernel_id"] = *beamLockTxKernelID;
-        }
-
-        std::string coinName = std::to_string(swapTx.getSwapCoin());
-        std::locale loc;
-        std::transform(coinName.begin(),
-                       coinName.end(),
-                       coinName.begin(),
-                       [&loc](char c) -> char { return std::tolower(c, loc); });
-        if (!coinName.empty())
-        {
-            msg["swap_coin"] = coinName;
-            coinName.push_back('_');
-        }
-
-        auto swapCoinLockTxID = swapTx.getSwapCoinTxId<SubTxIndex::LOCK_TX>();
-        if (swapCoinLockTxID)
-        {
-            std::string lockTxIdStr = "lock_tx_id";
-            msg[coinName + lockTxIdStr] = *swapCoinLockTxID;
-        }
-        auto swapCoinLockTxConfirmations = swapTx.getSwapCoinTxConfirmations<SubTxIndex::LOCK_TX>();
-        if (swapCoinLockTxConfirmations && swapTx.isBeamSide())
-        {
-            std::string lockTxConfirmationsStr = "lock_tx_confirmations";
-            msg[coinName + lockTxConfirmationsStr] = *swapCoinLockTxConfirmations;
-        }
-
-        auto swapCoinRedeemTxID = swapTx.getSwapCoinTxId<SubTxIndex::REDEEM_TX>();
-        if (swapCoinRedeemTxID && swapTx.isBeamSide() && swapTx.isLockTxProofReceived())
-        {
-            std::string redeemTxIdStr = "redeem_tx_id";
-            msg[coinName + redeemTxIdStr] = *swapCoinRedeemTxID;
-        }
-        auto swapCoinRedeemTxConfirmations = swapTx.getSwapCoinTxConfirmations<SubTxIndex::REDEEM_TX>();
-        if (swapCoinRedeemTxConfirmations && swapTx.isBeamSide() && swapTx.isLockTxProofReceived())
-        {
-            std::string redeemTxConfirmationsStr = "redeem_tx_confirmations";
-            msg[coinName + redeemTxConfirmationsStr] = *swapCoinRedeemTxConfirmations;
-        }
-
-        auto failureReason = swapTx.getFailureReason();
-        if (failureReason)
-        {
-            msg["failure_reason"] = GetFailureMessage(*failureReason);
-        }
-    }
-#endif // BEAM_ATOMIC_SWAP_SUPPORT
 
     void GetStatusResponseJson(const TxDescription& tx,
         json& msg,
@@ -171,12 +98,6 @@ namespace beam::wallet
         else if (tx.m_txType == TxType::PushTransaction)
         {
             statusStr = beam::wallet::GetMaxAnonimityTxStatusStr(tx);
-        }
-        else if (tx.m_txType == TxType::AtomicSwap)
-        {
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-            statusStr = beam::wallet::GetSwapTxStatusStr(tx);
-#endif // BEAM_ATOMIC_SWAP_SUPPORT
         }
         else if (tx.m_txType == TxType::Contract)
         {
@@ -327,12 +248,6 @@ namespace beam::wallet
             msg["receiver_identity"] = receiverIdentity;
         }
 
-        #ifdef BEAM_ATOMIC_SWAP_SUPPORT
-        if (tx.m_txType == TxType::AtomicSwap)
-        {
-            AddSwapTxDetailsToJson(tx, msg);
-        }
-        #endif // BEAM_ATOMIC_SWAP_SUPPORT
 
         if (withRates)
         {

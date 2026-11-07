@@ -20,9 +20,6 @@
 namespace beam::wallet
 {
 std::string ExportTxHistoryToCsv(const IWalletDB& db);
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-std::string ExportAtomicSwapTxHistoryToCsv(const IWalletDB& db);
-#endif // BEAM_ATOMIC_SWAP_SUPPORT
 #ifdef BEAM_ASSET_SWAP_SUPPORT
 std::string ExportAssetsSwapTxHistoryToCsv(const IWalletDB& db);
 #endif  // BEAM_ASSET_SWAP_SUPPORT

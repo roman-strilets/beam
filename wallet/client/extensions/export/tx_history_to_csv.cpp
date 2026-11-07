@@ -16,7 +16,6 @@
 #include "bvm/invoke_data.h"
 #include "core/block_crypt.h"
 #include "wallet/core/common.h"
-#include "wallet/transactions/swaps/swap_tx_description.h"
 #include <boost/serialization/nvp.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 
@@ -144,48 +143,6 @@ std::string ExportTxHistoryToCsv(const IWalletDB& db)
     return ss.str();
 }
 
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-std::string ExportAtomicSwapTxHistoryToCsv(const IWalletDB& db)
-{
-    std::stringstream ss;
-    ss << "Date | Time" << ","
-       << "Amount sent" << ","
-       << "Unit name sent" << ","
-       << "Amount received" << ","
-       << "Unit name received" << ","
-       << "\"Transaction fee, BEAM\"" << ","
-       << "\"Swap coin fee rate\"" << ","
-       << "Status" << ","
-       << "Peer address" << ","
-       << "My address" << ","
-       << "Transaction ID" << std::endl;
-
-    auto atomicSwapTransactions = db.getTxHistory(TxType::AtomicSwap);
-    for (const auto& tx : atomicSwapTransactions)
-    {
-        auto stx = beam::wallet::SwapTxDescription(tx);
-        bool isBeamSide = stx.isBeamSide();
-        Amount swapAmount = stx.getSwapAmount();
-        std::string swapCoin = std::to_string(stx.getSwapCoin());
-        Amount beamAmount = tx.m_amount;
-        std::string beamUnit = "BEAM";
-
-        ss  << format_timestamp(kTimeStampFormatCsv, tx.m_createTime * 1000, false) << "," // Date | Time
-            << PrintableAmount(isBeamSide ? beamAmount : swapAmount, true) << ","          // "Amount sent"
-            << (isBeamSide ? beamUnit : swapCoin) << ","                                   // "Unit name sent"
-            << PrintableAmount(isBeamSide ? swapAmount : beamAmount, true) << ","          // "Amount received"
-            << (isBeamSide ? swapCoin : beamUnit)  << ","                                  // "Unit name received"
-            << "\"" << PrintableAmount(*(stx.getFee()), true) << "\"" << ","               // Transaction fee, BEAM
-            << "\"" << PrintableAmount(*(stx.getSwapCoinFeeRate()), true) << "\"" << ","   // Swap coin fee rate
-            << beam::wallet::GetSwapTxStatusStr(tx) << ","                                 // Status
-            << std::to_string(tx.m_peerAddr) << ","                                        // Peer address
-            << std::to_string(tx.m_myAddr) << ","                                          // My address
-            << to_hex(tx.m_txId.data(), tx.m_txId.size()) << std::endl;                    // Transaction ID
-    }
-
-    return ss.str();
-}
-#endif // BEAM_ATOMIC_SWAP_SUPPORT
 
 #ifdef BEAM_ASSET_SWAP_SUPPORT
 std::string ExportAssetsSwapTxHistoryToCsv(const IWalletDB& db)

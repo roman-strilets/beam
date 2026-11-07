@@ -14,13 +14,6 @@ if(BEAM_LASER_SUPPORT)
     )
 endif()
 
-if(BEAM_ATOMIC_SWAP_SUPPORT)
-    set(CLI_SRC
-        ${CLI_SRC}
-        swaps.cpp
-    )
-endif()
-
 if(BEAM_ASSET_SWAP_SUPPORT)
     set(CLI_SRC
         ${CLI_SRC}

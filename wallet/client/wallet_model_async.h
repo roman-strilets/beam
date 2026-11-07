@@ -15,7 +15,6 @@
 
 #include "wallet/core/common_utils.h"
 #include "wallet/core/common.h"
-#include "wallet/transactions/swaps/common.h"
 #include "boost/any.hpp"
 #ifdef BEAM_IPFS_SUPPORT
 #include <asio-ipfs/include/ipfs_config.h>
@@ -27,9 +26,6 @@ namespace beam::wallet
     class  DexOrder;
     struct DexOrderID;
 #endif  // BEAM_ASSET_SWAP_SUPPORT
-    #ifdef BEAM_ATOMIC_SWAP_SUPPORT
-    struct SwapOffer;
-    #endif
     struct IWalletModelAsync
     {
         using Ptr = std::shared_ptr<IWalletModelAsync>;
@@ -54,13 +50,6 @@ namespace beam::wallet
         virtual void generateNewAddress(AsyncCallback<const WalletAddress&>&& callback) = 0;
         virtual void generateToken(TokenType, Amount, Asset::ID, std::string sVer, bool newAddress, AsyncCallback<std::string&&>&& callback) = 0;
 
-        #ifdef BEAM_ATOMIC_SWAP_SUPPORT
-        virtual void loadSwapParams() = 0;
-        virtual void storeSwapParams(const beam::ByteBuffer& params) = 0;
-        virtual void getSwapOffers() = 0;
-        virtual void publishSwapOffer(const SwapOffer& offer) = 0;
-        virtual void CreateSwapTxParams(Amount amount, Amount beamFee, AtomicSwapCoin swapCoin, Amount swapAmount, Amount swapFeeRate, bool isBeamSide, Height responseTime, AsyncCallback<TxParameters&&>&& callback) = 0;
-        #endif
 
         #ifdef BEAM_IPFS_SUPPORT
         virtual void setIPFSConfig(asio_ipfs::config&&) = 0;

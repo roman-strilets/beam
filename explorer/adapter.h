@@ -76,10 +76,6 @@ struct IAdapter {
     virtual json get_hdrs(Height hMax, uint64_t nMax, uint64_t dn, const TotalsCol* pCols, uint32_t nCols) = 0;
     virtual json get_peers() = 0;
 
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-    virtual json get_swap_offers() = 0;
-    virtual json get_swap_totals() = 0;
-#endif  // BEAM_ATOMIC_SWAP_SUPPORT
 #ifdef BEAM_ASSET_SWAP_SUPPORT
     virtual json get_asset_swaps() = 0;
     virtual json get_asset_swaps_totals() = 0;

@@ -6,7 +6,6 @@ if (NOT TARGET sid_generator)
         COMMAND ${CMAKE_COMMAND} 
                                     -DCMAKE_BUILD_TYPE=Release
                                     -DBEAM_BVM_ONLY=TRUE
-                                    -DBEAM_ATOMIC_SWAP_SUPPORT=FALSE
                                     -DBEAM_WALLET_CLIENT_LIBRARY=TRUE
                                     -DBEAM_TESTS_ENABLED=FALSE
                                     -S ${BEAM_PROJECT_SOURCE_DIR}

@@ -79,17 +79,6 @@ namespace Shaders {
 
 namespace
 {
-    struct AtomicSwapProvider : ISwapsProvider
-    {
-    public:
-        Amount getCoinAvailable(AtomicSwapCoin swapCoin) const override { throw std::runtime_error("not impl"); }
-        Amount getRecommendedFeeRate(AtomicSwapCoin swapCoin) const override { throw std::runtime_error("not impl"); }
-        Amount getMinFeeRate(AtomicSwapCoin swapCoin) const override { throw std::runtime_error("not impl"); }
-        Amount getMaxFeeRate(AtomicSwapCoin swapCoin) const override { throw std::runtime_error("not impl"); }
-        const SwapOffersBoard& getSwapOffersBoard() const override { throw std::runtime_error("not impl"); }
-        bool isCoinClientConnected(AtomicSwapCoin swapCoin) const override { throw std::runtime_error("not impl"); }
-    };
-
     struct ApiTest
         : public IWalletApiHandler
         , public beam::wallet::V6Api
@@ -202,12 +191,9 @@ namespace
         auto rh = receiver.m_WalletDB->getTxHistory();
         WALLET_CHECK(rh.size() == Count);
 
-        auto asp = std::make_shared<AtomicSwapProvider>();
-
         ApiInitData data;
         data.walletDB = sender.m_WalletDB;
         data.wallet = sender.m_Wallet;
-        data.swaps = asp;
 
         ApiTest api(data);
         TxList message;

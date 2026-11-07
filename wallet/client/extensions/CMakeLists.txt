@@ -5,9 +5,6 @@ add_library(client_extensions INTERFACE)
 add_subdirectory(broadcast_gateway)
 target_link_libraries(client_extensions INTERFACE broadcast_gateway)
 
-add_subdirectory(offers_board)
-target_link_libraries(client_extensions INTERFACE swap_offers_board)
-
 if(BEAM_ASSET_SWAP_SUPPORT)
     add_subdirectory(dex_board)
     target_link_libraries(client_extensions INTERFACE dex_board)

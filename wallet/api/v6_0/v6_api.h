@@ -29,7 +29,6 @@ namespace beam::wallet
 
         virtual IWalletDB::Ptr       getWalletDB() const;
         virtual Wallet::Ptr          getWallet() const;
-        virtual ISwapsProvider::Ptr  getSwaps() const;
         virtual IShadersManager::Ptr getContracts() const;
         virtual Height               get_TipHeight() const;
 
@@ -80,7 +79,6 @@ namespace beam::wallet
         // Do not access these directly, use getters
         IWalletDB::Ptr       _wdb;
         Wallet::Ptr          _wallet;
-        ISwapsProvider::Ptr  _swaps;
         IShadersManager::Ptr _contracts;
 
         #ifdef BEAM_IPFS_SUPPORT

@@ -52,25 +52,12 @@ namespace beam
         extern const char* NODE_PEER;
         extern const char* NODE_PEERS_PERSISTENT;
         extern const char* PASS;
-        extern const char* SET_SWAP_SETTINGS;
-        extern const char* ACTIVE_CONNECTION;
-        extern const char* SWAP_WALLET_PASS;
-        extern const char* SWAP_WALLET_USER;
-        extern const char* ALTCOIN_SETTINGS_RESET;
-        extern const char* SHOW_SWAP_SETTINGS;
-        extern const char* ELECTRUM_SEED;
-        extern const char* GENERATE_ELECTRUM_SEED;
-        extern const char* SELECT_SERVER_AUTOMATICALLY;
-        extern const char* ELECTRUM_ADDR;
-        extern const char* ADDRESSES_TO_RECEIVE;
-        extern const char* ADDRESSES_FOR_CHANGE;
         extern const char* AMOUNT;
         extern const char* AMOUNT_FULL;
         extern const char* RECEIVER_ADDR;
         extern const char* RECEIVER_ADDR_FULL;
         extern const char* NODE_ADDR;
         extern const char* NODE_ADDR_FULL;
-        extern const char* SWAP_WALLET_ADDR;
         extern const char* COMMAND;
         extern const char* NODE;
         extern const char* WALLET;
@@ -166,16 +153,6 @@ namespace beam
         extern const char* GENERATE_RECOVERY_PATH;
         extern const char* RECOVERY_AUTO_PATH;
         extern const char* RECOVERY_AUTO_PERIOD;
-        extern const char* SWAP_INIT;
-        extern const char* SWAP_ACCEPT;
-        extern const char* SWAP_TOKEN;
-        extern const char* SWAP_AMOUNT;
-        extern const char* SWAP_FEERATE;
-        extern const char* ESTIMATE_SWAP_FEERATE;
-        extern const char* GET_BALANCE;
-        extern const char* SWAP_COIN;
-        extern const char* SWAP_BEAM_SIDE;
-        extern const char* SWAP_TX_HISTORY;
         extern const char* NODE_POLL_PERIOD;
         extern const char* WITH_SYNC_PIPES;
         extern const char* PROXY_USE;
@@ -186,13 +163,6 @@ namespace beam
         extern const char* CONFIG_FILE_PATH;
         extern const char* REQUEST_BODIES;
         extern const char* IMPORT_RECOVERY;
-        // ethereum
-        extern const char* ETHEREUM_SEED;
-        extern const char* INFURA_PROJECT_ID;
-        extern const char* ACCOUNT_INDEX;
-        extern const char* SHOULD_CONNECT;
-        extern const char* ETH_GAS_PRICE;
-        extern const char* ETH_SWAP_AMOUNT;
         // values
         extern const char* EXPIRATION_TIME_24H;
         extern const char* EXPIRATION_TIME_AUTO;

@@ -2051,8 +2051,6 @@
             <span class="menuSeparator"> | </span>
             <span class="menuItem" data-page="contracts"><a href="?type=contracts" title="List of currently deployed Smart Contracts">Smart Contracts</a></span>
             <span class="menuSeparator"> | </span>
-            <span class="menuItem" data-page="swap_offers"><a href="?type=swap_offers" title="List of current Atomic Swap offers">Atomic Swaps</a></span>
-            <span class="menuSeparator"> | </span>
             <span class="menuItem" data-page="asset_swaps"><a href="?type=asset_swaps" title="List of current Asset Swap offers">Asset Swaps</a></span>
             <span class="menuSeparator"> | </span>
             <span class="menuItem" data-page="historical"><a href="?type=historical" title="List of special historical blocks">Historical blocks</a></span>
@@ -3015,61 +3013,6 @@
     SetContent(text);
   }
 
-  function DisplayAtomicSwaps() {
-    const jData = JSON.parse(this.responseText);
-
-    let text = '<h2 class="title">Atomic Swaps</h2>';
-    if (jData.length === 0) {
-      text += '<p class="errorMessage">There are currently no offers for Atomic Swaps.</p>';
-    } else {
-      text += MakeCollapsibleBegin('Offers (' + jData.length + ')');
-      text += '<table class="dataTable" border="1" cellspacing="0"><thead><tr>'
-            + '<th><span class="th">Sends</span></th>'
-            + '<th><span class="th">For</span></th>'
-            + '<th><span class="th">Created</span></th>'
-            + '<th><span class="th">Expires</span></th>'
-            + '<th><span class="th">Order ID</span></th>'
-            + '</tr></thead>';
-      for (const o of jData) {
-        const beam = MakeAmountClr(o.beam_amount) + ' BEAM';
-        text += '<tr>'
-              + MakeCellRA(o.is_beam_side ? beam : escapeHtml(o.swap_amount))
-              + MakeCellRA(o.is_beam_side ? escapeHtml(o.swap_amount) : beam)
-              + MakeCell(escapeHtml(o.time_created))
-              + MakeCellRA(escapeHtml(o.height_expired))
-              + MakeCell(escapeHtml(o.txId))
-              + '</tr>';
-      }
-      text += '</table>';
-      text += MakeCollapsibleEnd();
-      text += MakeCollapsibleBegin('Totals');
-      text += '<div id="divSwapTotals"><p>Loading...</p></div>';
-      text += MakeCollapsibleEnd();
-    }
-
-    SetContent(text);
-
-    // Get Atomic Swap totals (new node request)
-    if (jData.length !== 0) {
-      fetchAPI('swap_totals')
-        .then(data => {
-          DisplayAtomicSwapTotals.call({ responseText: JSON.stringify(data) });
-        })
-        .catch(err => {
-          console.error('Failed to load atomic swap totals:', err);
-          const el = document.getElementById('divSwapTotals');
-          if (el) el.innerHTML = '<p class="errorMessage">Error loading totals.</p>';
-        });
-    }
-  }
-
-  function DisplayAtomicSwapTotals() { // Query node for Atomic Swap totals and display them in existing 'div'
-    const jData = JSON.parse(this.responseText);
-    let text = Obj2Html(jData);
-    const el = document.getElementById('divSwapTotals'); // Check the div still exists
-    if (el) el.innerHTML = text;
-  }
-
   function DisplayAssetSwaps() {
     const jData = JSON.parse(this.responseText);
 
@@ -3435,7 +3378,6 @@
     'asset': { display: DisplayAssetHistory, params: ['id', 'nMaxOps', 'hMin', 'hMax'] },
     'contracts': { display: DisplayContracts, params: [] },
     'contract': { display: DisplayContractState, params: ['id', 'nMaxTxs', 'hMin', 'hMax'] },
-    'swap_offers': { display: DisplayAtomicSwaps, params: [] }, // 'swap_totals' will be called from within 'DisplayAtomicSwaps()'
     'asset_swaps': { display: DisplayAssetSwaps, params: [] }, // 'asset_swaps_totals' will be called from within 'DisplayAssetSwaps()'
     'historical': { display: DisplayHistoricalBlocks, static: true, params: [] }, // Specific to this front end (it's a static page)
     'treasury': { display: DisplayBlock, params: [] } //  Specific to this front end (it's type 'block' with 'height=0')

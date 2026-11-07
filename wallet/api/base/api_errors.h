@@ -27,15 +27,10 @@ namespace beam::wallet
     macro(-32005, NotSupported,              "Feature is not supported")            \
     macro(-32006, InvalidPaymentProof,       "Invalid payment proof provided")      \
     macro(-32007, PaymentProofExportError,   "Cannot export payment proof")         \
-    macro(-32008, SwapFailToParseToken,      "Invalid swap token.")                 \
-    macro(-32009, SwapFailToAcceptOwn,       "Can't accept own swap offer.")        \
-    macro(-32010, SwapNotEnoughtBeams,       "Not enough BEAM.")                    \
-    macro(-32011, SwapFailToConnect,         "Doesn't have an active connection.")  \
     macro(-32012, DatabaseError,             "Database error")                      \
     macro(-32013, DatabaseNotFound,          "Database not found")                  \
     macro(-32014, ThrottleError,             "Requests limit exceeded")             \
     macro(-32015, NotOpenedError,            "Wallet not opened")                   \
-    macro(-32016, NoSwapsError,              "Swaps are not enabled")               \
     macro(-32017, UnexpectedError,           "Unexpected call")                     \
     macro(-32018, ContractCompileError,      "Failed to compile contract")          \
     macro(-32019, ContractError,             "Contract call failed")                \

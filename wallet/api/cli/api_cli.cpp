@@ -42,9 +42,6 @@
 #include "wallet/transactions/assets/assets_reg_creators.h"
 #include "wallet/transactions/lelantus/lelantus_reg_creators.h"
 
-#ifdef BEAM_ATOMIC_SWAP_SUPPORT
-#include "api_cli_swap.h"
-#endif
 
 #ifdef BEAM_IPFS_SUPPORT
 #include "wallet/ipfs/ipfs.h"
@@ -52,6 +49,7 @@
 #endif
 
 #ifdef BEAM_ASSET_SWAP_SUPPORT
+#include "wallet/client/extensions/broadcast_gateway/broadcast_router.h"
 #include "wallet/client/extensions/dex_board/dex_board.h"
 #include "wallet/transactions/dex/dex_tx_builder.h"
 #include "wallet/transactions/dex/dex_tx.h"
@@ -253,13 +251,6 @@ namespace
         public:
         #endif
 
-        #ifdef BEAM_ATOMIC_SWAP_SUPPORT
-        void initSwapFeature(proto::FlyClient::INetwork::Ptr nnet, IWalletMessageEndpoint& wnet)
-        {
-            _swapsProvider = std::make_shared<ApiCliSwap>(_walletDB);
-            _swapsProvider->initSwapFeature(nnet, wnet);
-        }
-        #endif
 
 #ifdef BEAM_ASSET_SWAP_SUPPORT
         void initDexFeature(proto::FlyClient::INetwork::Ptr nnet, IWalletMessageEndpoint& wnet, Wallet& wallet)
@@ -340,9 +331,6 @@ namespace
                 _walletData->contracts   = IShadersManager::CreateInstance(*_wallet, "", "", 0);
                 _walletData->nodeNetwork = _network;
 
-                #ifdef BEAM_ATOMIC_SWAP_SUPPORT
-                _walletData->swaps = _swapsProvider;
-                #endif
 
                 #ifdef BEAM_IPFS_SUPPORT
                 _walletData->ipfs = _ipfs;
@@ -610,9 +598,6 @@ namespace
         Wallet::Ptr _wallet;
         NodeNetwork::Ptr _network;
 
-        #ifdef BEAM_ATOMIC_SWAP_SUPPORT
-        std::shared_ptr<ApiCliSwap> _swapsProvider;
-        #endif // BEAM_ATOMIC_SWAP_SUPPORT
 
         std::unique_ptr<ApiInitData> _walletData;
         std::vector<uint64_t> _pendingToClose;
@@ -913,13 +898,6 @@ int main(int argc, char* argv[])
 
         WalletApiServer server(options.apiVersion, walletDB, wallet, nnet, *reactor, listenTo, connectionOptions, acl, whitelist);
 
-        #ifdef BEAM_ATOMIC_SWAP_SUPPORT
-        if (wnet)
-        {
-            RegisterSwapTxCreators(wallet, walletDB);
-            server.initSwapFeature(nnet, *wnet);
-        }
-        #endif
 
         #ifdef BEAM_IPFS_SUPPORT
         auto ipfsOpts = getIPFSConfig(vm, asio_ipfs::config(asio_ipfs::config::Mode::Server));
