@@ -180,31 +180,6 @@ message("BEAM_CONFIDENTIAL_ASSETS_SUPPORT is ${BEAM_CONFIDENTIAL_ASSETS_SUPPORT}
 option(BEAM_ASSET_SWAP_SUPPORT "Build wallet with DEX support" ON)
 message("BEAM_ASSET_SWAP_SUPPORT is ${BEAM_ASSET_SWAP_SUPPORT}")
 
-option(BEAM_HW_WALLET "Build with hardware wallet support" OFF)
-message("BEAM_HW_WALLET is ${BEAM_HW_WALLET}")
-
-if(BEAM_HW_WALLET)
-
-    if(BEAM_USE_STATIC)
-        set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
-
-        if(WIN32)
-            set(CURL_STATIC_CRT ON CACHE BOOL "")
-        endif()
-
-        add_definitions(-DCURL_STATICLIB)
-    else()        
-        if(WIN32)
-            set(protobuf_MSVC_STATIC_RUNTIME OFF CACHE BOOL "")
-        endif()
-    endif()
-
-    set(protobuf_BUILD_TESTS OFF CACHE BOOL "")
-    set(protobuf_BUILD_PROTOC_BINARIES OFF CACHE BOOL "")
-
-    add_subdirectory(3rdparty/protobuf/cmake)
-endif()
-
 if(MSVC)
     if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
         string(REGEX REPLACE "/W[0-4]" "/W4 /WX" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
@@ -292,12 +267,6 @@ else()
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-enum-constexpr-conversion -Wno-error=enum-constexpr-conversion -Wno-vla-cxx-extension")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-literal-operator") # newer clang vs old 3rdparty/nlohmann json.hpp operator "" _json
     endif()
-endif()
-
-if(BEAM_HW_WALLET)
-    set(HTTP_ONLY ON CACHE BOOL "")
-    set(BUILD_CURL_EXE OFF CACHE BOOL "")
-    add_subdirectory(3rdparty/curl)
 endif()
 
 if(UNIX OR WIN32)

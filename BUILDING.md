@@ -41,7 +41,7 @@ cd beam
 git submodule update --init --recursive
 ```
 
-The last command downloads extra libraries that Beam needs (curl, protobuf, re2 and others). **Don't skip it.** Without it, the build fails.
+The last command downloads extra libraries that Beam needs (re2, secp256k1). **Don't skip it.** Without it, the build fails.
 
 ### Step 3. Set the UTF-8 locale
 
@@ -65,7 +65,6 @@ Run this from the `beam` folder:
 ```bash
 cmake -S . -B build \
   -DCMAKE_BUILD_TYPE=Release \
-  -DBEAM_HW_WALLET=Off \
   -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@3)
 ```
 
@@ -141,7 +140,7 @@ The steps are almost the same as on macOS.
 3. Configure and build:
 
    ```bash
-   cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBEAM_HW_WALLET=Off
+   cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
    cmake --build build --parallel $(nproc)
    ```
 
@@ -156,7 +155,6 @@ Add these to the command in Step 4 if you need them.
 | Option | What it does |
 |---|---|
 | `-DCMAKE_BUILD_TYPE=Debug` | Builds a debug version, which is easier to debug but slower. Use a separate folder for it, for example `-B build-debug`. |
-| `-DBEAM_HW_WALLET=On` | Adds hardware wallet (Trezor) support. |
 | `-DBEAM_LINK_TYPE=Static` | Links libraries statically, as the official releases do. Needs static versions of Boost and OpenSSL. |
 
 ---

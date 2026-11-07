@@ -54,10 +54,6 @@ target_compile_features(wallet_core PUBLIC ${BEAM_INTERFACE_STANDARD})
 
 if (NOT ANDROID)
 
-    if(BEAM_HW_WALLET)
-        target_compile_definitions(wallet_core PUBLIC BEAM_HW_WALLET)
-    endif()
-
     if(BEAM_LASER_SUPPORT)
         target_compile_definitions(wallet_core PUBLIC BEAM_LASER_SUPPORT)
     endif()

@@ -58,10 +58,6 @@ if (BEAM_TEST_SHADERS)
     add_shader(test_app)
 endif()
 
-if(BEAM_HW_WALLET)
-    target_compile_definitions(wallet_test PRIVATE BEAM_HW_WALLET)
-endif()
-
 if (BEAM_ASSET_SWAP_SUPPORT)
     add_test_snippet(dex_board_test dex_board)
 endif()
