@@ -41,7 +41,7 @@ cd beam
 git submodule update --init --recursive
 ```
 
-The last command downloads extra libraries that Beam needs (re2, secp256k1). **Don't skip it.** Without it, the build fails.
+The last command downloads an extra library that Beam needs (secp256k1). **Don't skip it.** Without it, the build fails.
 
 ### Step 3. Set the UTF-8 locale
 

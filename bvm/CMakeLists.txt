@@ -14,8 +14,6 @@ target_link_libraries(bvm
     PUBLIC
         core
         ethash
-    PRIVATE
-        re2
 )
 
 target_include_directories(bvm PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

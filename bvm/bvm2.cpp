@@ -17,7 +17,8 @@
 #include <sstream>
 #include <iomanip>
 #include <string>
-#include <re2/re2.h>
+#include <string_view>
+#include <algorithm>
 #include <boost/algorithm/string/replace.hpp>
 
 #if defined(__ANDROID__) || !defined(BEAM_USE_AVX)
@@ -4042,38 +4043,142 @@ namespace bvm2 {
 		return 0x800000; // 8MB
 	}
 
+	namespace
+	{
+		// Parser for "key=value, key2=\"quoted, value\"" argument strings.
+		// A key is [A-Za-z0-9_]+. A value is either unquoted (any chars except ',', '"' and ' ')
+		// or double-quoted, where \" stands for a quote. Spaces around keys, '=' and values are ignored.
+		// Text that doesn't form a valid pair is skipped, and anything after a pair up to the next comma is ignored.
+		class ArgsParser
+		{
+		public:
+			explicit ArgsParser(std::string_view s) : m_S(s) {}
+
+			// Finds the next pair, starting from the current position
+			bool Next(std::string& key, std::string& value)
+			{
+				for (size_t pos = m_Pos; pos < m_S.size(); )
+				{
+					size_t keyBegin = SkipSpaces(pos);
+					size_t keyEnd = keyBegin;
+					while (keyEnd < m_S.size() && IsKeyChar(m_S[keyEnd]))
+						++keyEnd;
+
+					size_t valueEnd = (keyEnd > keyBegin) ? ReadAssignment(keyEnd, value) : npos;
+					if (valueEnd != npos)
+					{
+						key.assign(m_S.substr(keyBegin, keyEnd - keyBegin));
+						m_Pos = m_S.find(',', valueEnd);
+						return true;
+					}
+
+					// A match starting anywhere inside the scanned spaces or key would fail the same way
+					pos = std::max(pos + 1, keyEnd);
+				}
+
+				m_Pos = npos;
+				return false;
+			}
+
+		private:
+			static constexpr size_t npos = std::string_view::npos;
+
+			std::string_view m_S;
+			size_t m_Pos = 0;
+			// Once a quoted value at some position has no closing quote, none further on has either
+			size_t m_UnclosedQuote = npos;
+
+			static bool IsSpace(char c)
+			{
+				return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f';
+			}
+
+			static bool IsKeyChar(char c)
+			{
+				return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
+			}
+
+			static bool IsUnquotedChar(char c)
+			{
+				return c != ',' && c != '"' && c != ' ';
+			}
+
+			size_t SkipSpaces(size_t pos) const
+			{
+				while (pos < m_S.size() && IsSpace(m_S[pos]))
+					++pos;
+				return pos;
+			}
+
+			// Reads "\s*=\s*value" at pos. Returns the end of the value, or npos
+			size_t ReadAssignment(size_t pos, std::string& value)
+			{
+				pos = SkipSpaces(pos);
+				if (pos >= m_S.size() || m_S[pos] != '=')
+					return npos;
+
+				size_t spacesBegin = pos + 1;
+				size_t spacesEnd = SkipSpaces(spacesBegin);
+
+				size_t valueEnd = ReadValue(spacesEnd, value);
+				if (valueEnd != npos)
+					return valueEnd;
+
+				// No value after the spaces. Whitespace other than ' ' (tab, newline, ...) is a valid
+				// unquoted value char, so the value may start at the last such char among the spaces.
+				for (size_t i = spacesEnd; i > spacesBegin; )
+				{
+					if (m_S[--i] != ' ')
+						return ReadValue(i, value);
+				}
+				return npos;
+			}
+
+			// Reads an unquoted or a quoted value at pos. Returns its end, or npos
+			size_t ReadValue(size_t pos, std::string& value)
+			{
+				if (pos >= m_S.size())
+					return npos;
+
+				if (IsUnquotedChar(m_S[pos]))
+				{
+					size_t end = pos;
+					while (end < m_S.size() && IsUnquotedChar(m_S[end]))
+						++end;
+					value.assign(m_S.substr(pos, end - pos));
+					return end;
+				}
+
+				if (m_S[pos] != '"' || pos >= m_UnclosedQuote)
+					return npos;
+
+				// The closing quote is the first unescaped one, the quoted text is not empty
+				for (size_t i = pos + 2; i < m_S.size(); ++i)
+				{
+					if (m_S[i] == '"' && m_S[i - 1] != '\\')
+					{
+						value.assign(m_S.substr(pos + 1, i - pos - 1));
+						boost::algorithm::replace_all(value, "\\\"", "\"");
+						return i + 1;
+					}
+				}
+
+				m_UnclosedQuote = pos;
+				return npos;
+			}
+		};
+	}
+
 	uint32_t ProcessorManager::AddArgs(const std::string& commaSeparatedPairs)
 	{
-        	static const RE2 regex(R"raw(\s*([\w\d_]+)\s*=\s*(([^," ]+)|"((.|\s)*?[^\\])")\s*)raw");
-        	uint32_t ret = 0;
-        	re2::StringPiece input(commaSeparatedPairs);
-        	std::string key;
-        	std::string value1;
-        	std::string value2;
-        	std::string value3;
-                std::string value4;
-        	while (RE2::FindAndConsume(&input, regex, &key, &value1, &value2, &value3, &value4))
-        	{
-        		std::string value;
-        		if (!value2.empty())
-        		{
-        			value = std::move(value2);
-        		}
-        		else if (!value3.empty())
-        		{
-        			value = std::move(value3);
-        			boost::algorithm::replace_all(value, "\\\"", "\"");
-        		}
-
-        		m_Args.emplace(std::move(key), std::move(value));
-                	++ret;
-                	size_t newBegin = 0;
-                	while ((newBegin < input.size()) && input[newBegin] != ',')
-                	{
-                		++newBegin;
-                	}
-                	input.remove_prefix(newBegin);
-        	}
+		uint32_t ret = 0;
+		ArgsParser parser(commaSeparatedPairs);
+		std::string key, value;
+		while (parser.Next(key, value))
+		{
+			m_Args.emplace(std::move(key), std::move(value));
+			++ret;
+		}
 		return ret;
 	}
 
