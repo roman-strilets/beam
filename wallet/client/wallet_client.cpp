@@ -264,23 +264,6 @@ struct WalletModelBridge : public Bridge<IWalletModelAsync>
         call_async(&IWalletModelAsync::setNodeAddress, addr);
     }
 
-    #ifdef BEAM_IPFS_SUPPORT
-    void setIPFSConfig(asio_ipfs::config&& cfg) override
-    {
-        call_async(&IWalletModelAsync::setIPFSConfig, std::move(cfg));
-    }
-
-    void stopIPFSNode() override
-    {
-        call_async(&IWalletModelAsync::stopIPFSNode);
-    }
-
-    void startIPFSNode() override
-    {
-        call_async(&IWalletModelAsync::startIPFSNode);
-    }
-    #endif
-
     void changeWalletPassword(const SecString& pass) override
     {
         // TODO: should be investigated, don't know how to "move" SecString into lambda
@@ -293,13 +276,6 @@ struct WalletModelBridge : public Bridge<IWalletModelAsync>
     {
         call_async(&IWalletModelAsync::getNetworkStatus);
     }
-
-    #ifdef BEAM_IPFS_SUPPORT
-    void getIPFSStatus() override
-    {
-        call_async(&IWalletModelAsync::getIPFSStatus);
-    }
-    #endif
 
     void rescan() override
     {
@@ -828,50 +804,6 @@ namespace beam::wallet
 
 
                 //
-                // IPFS
-                //
-                #ifdef BEAM_IPFS_SUPPORT
-                struct IPFSHandler : public IPFSService::Handler {
-                    explicit IPFSHandler(WalletClient *wc)
-                            : _wc(wc) {
-                    }
-
-                    void AnyThread_pushToClient(std::function<void()> &&action) override {
-                        _wc->postFunctionToClientContext(std::move(action));
-                    }
-
-                    void AnyThread_onStatus(const std::string& error, uint32_t peercnt) override {
-                        _wc->getAsync()->makeIWTCall([this, error, peercnt]() -> boost::any {
-                            if (error.empty()) {
-                                BEAM_LOG_INFO() << "IPFS Status: peers count " << peercnt;
-                            } else {
-                                BEAM_LOG_INFO() << "IPFS Status: peers count " << peercnt << ", error: " << error;
-                            }
-                            _wc->m_ipfsError = error;
-                            _wc->m_ipfsPeerCnt = static_cast<unsigned int>(peercnt);
-                            _wc->getIPFSStatus();
-                            return boost::none;
-                        }, [](const boost::any&) {
-                            // client thread
-                        });
-                    }
-
-                private:
-                    WalletClient *_wc;
-                };
-
-                std::shared_ptr<IPFSHandler> ipfsHandler;
-                std::shared_ptr<IPFSService> ipfsService;
-
-                BEAM_LOG_INFO() << "IPFS Service is enabled.";
-                ipfsHandler = std::make_shared<IPFSHandler>(this);
-                ipfsService = IPFSService::AnyThread_create(ipfsHandler);
-                m_ipfs = ipfsService;
-                #else
-                BEAM_LOG_INFO () << "IPFS Service is disabled.";
-                #endif
-
-                //
                 // Shaders
                 //
                 auto clientShaders = IShadersManager::CreateInstance(*wallet, "", "", 0);
@@ -882,19 +814,6 @@ namespace beam::wallet
                     wallet->CleanupNetwork();
                     nodeNetwork->Disconnect();
                 });
-
-                #ifdef BEAM_IPFS_SUPPORT
-                // IPFS service might be not started, so need to check
-                if (ipfsService) 
-                {
-                    if (ipfsService->AnyThread_running()) {
-                        ipfsService->ServiceThread_stop();
-                    }
-
-                    assert(ipfsService.use_count() == 1);
-                    ipfsService.reset();
-                }
-                #endif
 
                 wallet->CleanupNetwork();
                 nodeNetwork->Disconnect();
@@ -945,128 +864,6 @@ namespace beam::wallet
         auto sp = m_nodeNetwork.lock();
         return sp;
     }
-
-    #ifdef BEAM_IPFS_SUPPORT
-    IPFSService::Ptr WalletClient::getIPFS()
-    {
-        auto sp = m_ipfs.lock();
-        if(!sp || !sp->AnyThread_running())
-        {
-            assert(false);
-            throw std::runtime_error("IPFS Service is not running");
-        }
-        return sp;
-    }
-
-    IPFSService::Ptr WalletClient::IWThread_startIPFSNode()
-    {
-        if (!m_ipfsConfig)
-        {
-            assert(false);
-            throw std::runtime_error("IPFS config is not provided");
-        }
-
-        auto sp = m_ipfs.lock();
-        if (!sp)
-        {
-            assert(false);
-            throw std::runtime_error("IPFS service is not created");
-        }
-
-        if (!sp->AnyThread_running())
-        {
-            // throws
-            sp->ServiceThread_start(*m_ipfsConfig);
-        }
-
-        return sp;
-    }
-
-    void WalletClient::startIPFSNode()
-    {
-        try
-        {
-            IWThread_startIPFSNode();
-        }
-        catch(std::runtime_error& err)
-        {
-            auto errmsg = std::string("Failed to start IPFS service. ") + err.what();
-            BEAM_LOG_ERROR() << errmsg;
-            m_ipfsError = errmsg;
-            m_ipfsPeerCnt = 0;
-            getIPFSStatus();
-        }
-    }
-
-    void WalletClient::IWThread_setIPFSConfig(asio_ipfs::config&& cfg)
-    {
-        //
-        // if service is already running restart with new settings
-        // otherwise we just store settings for future use
-        //
-        m_ipfsConfig = std::move(cfg);
-
-        auto sp = m_ipfs.lock();
-        if (!sp)
-        {
-            assert(false);
-            throw std::runtime_error("IPFS service is not created");
-        }
-
-        if (sp->AnyThread_running())
-        {
-            sp->ServiceThread_stop();
-            sp->ServiceThread_start(*m_ipfsConfig);
-        }
-    }
-
-    void WalletClient::setIPFSConfig(asio_ipfs::config&& cfg)
-    {
-        try
-        {
-            IWThread_setIPFSConfig(std::move(cfg));
-        }
-        catch(std::runtime_error& err)
-        {
-            auto errmsg = std::string("Failed to start IPFS service. ") + err.what();
-            BEAM_LOG_ERROR() << errmsg;
-            m_ipfsError = errmsg;
-            m_ipfsPeerCnt = 0;
-            getIPFSStatus();
-        }
-    }
-
-    void WalletClient::IWThread_stopIPFSNode()
-    {
-        auto sp = m_ipfs.lock();
-        if (!sp)
-        {
-            assert(false);
-            throw std::runtime_error("IPFS service is not created");
-        }
-
-        if (sp->AnyThread_running()) 
-        {
-            sp->ServiceThread_stop();
-        }
-    }
-
-    void WalletClient::stopIPFSNode()
-    {
-        try
-        {
-            IWThread_stopIPFSNode();
-        }
-        catch(std::runtime_error& err)
-        {
-            auto errmsg = std::string("Failed to start IPFS service. ") + err.what();
-            BEAM_LOG_ERROR() << errmsg;
-            m_ipfsError = errmsg;
-            m_ipfsPeerCnt = 0;
-            getIPFSStatus();
-        }
-    }
-    #endif //BEAM_IPFS_SUPPORT
 
     IShadersManager::Ptr WalletClient::IWThread_createAppShaders(const std::string& appid, const std::string& appname, uint32_t privilegeLvl)
     {
@@ -2005,25 +1802,6 @@ namespace beam::wallet
             });
         }
     }
-
-    #ifdef BEAM_IPFS_SUPPORT
-    void WalletClient::getIPFSStatus()
-    {
-        auto sp = m_ipfs.lock();
-        if (!sp) {
-            onIPFSStatus(false, std::string(), 0);
-            return;
-        }
-
-        auto running = sp->AnyThread_running();
-        if (running && m_ipfsPeerCnt == 0 && m_ipfsError.empty()) {
-            onIPFSStatus(running, "IPFS node is not connected to peers", m_ipfsPeerCnt);
-            return;
-        }
-
-        onIPFSStatus(running, m_ipfsError, m_ipfsPeerCnt);
-    }
-    #endif
 
     void WalletClient::rescan()
     {

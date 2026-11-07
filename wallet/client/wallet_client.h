@@ -38,13 +38,6 @@
 #endif  // BEAM_ASSET_SWAP_SUPPORT
 #include "keykeeper/hid_key_keeper.h"
 
-#ifdef BEAM_IPFS_SUPPORT
-#include "wallet/ipfs/ipfs.h"
-#else
-#include "wallet/ipfs/ipfs_config.h"
-#endif
-
-
 #include <thread>
 #include <atomic>
 #include <functional>
@@ -130,13 +123,6 @@ namespace beam::wallet
         Wallet::Ptr getWallet(); // can return null
         IWalletDB::Ptr getWalletDB();
         NodeNetwork::Ptr getNodeNetwork(); // may return null
-
-        #ifdef BEAM_IPFS_SUPPORT
-        IPFSService::Ptr getIPFS();
-        IPFSService::Ptr IWThread_startIPFSNode(); // throws on fail
-        void IWThread_setIPFSConfig(asio_ipfs::config&&); // throws on fail;
-        void IWThread_stopIPFSNode(); // throws on fail;
-        #endif
 
         IShadersManager::Ptr IWThread_createAppShaders(const std::string& appid, const std::string& appname, uint32_t privilegeLvl);
 
@@ -243,10 +229,6 @@ namespace beam::wallet
         virtual void onPublicAddress(const std::string& publicAddr) {}
 
 
-        #ifdef BEAM_IPFS_SUPPORT
-        virtual void onIPFSStatus(bool running, const std::string& error, unsigned int peercnt) {}
-        #endif
-
     private:
         void onAssetChanged(ChangeAction action, Asset::ID assetID) override;
         void onCoinsChanged(ChangeAction action, const std::vector<Coin>& items) override;
@@ -274,11 +256,6 @@ namespace beam::wallet
         void getAddresses(bool own) override;
 
 
-        #ifdef BEAM_IPFS_SUPPORT
-        void setIPFSConfig(asio_ipfs::config&&) override;
-        void stopIPFSNode() override;
-        void startIPFSNode() override;
-        #endif
         void cancelTx(const TxID& id) override;
         void deleteTx(const TxID& id) override;
         void getCoinsByTx(const TxID& txId) override;
@@ -310,10 +287,6 @@ namespace beam::wallet
 #endif  // BEAM_ASSET_SWAP_SUPPORT
 
         void loadFullAssetsList() override;
-
-        #ifdef BEAM_IPFS_SUPPORT
-        void getIPFSStatus() override;
-        #endif
 
         void rescan() override;
         void exportPaymentProof(const TxID& id) override;
@@ -413,13 +386,6 @@ namespace beam::wallet
         std::weak_ptr<IWalletMessageEndpoint> m_walletNetwork;
         std::weak_ptr<SlatepackEndpoint> m_slatepackEndpoint;
         std::weak_ptr<Wallet> m_wallet;
-
-        #ifdef BEAM_IPFS_SUPPORT
-        std::weak_ptr<IPFSService> m_ipfs;
-        boost::optional<asio_ipfs::config> m_ipfsConfig;
-        uint32_t m_ipfsPeerCnt = 0;
-        std::string m_ipfsError;
-        #endif
 
         // broadcasting via BBS
         std::weak_ptr<IBroadcastMsgGateway> m_broadcastRouter;

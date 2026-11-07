@@ -177,9 +177,6 @@ message("BEAM_LASER_SUPPORT is ${BEAM_LASER_SUPPORT}")
 option(BEAM_CONFIDENTIAL_ASSETS_SUPPORT "Build wallet with confidential assets support" ON)
 message("BEAM_CONFIDENTIAL_ASSETS_SUPPORT is ${BEAM_CONFIDENTIAL_ASSETS_SUPPORT}")
 
-option(BEAM_IPFS_SUPPORT "Build wallet with IPFS support" ON)
-message("BEAM_IPFS_SUPPORT is ${BEAM_IPFS_SUPPORT}")
-
 option(BEAM_ASSET_SWAP_SUPPORT "Build wallet with DEX support" ON)
 message("BEAM_ASSET_SWAP_SUPPORT is ${BEAM_ASSET_SWAP_SUPPORT}")
 
@@ -289,7 +286,7 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unknown-warning-option")
     if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "AppleClang|Clang")
         if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 14 OR CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 14)
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unqualified-std-cast-call") # osx 13.3 clang 14 3rdparty/asio-ipfs, unit tests
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unqualified-std-cast-call") # osx 13.3 clang 14 unit tests
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-but-set-variable") # osx 13.3 clang 14 core/merkle.cpp
         endif()
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-enum-constexpr-conversion -Wno-error=enum-constexpr-conversion -Wno-vla-cxx-extension")

@@ -60,10 +60,6 @@ target_compile_features(utility PUBLIC ${BEAM_INTERFACE_STANDARD})
 if (NOT EMSCRIPTEN)
     add_library(cli STATIC ${CLI_SRC})
 
-    if(BEAM_IPFS_SUPPORT)
-        target_compile_definitions(cli PUBLIC BEAM_IPFS_SUPPORT)
-    endif()
-
     if(BEAM_LASER_SUPPORT)
         target_compile_definitions(cli PUBLIC BEAM_LASER_SUPPORT)
     endif()

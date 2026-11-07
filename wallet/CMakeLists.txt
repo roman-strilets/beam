@@ -17,10 +17,6 @@ if(BEAM_LASER_SUPPORT)
     add_subdirectory(laser)
 endif()
 
-if(BEAM_IPFS_SUPPORT)
-    add_subdirectory(ipfs)
-endif()
-
 if(NOT BEAM_WALLET_CLIENT_LIBRARY)
     add_subdirectory(cli)
     add_subdirectory(broadcaster)

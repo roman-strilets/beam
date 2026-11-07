@@ -24,9 +24,9 @@ if(EMSCRIPTEN)
         wasm_beamapi.cpp
     )
     target_link_libraries(${TARGET_NAME} PRIVATE 
-        wallet_client_no_ipfs
+        wallet_client
         mnemonic
-        wallet_api_no_ipfs
+        wallet_api
     )
     configure_file("${CMAKE_CURRENT_SOURCE_DIR}/package.json.in" "${CMAKE_CURRENT_BINARY_DIR}/package.json")
    # configure_file("${CMAKE_CURRENT_SOURCE_DIR}/../License" "${CMAKE_CURRENT_BINARY_DIR}/License" COPYONLY)

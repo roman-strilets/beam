@@ -16,9 +16,6 @@
 #include "wallet/core/common_utils.h"
 #include "wallet/core/common.h"
 #include "boost/any.hpp"
-#ifdef BEAM_IPFS_SUPPORT
-#include <asio-ipfs/include/ipfs_config.h>
-#endif
 
 namespace beam::wallet
 {
@@ -51,12 +48,6 @@ namespace beam::wallet
         virtual void generateToken(TokenType, Amount, Asset::ID, std::string sVer, bool newAddress, AsyncCallback<std::string&&>&& callback) = 0;
 
 
-        #ifdef BEAM_IPFS_SUPPORT
-        virtual void setIPFSConfig(asio_ipfs::config&&) = 0;
-        virtual void stopIPFSNode() = 0;
-        virtual void startIPFSNode() = 0;
-        #endif
-
         virtual void deleteAddress(const WalletID& addr) = 0;
         virtual void updateAddress(const WalletID& addr, const std::string& name, WalletAddress::ExpirationStatus expirationStatus) = 0;
         virtual void updateAddress(const WalletID& addr, const std::string& name, beam::Timestamp expiration) = 0;
@@ -81,10 +72,6 @@ namespace beam::wallet
         virtual void cancelDexOrder(const DexOrderID&) = 0;
 #endif  // BEAM_ASSET_SWAP_SUPPORT
         virtual void loadFullAssetsList() = 0;
-
-        #ifdef BEAM_IPFS_SUPPORT
-        virtual void getIPFSStatus() = 0;
-        #endif
 
         virtual void getNetworkStatus() = 0;
         virtual void rescan() = 0;

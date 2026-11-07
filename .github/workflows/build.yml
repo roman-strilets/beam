@@ -198,7 +198,6 @@ jobs:
           cp explorer/explorer-node.cfg artifacts/explorer-node.cfg
           cp wallet/broadcaster/${{env.BUILD_CONFIG}}/broadcaster.exe artifacts/broadcaster.exe
           cp bvm/ethash_service/${{env.BUILD_CONFIG}}/ethash-service.exe artifacts/ethash-service.exe
-          cp 3rdparty/asio-ipfs/ipfs_bindings/ipfs-bindings.dll artifacts/ipfs-bindings.dll
 
       - name: Collect pdb [windows]
         shell: bash
@@ -221,7 +220,6 @@ jobs:
           certUtil -hashfile artifacts/explorer-node.exe SHA256 > artifacts/explorer-node-checksum.txt
           certUtil -hashfile artifacts/broadcaster.exe SHA256 > artifacts/broadcaster-checksum.txt
           certUtil -hashfile artifacts/ethash-service.exe SHA256 > artifacts/ethash-service-checksum.txt
-          certUtil -hashfile artifacts/ipfs-bindings.dll SHA256 > artifacts/ipfs-bindings-checksum.txt
 
       - name: OS name [macos]
         if: startsWith(matrix.os, 'macos')
@@ -255,9 +253,7 @@ jobs:
       - uses: actions/upload-artifact@v6
         with:
           name: ${{env.PLATFORM_NAME}}-wallet-api-${{env.BEAM_VERSION}}
-          path: |
-            artifacts/wallet-api*
-            artifacts/ipfs-bindings*
+          path: artifacts/wallet-api*
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v6
@@ -328,10 +324,10 @@ jobs:
       - name: Configure CMake && Build
         run: |
           export BOOST_ROOT_IOS="${{runner.workspace}}/dependencies/boost-ios"
-          cmake . -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE=${{runner.workspace}}/dependencies/toolchain-ios/ios.toolchain.cmake -DPLATFORM=OS64 -DCMAKE_CXX_FLAGS="-stdlib=libc++ -Wno-error=deprecated -Wno-error=deprecated-declarations" -DDEPLOYMENT_TARGET=11.0 -DENABLE_BITCODE=NO -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR -DOPENSSL_CRYPTO_LIBRARY=$OPENSSL_CRYPTO_LIBRARY -DOPENSSL_INCLUDE_DIR=$OPENSSL_INCLUDE_DIR -DOPENSSL_SSL_LIBRARY=$OPENSSL_SSL_LIBRARY -DOPENSSL_LIBRARIES=$OPENSSL_LIBRARIES -DIOS=YES -DCMAKE_TRY_COMPILE_PLATFORM_VARIABLES=CMAKE_WARN_DEPRECATED -DBEAM_IPFS_SUPPORT=On -B./build
+          cmake . -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE=${{runner.workspace}}/dependencies/toolchain-ios/ios.toolchain.cmake -DPLATFORM=OS64 -DCMAKE_CXX_FLAGS="-stdlib=libc++ -Wno-error=deprecated -Wno-error=deprecated-declarations" -DDEPLOYMENT_TARGET=11.0 -DENABLE_BITCODE=NO -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR -DOPENSSL_CRYPTO_LIBRARY=$OPENSSL_CRYPTO_LIBRARY -DOPENSSL_INCLUDE_DIR=$OPENSSL_INCLUDE_DIR -DOPENSSL_SSL_LIBRARY=$OPENSSL_SSL_LIBRARY -DOPENSSL_LIBRARIES=$OPENSSL_LIBRARIES -DIOS=YES -DCMAKE_TRY_COMPILE_PLATFORM_VARIABLES=CMAKE_WARN_DEPRECATED -B./build
           make -C ./build -j$(sysctl -n hw.ncpu)
           export BOOST_ROOT_IOS="${{runner.workspace}}/dependencies/boost-ios-simulator"
-          cmake . -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE=${{runner.workspace}}/dependencies/toolchain-ios/ios.toolchain.cmake -DPLATFORM=SIMULATOR64 -DCMAKE_CXX_FLAGS="-stdlib=libc++ -Wno-error=deprecated -Wno-error=deprecated-declarations" -DDEPLOYMENT_TARGET=11.0 -DENABLE_BITCODE=NO -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR -DOPENSSL_CRYPTO_LIBRARY=$OPENSSL_CRYPTO_LIBRARY -DOPENSSL_INCLUDE_DIR=$OPENSSL_INCLUDE_DIR -DOPENSSL_SSL_LIBRARY=$OPENSSL_SSL_LIBRARY -DOPENSSL_LIBRARIES=$OPENSSL_LIBRARIES -DIOS=YES -DCMAKE_TRY_COMPILE_PLATFORM_VARIABLES=CMAKE_WARN_DEPRECATED -DBEAM_IPFS_SUPPORT=On -B./build-simulator
+          cmake . -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE=${{runner.workspace}}/dependencies/toolchain-ios/ios.toolchain.cmake -DPLATFORM=SIMULATOR64 -DCMAKE_CXX_FLAGS="-stdlib=libc++ -Wno-error=deprecated -Wno-error=deprecated-declarations" -DDEPLOYMENT_TARGET=11.0 -DENABLE_BITCODE=NO -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR -DOPENSSL_CRYPTO_LIBRARY=$OPENSSL_CRYPTO_LIBRARY -DOPENSSL_INCLUDE_DIR=$OPENSSL_INCLUDE_DIR -DOPENSSL_SSL_LIBRARY=$OPENSSL_SSL_LIBRARY -DOPENSSL_LIBRARIES=$OPENSSL_LIBRARIES -DIOS=YES -DCMAKE_TRY_COMPILE_PLATFORM_VARIABLES=CMAKE_WARN_DEPRECATED -B./build-simulator
           make -C ./build-simulator -j$(sysctl -n hw.ncpu)
 
       - name: Save version info
@@ -347,25 +343,10 @@ jobs:
           echo BEAM_VERSION = $BEAM_VERSION
           mkdir -p ${{runner.workspace}}/results/beam-ios/include
           mkdir -p ${{runner.workspace}}/results/beam-ios/lib
-          # asio-ipfs extracts a Go toolchain under 3rdparty/asio-ipfs/golang/
-          # (which ships ~400 .a files: pre-built host std-lib under
-          # pkg/darwin_arm64/ — bidirule.a etc. — plus test fixtures under
-          # src/.../testdata/ such as libimportsar.a) and uses
-          # 3rdparty/asio-ipfs/go-workspace/ as GOPATH. None of those are
-          # the iOS archives we want; lipo below either rejects them
-          # outright or silently accepts arm64-darwin / arm64-linux
-          # objects that would corrupt the combined slice. Prune both
-          # subtrees before collecting. The real asio-ipfs outputs live
-          # at ./build/3rdparty/asio-ipfs/ipfs_bindings/libipfs-bindings.a
-          # and ./build/3rdparty/asio-ipfs/libasio-ipfs.a — neither is
-          # under golang/ or go-workspace/, so they're still picked up.
           collect_libs() {
             local src_dir="$1"
             local dst_dir="$2"
-            find "$src_dir" \
-              \( -path "$src_dir/3rdparty/asio-ipfs/golang" -o \
-                 -path "$src_dir/3rdparty/asio-ipfs/go-workspace" \) -prune -o \
-              -name '*.a' -type f -print0 \
+            find "$src_dir" -name '*.a' -type f -print0 \
             | xargs -0 -I {} cp {} "$dst_dir/"
           }
           collect_libs ./build ${{runner.workspace}}/results/beam-ios/lib
@@ -443,7 +424,7 @@ jobs:
       - name: Configure CMake
         run: |
           export PATH=${{env.ANDROID_NDK_HOME}}:$PATH
-          cmake -DCMAKE_TOOLCHAIN_FILE=${{env.ANDROID_NDK_HOME}}/build/cmake/android.toolchain.cmake -DANDROID_NATIVE_API_LEVEL=${{env.ANDROID_SDK_VERSION}} -DANDROID_ABI=${{env.ANDROID_ABI}} -DBEAM_IPFS_SUPPORT=Off -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_CXX_FLAGS="-Wno-error=deprecated-literal-operator -Wno-deprecated-literal-operator" .
+          cmake -DCMAKE_TOOLCHAIN_FILE=${{env.ANDROID_NDK_HOME}}/build/cmake/android.toolchain.cmake -DANDROID_NATIVE_API_LEVEL=${{env.ANDROID_SDK_VERSION}} -DANDROID_ABI=${{env.ANDROID_ABI}} -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_CXX_FLAGS="-Wno-error=deprecated-literal-operator -Wno-deprecated-literal-operator" .
 
       ###############################################################################
       # Build
@@ -574,7 +555,7 @@ jobs:
       - name: Configure CMake && Build
         run: |
           source ${{runner.workspace}}/emsdk/emsdk_env.sh
-          cmake . -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TOOLCHAIN_FILE=${{runner.workspace}}/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DBoost_DEBUG=On -DBEAM_TESTS_ENABLED=Off -DBEAM_WALLET_CLIENT_LIBRARY=On -DBEAM_IPFS_SUPPORT=Off -DBEAM_LASER_SUPPORT=Off -DBEAM_ASSET_SWAP_SUPPORT=Off -DBEAM_USE_STATIC=On -DBOOST_ROOT=${{runner.workspace}}/boost_prebuild -DCMAKE_FIND_ROOT_PATH:FILEPATH="${{runner.workspace}}/boost_prebuild;${{runner.workspace}}/openssl-wasm" -DOPENSSL_ROOT_DIR=${{runner.workspace}}/openssl-wasm -B${{runner.workspace}}/build_wasm
+          cmake . -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TOOLCHAIN_FILE=${{runner.workspace}}/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DBoost_DEBUG=On -DBEAM_TESTS_ENABLED=Off -DBEAM_WALLET_CLIENT_LIBRARY=On -DBEAM_LASER_SUPPORT=Off -DBEAM_ASSET_SWAP_SUPPORT=Off -DBEAM_USE_STATIC=On -DBOOST_ROOT=${{runner.workspace}}/boost_prebuild -DCMAKE_FIND_ROOT_PATH:FILEPATH="${{runner.workspace}}/boost_prebuild;${{runner.workspace}}/openssl-wasm" -DOPENSSL_ROOT_DIR=${{runner.workspace}}/openssl-wasm -B${{runner.workspace}}/build_wasm
           emmake make -j$(nproc) -C ${{runner.workspace}}/build_wasm
 
       - name: Save version info

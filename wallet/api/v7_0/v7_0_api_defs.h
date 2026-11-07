@@ -21,78 +21,8 @@
 namespace beam::wallet
 {
     #define V7_0_API_METHODS(macro) \
-        macro(IPFSAdd,          "ipfs_add",             API_WRITE_ACCESS, API_ASYNC, APPS_ALLOWED) \
-        macro(IPFSHash,         "ipfs_hash",            API_READ_ACCESS,  API_ASYNC, APPS_ALLOWED) \
-        macro(IPFSGet,          "ipfs_get",             API_WRITE_ACCESS, API_ASYNC, APPS_ALLOWED) \
-        macro(IPFSPin,          "ipfs_pin",             API_WRITE_ACCESS, API_ASYNC, APPS_ALLOWED) \
-        macro(IPFSUnpin,        "ipfs_unpin",           API_WRITE_ACCESS, API_ASYNC, APPS_ALLOWED) \
-        macro(IPFSGc,           "ipfs_gc",              API_WRITE_ACCESS, API_ASYNC, APPS_ALLOWED) \
         macro(SignMessage,      "sign_message",         API_WRITE_ACCESS, API_SYNC,  APPS_ALLOWED) \
         macro(VerifySignature,  "verify_signature",     API_READ_ACCESS,  API_SYNC,  APPS_ALLOWED) 
-        // TODO:IPFS add ipfs_caps/ev_ipfs_state methods that returns all available capabilities and ipfs state
-
-    struct IPFSAdd
-    {
-        std::vector<uint8_t> data;
-        bool pin = true;
-        uint32_t timeout = 0;
-
-        struct Response
-        {
-            std::string hash;
-            bool pinned = false;
-        };
-    };
-
-    struct IPFSHash
-    {
-        std::vector<uint8_t> data;
-        uint32_t timeout = 0;
-        struct Response
-        {
-            std::string hash;
-        };
-    };
-
-    struct IPFSGet
-    {
-        std::string hash;
-        uint32_t timeout = 0;
-
-        struct Response
-        {
-            std::string hash;
-            std::vector<uint8_t> data;
-        };
-    };
-
-    struct IPFSPin
-    {
-        std::string hash;
-        uint32_t timeout = 0;
-
-        struct Response
-        {
-            std::string hash;
-        };
-    };
-
-    struct IPFSUnpin
-    {
-        std::string hash;
-        struct Response
-        {
-            std::string hash;
-        };
-    };
-
-    struct IPFSGc
-    {
-        uint32_t timeout = 0;
-        struct Response
-        {
-        };
-    };
 
     struct SignMessage
     {

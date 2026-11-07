@@ -238,8 +238,6 @@ namespace beam
         const char* API_USE_ACL  = "use_acl";
         const char* API_ACL_PATH = "acl_path";
         const char* API_VERSION  = "api_version";
-        const char* API_ENABLE_IPFS = "enable_ipfs";
-        const char* API_IPFS_STORAGE = "ipfs_storage";
         const char* API_TCP_MAX_LINE = "tcp_max_line";
 
         // treasury
@@ -295,29 +293,6 @@ namespace beam
         const char* SHADER_DEBUG             = "shader_debug";
         const char* SHADER_WIDGET            = "widget";
         const char* SHADER_WIDGET_NAME       = "name";
-
-        // IPFS
-        #ifdef BEAM_IPFS_SUPPORT
-        const char* IPFS_ENABLE        = "enable_ipfs";
-        const char* IPFS_STORAGE       = "ipfs_repo";
-        const char* IPFS_LOW_WATER     = "ipfs_low_water";
-        const char* IPFS_HIGH_WATER    = "ipfs_high_water";
-        const char* IPFS_GRACE         = "ipfs_grace_period";
-        const char* IPFS_AUTO_RELAY    = "ipfs_auto_relay";
-        const char* IPFS_RELAY_HOP     = "ipfs_relay_hop";
-        const char* IPFS_BOOTSTRAP     = "ipfs_bootstrap";
-        const char* IPFS_PEERING       = "ipfs_peering";
-        const char* IPFS_SWARM_PORT    = "ipfs_swarm_port";
-        const char* IPFS_STORAGE_MAX   = "ipfs_storage_max";
-        const char* IPFS_API_ADDR      = "ipfs_api_addr";
-        const char* IPFS_GATEWAY_ADDR  = "ipfs_gateway_addr";
-        const char* IPFS_AUTONAT       = "ipfs_autonat";
-        const char* IPFS_AUTONAT_LIMIT = "ipfs_autonat_limit";
-        const char* IPFS_AUTONAT_PEER_LIMIT = "ipfs_autonat_peer_limit";
-        const char* IPFS_SWARM_KEY     = "ipfs_swarm_key";
-        const char* IPFS_ROUTING_TYPE  = "ipfs_routing_type";
-        const char* IPFS_RUN_GC        = "ipfs_run_gc";
-        #endif
 
 #ifdef BEAM_ASSET_SWAP_SUPPORT
         const char* ASSETS_SWAP_LIST   = "assets_swap_list";
@@ -597,74 +572,6 @@ namespace beam
         visible_options.add(rules_options);
         return { options, visible_options };
     }
-
-    #ifdef BEAM_IPFS_SUPPORT
-    po::options_description createIPFSOptionsDesrition(bool enableByDefault, const asio_ipfs::config& defs)
-    {
-        po::options_description ipfs_options("IPFS support");
-        ipfs_options.add_options()
-            (cli::IPFS_ENABLE,             po::value<bool>()->default_value(enableByDefault)->implicit_value(enableByDefault), "enable IPFS support/launch IPFS node")
-            (cli::IPFS_STORAGE,            po::value<string>()->default_value(defs.repo_root), "IPFS repository path")
-            (cli::IPFS_LOW_WATER,          po::value<uint32_t>()->default_value(defs.low_water), "Swarm.ConnMgr.LowWater")
-            (cli::IPFS_HIGH_WATER,         po::value<uint32_t>()->default_value(defs.high_water), "Swarm.ConnMgr.HighWater")
-            (cli::IPFS_GRACE,              po::value<uint32_t>()->default_value(defs.grace_period), "Swarm.ConnMgr.GracePeriod as uint32 seconds")
-            (cli::IPFS_AUTO_RELAY,         po::value<bool>()->default_value(defs.auto_relay), "Swarm.EnableAutoRelay")
-            (cli::IPFS_RELAY_HOP,          po::value<bool>()->default_value(defs.relay_hop), "Swarm.EnableRelayHop")
-            (cli::IPFS_SWARM_PORT,         po::value<uint32_t>()->default_value(defs.swarm_port), "Addresses.Swarm port")
-            (cli::IPFS_STORAGE_MAX,        po::value<string>()->default_value(defs.storage_max), "Datastore.StorageMax")
-            (cli::IPFS_API_ADDR,           po::value<string>()->default_value(defs.api_address), "Addresses.API address")
-            (cli::IPFS_GATEWAY_ADDR,       po::value<string>()->default_value(defs.gateway_address), "Addresses.Gateway address")
-            (cli::IPFS_AUTONAT,            po::value<bool>()->default_value(defs.autonat), "AutoNAT.ServiceMode as bool")
-            (cli::IPFS_AUTONAT_LIMIT,      po::value<uint32_t>()->default_value(defs.autonat_limit), "AutoNAT.Throttle.GlobalLimit")
-            (cli::IPFS_AUTONAT_PEER_LIMIT, po::value<uint32_t>()->default_value(defs.autonat_peer_limit), "AutoNAT.Throttle.PeerLimit")
-            (cli::IPFS_ROUTING_TYPE,       po::value<string>()->default_value(defs.routing_type), "Routing.Type")
-            (cli::IPFS_RUN_GC,             po::value<bool>()->default_value(defs.run_gc), "Run IPFS periodic garbage collector")
-            // no defaults
-            (cli::IPFS_BOOTSTRAP,          po::value<std::vector<string>>()->multitoken(), "Bootstrap nodes multiaddr space separated list")
-            (cli::IPFS_PEERING,            po::value<std::vector<string>>()->multitoken(), "Peering nodes multiaddr space separated list")
-            (cli::IPFS_SWARM_KEY,          po::value<string>(), "ipfs-repo/swarm.key file contents");
-        return ipfs_options;
-    }
-
-    boost::optional<asio_ipfs::config> getIPFSConfig(const po::variables_map& vm, asio_ipfs::config defs)
-    {
-        if (!vm[cli::IPFS_ENABLE].as<bool>()) {
-            return boost::none;
-        }
-
-        asio_ipfs::config cfg = std::move(defs);
-        cfg.repo_root = vm[cli::IPFS_STORAGE].as<string>();
-        cfg.low_water = vm[cli::IPFS_LOW_WATER].as<uint32_t>();
-        cfg.low_water = vm[cli::IPFS_HIGH_WATER].as<uint32_t>();
-        cfg.grace_period = vm[cli::IPFS_GRACE].as<uint32_t>();
-        cfg.auto_relay = vm[cli::IPFS_AUTO_RELAY].as<bool>();
-        cfg.relay_hop = vm[cli::IPFS_RELAY_HOP].as<bool>();
-        cfg.swarm_port = vm[cli::IPFS_SWARM_PORT].as<uint32_t>();
-        cfg.storage_max = vm[cli::IPFS_STORAGE_MAX].as<string>();
-        cfg.api_address = vm[cli::IPFS_API_ADDR].as<string>();
-        cfg.gateway_address = vm[cli::IPFS_GATEWAY_ADDR].as<string>();
-        cfg.autonat = vm[cli::IPFS_AUTONAT].as<bool>();
-        cfg.autonat_limit = vm[cli::IPFS_AUTONAT_LIMIT].as<uint32_t>();
-        cfg.autonat_peer_limit = vm[cli::IPFS_AUTONAT_PEER_LIMIT].as<uint32_t>();
-        cfg.routing_type = vm[cli::IPFS_ROUTING_TYPE].as<string>();
-        cfg.run_gc = vm[cli::IPFS_RUN_GC].as<bool>();
-
-        if (vm.count(cli::IPFS_SWARM_KEY)) {
-            cfg.swarm_key = vm[cli::IPFS_SWARM_KEY].as<string>();
-        }
-
-        if (vm.count(cli::IPFS_BOOTSTRAP)) {
-            cfg.bootstrap = vm[cli::IPFS_BOOTSTRAP].as<std::vector<string>>();
-            cfg.peering   = vm[cli::IPFS_BOOTSTRAP].as<std::vector<string>>();
-        }
-
-        if (vm.count(cli::IPFS_PEERING)) {
-            cfg.peering = vm[cli::IPFS_PEERING].as<std::vector<string>>();
-        }
-
-        return cfg;
-    }
-    #endif
 
     po::options_description createRulesOptionsDescription()
     {

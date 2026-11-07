@@ -32,25 +32,12 @@ add_library(wallet_api STATIC
     ${SOURCES}
 )
 
-add_library(wallet_api_no_ipfs STATIC
-    ${SOURCES}
-)
-
 target_link_libraries(wallet_api
-    PUBLIC 
-        wallet
-)
-
-target_link_libraries(wallet_api_no_ipfs
     PUBLIC
         wallet
-        wallet_client_no_ipfs
+        wallet_client
         utility
 )
-
-if(BEAM_IPFS_SUPPORT)
-    target_link_libraries(wallet_api PUBLIC wallet_ipfs)
-endif()
 
 if(BEAM_ASSET_SWAP_SUPPORT)
     target_link_libraries(wallet_api PUBLIC client_extensions)
@@ -79,15 +66,6 @@ if (NOT BEAM_WALLET_CLIENT_LIBRARY)
         add_custom_command(
             TARGET ${WALLET_API_NAME} POST_BUILD
             COMMAND ${SIGNTOOL_EXECUTABLE} sign ${SIGNTOOL_OPTIONS} "${CMAKE_CURRENT_BINARY_DIR}\\${WALLET_API_NAME}.exe"
-        )
-    endif()
-
-    if (BEAM_IPFS_SUPPORT AND WIN32)
-        # TODO: This if hacky AF and beacuse we place everything in different folders.
-        get_target_property(IPFS_DLL asio-ipfs IPFS_DLL)
-        add_custom_command(
-            TARGET ${WALLET_API_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy ${IPFS_DLL} ${CMAKE_CURRENT_BINARY_DIR}
         )
     endif()
 endif()

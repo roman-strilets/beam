@@ -32,7 +32,6 @@ brew install cmake boost openssl@3
 
 - `xcode-select --install` installs the C++ compiler and git. If they are already installed, it tells you so. That is fine.
 - You need Boost **1.83 or newer**.
-- You do **not** need to install Go. The build downloads it automatically.
 
 ### Step 2. Get the source code
 
@@ -157,7 +156,6 @@ Add these to the command in Step 4 if you need them.
 | Option | What it does |
 |---|---|
 | `-DCMAKE_BUILD_TYPE=Debug` | Builds a debug version, which is easier to debug but slower. Use a separate folder for it, for example `-B build-debug`. |
-| `-DBEAM_IPFS_SUPPORT=Off` | Builds without IPFS support. The build is faster and does not download Go. |
 | `-DBEAM_HW_WALLET=On` | Adds hardware wallet (Trezor) support. |
 | `-DBEAM_LINK_TYPE=Static` | Links libraries statically, as the official releases do. Needs static versions of Boost and OpenSSL. |
 

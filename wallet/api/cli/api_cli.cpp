@@ -43,11 +43,6 @@
 #include "wallet/transactions/lelantus/lelantus_reg_creators.h"
 
 
-#ifdef BEAM_IPFS_SUPPORT
-#include "wallet/ipfs/ipfs.h"
-#include "wallet/ipfs/ipfs_async.h"
-#endif
-
 #ifdef BEAM_ASSET_SWAP_SUPPORT
 #include "wallet/client/extensions/broadcast_gateway/broadcast_router.h"
 #include "wallet/client/extensions/dex_board/dex_board.h"
@@ -180,78 +175,6 @@ namespace
             stop();
         }
 
-        #ifdef BEAM_IPFS_SUPPORT
-        struct IPFSHandler: beam::wallet::IPFSService::Handler
-        {
-            explicit IPFSHandler(io::Reactor::Ptr reactor, std::function<void (std::string)> onerr)
-            {
-                _toServerThread = PostToReactorThread::create(std::move(reactor));
-                _onError = std::move(onerr);
-            }
-
-            void AnyThread_pushToClient(std::function<void()>&& action) override
-            {
-                _toServerThread->post(std::move(action));
-            }
-
-            void AnyThread_onStatus(const std::string& error, uint32_t peercnt) override
-            {
-                if (error.empty())
-                {
-                    BEAM_LOG_INFO() << "IPFS peers count: " << peercnt;
-                    return;
-                }
-
-                _toServerThread->post([onerr = _onError, error](){
-                    onerr(error);
-                });
-            }
-
-        private:
-            wallet::PostToReactorThread::Ptr _toServerThread;
-            std::function<void (std::string)> _onError;
-        };
-
-        bool startIPFS(asio_ipfs::config config, io::Reactor::Ptr reactor)
-        {
-            try
-            {
-                _ipfsHandler = std::make_shared<IPFSHandler>(reactor, [reactor, this] (const std::string& error) {
-                    _ipfsError = error;
-                    reactor->stop();
-                });
-
-                _ipfs = beam::wallet::IPFSService::AnyThread_create(_ipfsHandler);
-                _ipfs->ServiceThread_start(std::move(config));
-                return true;
-            }
-            catch(std::runtime_error& err)
-            {
-                BEAM_LOG_ERROR() << err.what();
-                return false;
-            }
-        }
-
-        void stopIPFS()
-        {
-            _ipfs->ServiceThread_stop();
-            _ipfs.reset();
-            _ipfsHandler.reset();
-        }
-
-        [[nodiscard]] const std::string& getIPFSError() const
-        {
-            return _ipfsError;
-        }
-
-        private:
-            beam::wallet::IPFSService::Ptr _ipfs;
-            std::shared_ptr<IPFSHandler> _ipfsHandler;
-            std::string _ipfsError;
-        public:
-        #endif
-
-
 #ifdef BEAM_ASSET_SWAP_SUPPORT
         void initDexFeature(proto::FlyClient::INetwork::Ptr nnet, IWalletMessageEndpoint& wnet, Wallet& wallet)
         {
@@ -331,10 +254,6 @@ namespace
                 _walletData->contracts   = IShadersManager::CreateInstance(*_wallet, "", "", 0);
                 _walletData->nodeNetwork = _network;
 
-
-                #ifdef BEAM_IPFS_SUPPORT
-                _walletData->ipfs = _ipfs;
-                #endif
 
                 #ifdef BEAM_ASSET_SWAP_SUPPORT
                 _walletData->dexBoard = _dex;
@@ -695,11 +614,6 @@ int main(int argc, char* argv[])
         desc.add(authDesc);
         desc.add(tlsDesc);
 
-        #ifdef BEAM_IPFS_SUPPORT
-        auto ipfsDefs = asio_ipfs::config(asio_ipfs::config::Mode::Server);
-        desc.add(createIPFSOptionsDesrition(false, ipfsDefs));
-        #endif
-
         desc.add(createRulesOptionsDescription());
     }
 
@@ -899,21 +813,6 @@ int main(int argc, char* argv[])
         WalletApiServer server(options.apiVersion, walletDB, wallet, nnet, *reactor, listenTo, connectionOptions, acl, whitelist);
 
 
-        #ifdef BEAM_IPFS_SUPPORT
-        auto ipfsOpts = getIPFSConfig(vm, asio_ipfs::config(asio_ipfs::config::Mode::Server));
-        if (ipfsOpts)
-        {
-            if(!server.startIPFS(*ipfsOpts, reactor))
-            {
-                return -1;
-            }
-        }
-        else
-        {
-            BEAM_LOG_INFO() << "IPFS is not enabled. IPFS node will be not started.";
-        }
-        #endif
-
         if (Rules::get().CA.Enabled && wallet::g_AssetsEnabled)
         {
             RegisterAllAssetCreators(*wallet);
@@ -936,16 +835,6 @@ int main(int argc, char* argv[])
         wallet->ResumeAllTransactions();
         io::Reactor::get_Current().run();
 
-        #ifdef BEAM_IPFS_SUPPORT
-        if (ipfsOpts)
-        {
-            server.stopIPFS();
-            if(auto err = server.getIPFSError(); !err.empty())
-            {
-                throw std::runtime_error(std::string("IPFS failed: ") + err);
-            }
-        }
-        #endif
         BEAM_LOG_INFO() << "Done";
     }
     // DO NOT USE LOG_ below. Logger is dead here

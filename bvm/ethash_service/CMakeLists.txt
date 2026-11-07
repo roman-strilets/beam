@@ -15,6 +15,6 @@ target_link_libraries(ethash_utils
 add_executable(ethash-service ethash_service.cpp)
 target_link_libraries(ethash-service 
     PRIVATE
-        wallet_api_no_ipfs
+        wallet_api
         ethash_utils
 )

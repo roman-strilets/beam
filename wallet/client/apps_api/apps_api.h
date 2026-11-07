@@ -74,7 +74,6 @@ namespace beam::wallet
                        std::string appid,
                        std::string appname,
                        uint32_t privilegeLvl,
-                       bool ipfsnode,
                        std::function<void (Ptr)> cback)
         {
             if (client == nullptr)
@@ -85,42 +84,15 @@ namespace beam::wallet
 
             struct IWTResult
             {
-                #ifdef BEAM_IPFS_SUPPORT
-                IPFSService::Ptr ipfs;
-                #endif
                 IShadersManager::Ptr shaders;
             };
 
             client->getAsync()->makeIWTCall(
-                [client, appid, appname, privilegeLvl, ipfsnode]() -> boost::any {
+                [client, appid, appname, privilegeLvl]() -> boost::any {
                     //
                     // THIS IS WALLET CLIENT REACTOR THREAD
                     //
                     IWTResult result;
-                    bool hasIPFSNode = false;
-
-                    #ifdef BEAM_IPFS_SUPPORT
-                    if (ipfsnode) {
-                        try
-                        {
-                            result.ipfs = client->IWThread_startIPFSNode();
-                            hasIPFSNode = true;
-                        }
-                        catch(const std::runtime_error& err)
-                        {
-                            assert(false);
-                            BEAM_LOG_ERROR() << "Failed to start IPFS node: " << err.what();
-                        }
-                    }
-                    #else
-                    ipfsnode;
-                    #endif
-
-                    if (!hasIPFSNode) {
-                        BEAM_LOG_INFO() << "IPFS Node is not running. IPFS would not be available for the '"
-                                   << appname << "' DApp";
-                    }
-
                     result.shaders = client->IWThread_createAppShaders(appid, appname, privilegeLvl);
                     return result;
                 },
@@ -141,10 +113,6 @@ namespace beam::wallet
                     data.appId       = appid;
                     data.appName     = appname;
                     data.nodeNetwork = client->getNodeNetwork();
-
-                    #ifdef BEAM_IPFS_SUPPORT
-                    data.ipfs = std::move(iwtres.ipfs);
-                    #endif
 
                     wapi->_walletAPI = IWalletApi::CreateInstance(version, *wapi->_walletAPIProxy, data);
                     BEAM_LOG_INFO () << "AppsApi created for " << appid << ", " << appname << ", privileges " << privilegeLvl;

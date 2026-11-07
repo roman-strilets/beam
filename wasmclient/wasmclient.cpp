@@ -701,7 +701,7 @@ public:
         }
 
         std::weak_ptr<WalletClient2> weak2 = m_Client;
-        WasmAppApi::ClientThread_Create(m_Client.get(), version, appid, appname, priviledge, false,
+        WasmAppApi::ClientThread_Create(m_Client.get(), version, appid, appname, priviledge,
             [cb, weak2](WasmAppApi::Ptr wapi)
             {
                 if (!wapi)

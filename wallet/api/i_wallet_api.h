@@ -21,7 +21,6 @@
 #include "utility/logger.h"
 #include "wallet/core/contracts/i_shaders_manager.h"
 #include "wallet/core/node_network.h"
-#include "wallet/ipfs/ipfs.h"
 #include "base/api_errors.h"
 #include "sync_mode.h"
 
@@ -74,9 +73,6 @@ namespace beam::wallet
         IWalletDB::Ptr walletDB;
         Wallet::Ptr wallet;
         NodeNetwork::Ptr nodeNetwork;
-        #ifdef BEAM_IPFS_SUPPORT
-        IPFSService::Ptr ipfs;
-        #endif
 
         #ifdef BEAM_ASSET_SWAP_SUPPORT
         beam::wallet::DexBoard::Ptr dexBoard;

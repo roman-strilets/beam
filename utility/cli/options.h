@@ -18,10 +18,6 @@
 #include "utility/logger.h"
 #include "wallet/core/secstring.h"
 
-#ifdef BEAM_IPFS_SUPPORT
-#include <asio-ipfs/include/ipfs_config.h>
-#endif
-
 namespace beam
 {
     struct Rules;
@@ -259,29 +255,6 @@ namespace beam
         extern const char* SHADER_WIDGET;
         extern const char* SHADER_WIDGET_NAME;
 
-        // IPFS
-        #ifdef BEAM_IPFS_SUPPORT
-        extern const char* IPFS_ENABLE;
-        extern const char* IPFS_STORAGE;
-        extern const char* IPFS_LOW_WATER;
-        extern const char* IPFS_HIGH_WATER;
-        extern const char* IPFS_GRACE;
-        extern const char* IPFS_AUTO_RELAY;
-        extern const char* IPFS_RELAY_HOP;
-        extern const char* IPFS_BOOTSTRAP;
-        extern const char* IPFS_PEERING;
-        extern const char* IPFS_SWARM_PORT;
-        extern const char* IPFS_STORAGE_MAX;
-        extern const char* IPFS_API_ADDR;
-        extern const char* IPFS_GATEWAY_ADDR;
-        extern const char* IPFS_AUTONAT;
-        extern const char* IPFS_AUTONAT_LIMIT;
-        extern const char* IPFS_AUTONAT_PEER_LIMIT;
-        extern const char* IPFS_SWARM_KEY;
-        extern const char* IPFS_ROUTING_TYPE;
-        extern const char* IPFS_RUN_GC;
-        #endif
-
 #ifdef BEAM_ASSET_SWAP_SUPPORT
         extern const char* ASSETS_SWAP_LIST;
         extern const char* ASSETS_SWAP_CREATE;
@@ -310,11 +283,6 @@ namespace beam
 
     std::pair<po::options_description, po::options_description> createOptionsDescription(int flags = ALL_OPTIONS, const std::string& configFile = {});
     po::options_description createRulesOptionsDescription();
-
-    #ifdef BEAM_IPFS_SUPPORT
-    po::options_description createIPFSOptionsDesrition(bool enableByDefault, const asio_ipfs::config& defaults);
-    boost::optional<asio_ipfs::config> getIPFSConfig(const po::variables_map& vm, asio_ipfs::config defaults); // boost::none if IPFS is not enabled
-    #endif
 
     po::variables_map getOptions(int argc, char* argv[], const po::options_description& options, Rules&, bool walletOptions = false);
 
