@@ -389,6 +389,12 @@ endif()
 target_compile_definitions(beam INTERFACE -DBC_STATIC)
 add_definitions(-DBC_STATIC)
 
+# Third-party libraries (secp256k1, ethash, keccak) must be static: beam uses
+# their internal symbols (e.g. secp256k1_ecmult_gen_prec_table), which shared
+# builds do not export. A normal variable also overrides secp256k1's
+# option(BUILD_SHARED_LIBS ... ON) and any stale cached value.
+set(BUILD_SHARED_LIBS OFF)
+
 add_subdirectory(3rdparty)
 add_subdirectory(utility)
 add_subdirectory(core)
