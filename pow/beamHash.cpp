@@ -15,8 +15,6 @@
 #include "core/block_crypt.h"
 #include "crypto/equihashR.h"
 #include "crypto/beamHashIII.h"
-#include "uint256.h"
-#include "arith_uint256.h"
 #include <utility>
 #include "utility/logger.h"
 #include <mutex>

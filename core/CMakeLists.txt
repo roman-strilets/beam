@@ -6,7 +6,6 @@ set(CORE_SRC
     ecc.cpp
     ecc_bulletproof.cpp
     aes.cpp
-    aes2.cpp
     base58.cpp
     block_crypt.cpp
     block_rw.cpp
