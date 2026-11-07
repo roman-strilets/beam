@@ -36,7 +36,6 @@ namespace fs = std::filesystem;
 #include "nlohmann/json.hpp"
 #include "utility/std_extension.h"
 #include "keykeeper/local_private_key_keeper.h"
-#include "keykeeper/hid_key_keeper.h"
 #include "strings_resources.h"
 #include "core/uintBig.h"
 #include "utility/test_helpers.h"
@@ -2192,28 +2191,6 @@ namespace beam::wallet
         return walletDB;
     }
 
-    IWalletDB::Ptr WalletDB::initHww(const string& path, const SecString& password, bool separateDBForPrivateData)
-    {
-        auto pKeyKeeper = HidKeyKeeper::Open("");
-
-        std::shared_ptr<WalletDB> walletDB = initBase(path, password, separateDBForPrivateData);
-        if (walletDB)
-        {
-            uint32_t iKind = 1;
-            storage::setBlobVar(*walletDB, HwwKind, iKind); // do it before the rest, in case of error we'd like to have the kind saved
-
-            walletDB->m_pKeyKeeper = pKeyKeeper;
-            walletDB->FromKeyKeeper();
-
-            walletDB->storeOwnerKey(); // store owner key (public)
-
-            walletDB->flushDB();
-            walletDB->m_Initialized = true;
-        }
-
-        return walletDB;
-    }
-
     IWalletDB::Ptr WalletDB::open(const string& path, const SecString& password)
     {
         return open(path, password, nullptr);
@@ -2597,11 +2574,8 @@ namespace beam::wallet
         if (!m_pKeyKeeper)
         {
             uint32_t iKind = 0;
-            if (storage::getBlobVar(*this, HwwKind, iKind))
-            {
-                if (1 == iKind) // auto-find any supported HWW
-                    m_pKeyKeeper = HidKeyKeeper::Open("");
-            }
+            if (storage::getBlobVar(*this, HwwKind, iKind) && iKind)
+                throw std::runtime_error("Hardware wallets are no longer supported");
         }
 
         if (m_pKeyKeeper)

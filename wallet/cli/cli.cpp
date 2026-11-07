@@ -27,8 +27,6 @@
 
 #include "wallet/transactions/assets/assets_reg_creators.h"
 #include "keykeeper/local_private_key_keeper.h"
-#include "keykeeper/hid_key_keeper.h"
-#include "keykeeper/ledger_loader.h"
 #include "core/ecc_native.h"
 #include "core/serialization_adapters.h"
 #include "core/treasury.h"
@@ -696,7 +694,6 @@ namespace
     enum struct InitKind {
         GenerateSeed,
         RecoverFromSeed,
-        RecoverFromHid,
     };
 
     int InitDataBase(const po::variables_map& vm, InitKind kind)
@@ -734,23 +731,15 @@ namespace
             return -1;
         }
 
-        IWalletDB::Ptr walletDB;
-
-        if (InitKind::RecoverFromHid == kind)
-            walletDB = WalletDB::initHww(walletPath, pass);
-        else
+        NoLeak<uintBig> walletSeed;
+        walletSeed.V = Zero;
+        if (!ReadWalletSeed(walletSeed, vm, InitKind::GenerateSeed == kind))
         {
-            NoLeak<uintBig> walletSeed;
-            walletSeed.V = Zero;
-            if (!ReadWalletSeed(walletSeed, vm, InitKind::GenerateSeed == kind))
-            {
-                BEAM_LOG_ERROR() << kErrorSeedPhraseFail;
-                return -1;
-            }
-
-            walletDB = WalletDB::init(walletPath, pass, walletSeed);
+            BEAM_LOG_ERROR() << kErrorSeedPhraseFail;
+            return -1;
         }
 
+        IWalletDB::Ptr walletDB = WalletDB::init(walletPath, pass, walletSeed);
 
         if (walletDB)
         {
@@ -762,36 +751,6 @@ namespace
         return -1;
     }
 
-    int EnumHid(const po::variables_map& vm)
-    {
-        auto vRes = wallet::HidInfo::EnumSupported();
-        if (vRes.empty())
-            std::cout << "No supported HW wallet found" << std::endl;
-        else
-        {
-            std::cout << "Found devices: " << vRes.size() << std::endl;
-
-            for (const auto& x : vRes)
-                std::cout << "\tManufacturer: " << x.m_sManufacturer << ", Name: " << x.m_sProduct << std::endl;
-        }
-
-        return 0;
-    }
-
-    int HidInstall(const po::variables_map& vm)
-    {
-        auto var = vm[cli::HID_INSTALL_FILE];
-        if (var.empty())
-            beam::wallet::LedgerFw::FindAndLoadIntegrated();
-        else
-        {
-            auto sFile = vm[cli::HID_INSTALL_FILE].as<std::string>();
-            beam::wallet::LedgerFw::FindAndLoad(sFile.c_str());
-
-        }
-        return 0;
-    }
-
     int InitWallet(const po::variables_map& vm)
     {
         return InitDataBase(vm, InitKind::GenerateSeed);
@@ -800,11 +759,6 @@ namespace
     int RestoreWallet(const po::variables_map& vm)
     {
         return InitDataBase(vm, InitKind::RecoverFromSeed);
-    }
-
-    int RestoreWalletHid(const po::variables_map& vm)
-    {
-        return InitDataBase(vm, InitKind::RecoverFromHid);
     }
 
    int GetAddress(const po::variables_map& vm)
@@ -3318,9 +3272,6 @@ int main(int argc, char* argv[])
     {
         {cli::INIT,               InitWallet,                       "initialize new wallet database with a new seed phrase"},
         {cli::RESTORE,            RestoreWallet,                    "restore wallet database from a seed phrase provided by the user"},
-        {cli::RESTORE_HID,        RestoreWalletHid,                 "restore wallet database from an attached HW wallet"},
-        {cli::HID_ENUM,           EnumHid,                          "Enumerate attached HW wallets"},
-        {cli::HID_INSTALL,        HidInstall,                       "Install Beam app on the attached HW wallet"},
         {cli::SEND,               Send,                             "send BEAM"},
         {cli::SLATEPACK,          Slatepack,                        "import a Slatepack: review a received one (produces the reply) or finalize a reply"},
         {cli::SLATEPACK_EXPORT,   ExportSlatepack,                  "re-print the stored outgoing Slatepack for a transaction (--tx_id; --save optional)"},

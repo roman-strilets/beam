@@ -36,7 +36,6 @@
 #include "extensions/dex_board/dex_board.h"
 #include "extensions/dex_board/dex_order.h"
 #endif  // BEAM_ASSET_SWAP_SUPPORT
-#include "keykeeper/hid_key_keeper.h"
 
 #include <thread>
 #include <atomic>
@@ -99,7 +98,6 @@ namespace beam::wallet
         , private DexBoard::IObserver
 #endif  // BEAM_ASSET_SWAP_SUPPORT
         , private IVerificationObserver
-        , public wallet::HidKeyKeeper::IEvents
     {
     public:
 

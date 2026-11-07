@@ -73,10 +73,6 @@ namespace beam
         extern const char* CRASH;
         extern const char* INIT;
         extern const char* RESTORE;
-        extern const char* RESTORE_HID;
-        extern const char* HID_ENUM;
-        extern const char* HID_INSTALL;
-        extern const char* HID_INSTALL_FILE;
         extern const char* EXPORT_MINER_KEY;
         extern const char* EXPORT_OWNER_KEY;
         extern const char* KEY_SUBKEY;
