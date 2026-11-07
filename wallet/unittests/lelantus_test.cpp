@@ -18,7 +18,6 @@
 #include "wallet/core/wallet.h"
 #include "wallet/transactions/lelantus/push_transaction.h"
 #include "wallet/transactions/lelantus/pull_transaction.h"
-#include "wallet/transactions/lelantus/unlink_transaction.h"
 #include "keykeeper/local_private_key_keeper.h"
 #include "wallet/core/simple_transaction.h"
 #include "core/unittest/mini_blockchain.h"

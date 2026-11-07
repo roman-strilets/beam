@@ -4,7 +4,6 @@ set(LELANTUS_SRC
     push_transaction.cpp
     pull_transaction.cpp
     push_tx_builder.cpp
-    unlink_transaction.cpp
     lelantus_reg_creators.cpp
 )
 
