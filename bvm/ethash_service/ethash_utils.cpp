@@ -20,7 +20,7 @@
 #include "core/base/mapped_file.h"
 #include "core/crypto/ecc_native.h"
 #include "core/consensus/merkle.h"
-#include "core/consensus/block_crypt.h"
+#include "core/consensus/chain_types.h"
 #include "utility/byteorder.h"
 #include "ethash/include/ethash/ethash.h"
 #include "ethash/lib/ethash/ethash-internal.hpp"

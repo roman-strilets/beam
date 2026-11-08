@@ -15,7 +15,7 @@
 #pragma once
 
 #include "core/base/common.h"
-#include "core/consensus/block_crypt.h"
+#include "core/consensus/chain_types.h"
 #include "utility/io/address.h"
 #include <boost/intrusive/set.hpp>
 #include <boost/intrusive/list.hpp>

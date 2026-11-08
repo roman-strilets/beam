@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 
 #include "default_peers.h"
-#include "../../core/consensus/block_crypt.h"
+#include "../../core/consensus/rules.h"
 
 namespace beam
 {

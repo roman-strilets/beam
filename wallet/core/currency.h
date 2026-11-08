@@ -15,7 +15,7 @@
 
 #include <string>
 #include "utility/serialize_fwd.h"
-#include "core/consensus/block_crypt.h"
+#include "core/consensus/asset.h"
 
 namespace beam::wallet
 {

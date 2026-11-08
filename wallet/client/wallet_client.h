@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "core/consensus/block_crypt.h"
+#include "core/consensus/rules.h"
 #include "wallet/core/common.h"
 #include "wallet/core/wallet.h"
 #include "wallet/core/wallet_db.h"

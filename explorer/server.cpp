@@ -19,7 +19,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <fstream>
 #include "../core/crypto/ecc.h"
-#include "../core/consensus/block_crypt.h"
+#include "../core/consensus/asset.h"
 
 namespace beam { namespace explorer {
 

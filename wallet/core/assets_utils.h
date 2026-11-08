@@ -13,7 +13,7 @@
 // limitations under the License.
 #pragma once
 
-#include <core/consensus/block_crypt.h>
+#include <core/consensus/asset.h>
 #include "common.h"
 
 namespace beam::wallet {
