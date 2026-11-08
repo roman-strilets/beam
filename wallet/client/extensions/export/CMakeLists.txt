@@ -17,5 +17,5 @@ if(BEAM_ASSET_SWAP_SUPPORT)
     target_compile_definitions(export PUBLIC BEAM_ASSET_SWAP_SUPPORT)
 endif()
 
-target_compile_features(export PUBLIC ${BEAM_INTERFACE_STANDARD})
+target_compile_features(export PUBLIC cxx_std_20)
 

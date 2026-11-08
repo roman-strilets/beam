@@ -49,7 +49,7 @@ target_link_libraries(wallet_core
         sqlite
 )
 
-target_compile_features(wallet_core PUBLIC ${BEAM_INTERFACE_STANDARD})
+target_compile_features(wallet_core PUBLIC cxx_std_20)
 
 
 if (NOT ANDROID)

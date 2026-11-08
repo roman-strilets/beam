@@ -4,11 +4,7 @@ cmake_minimum_required(VERSION 3.13)
 set(TARGET_NAME wasm-key-keeper)
 
 if(EMSCRIPTEN)
-    if (BEAM_CPP_20_STANDARD)
-        set(CMAKE_CXX_STANDARD 20)
-    else()
-        set(CMAKE_CXX_STANDARD 17)
-    endif()
+    set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
 endif()
 

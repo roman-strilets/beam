@@ -118,19 +118,9 @@ endif()
 
 include(AddTest)
 
-option(BEAM_CPP_20_STANDARD "Build with C++20 standard" ON)
-message("BEAM_CPP_20_STANDARD is ${BEAM_CPP_20_STANDARD}")
+set(CMAKE_CXX_STANDARD 20)
 
-
-if (BEAM_CPP_20_STANDARD)
-    set(CMAKE_CXX_STANDARD 20)
-    set(BEAM_INTERFACE_STANDARD cxx_std_20)
-else()
-    set(CMAKE_CXX_STANDARD 17)
-    set(BEAM_INTERFACE_STANDARD cxx_std_17)
-endif()
-
-target_compile_features(beam INTERFACE ${BEAM_INTERFACE_STANDARD})
+target_compile_features(beam INTERFACE cxx_std_20)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 

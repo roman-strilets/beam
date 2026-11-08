@@ -23,7 +23,7 @@ target_link_libraries(wallet_client
     PRIVATE http
 )
 
-target_compile_features(wallet_client PUBLIC ${BEAM_INTERFACE_STANDARD})
+target_compile_features(wallet_client PUBLIC cxx_std_20)
 
 add_subdirectory(extensions)
 
