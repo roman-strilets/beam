@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include "treasury.h"
-#include "proto.h"
 
 namespace beam
 {

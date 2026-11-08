@@ -13,7 +13,6 @@ set(CORE_SRC
     difficulty.cpp
     chainwork.cpp
     mapped_file.cpp
-    navigator.cpp
     radixtree.cpp
     merkle.cpp
     keccak.cpp
