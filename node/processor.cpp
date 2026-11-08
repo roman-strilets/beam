@@ -862,7 +862,7 @@ void NodeProcessor::EnumCongestions()
 	}
 }
 
-const uint64_t* NodeProcessor::get_CachedRows(const NodeDB::StateID& sid, Height nCountExtra)
+bool NodeProcessor::get_CachedRows(const NodeDB::StateID& sid, Height nCountExtra, std::deque<uint64_t>::const_iterator& out)
 {
 	EnumCongestionsInternal();
 
@@ -873,9 +873,12 @@ const uint64_t* NodeProcessor::get_CachedRows(const NodeDB::StateID& sid, Height
 		uint64_t dn = (pVal->m_Number.v - sid.m_Number.v);
 
 		if (pVal->m_Rows.size() > nCountExtra + dn)
-			return &pVal->m_Rows.at(dn);
+		{
+			out = pVal->m_Rows.cbegin() + dn;
+			return true;
+		}
 	}
-	return nullptr;
+	return false;
 }
 
 uint32_t NodeProcessor::get_MaxAutoRollback()

@@ -2474,8 +2474,8 @@ void Node::Peer::OnMsg(proto::BodyPack&& msg)
 	NodeProcessor::DataStatus::Enum eStatus = NodeProcessor::DataStatus::Rejected;
 	if (!msg.m_Bodies.empty() && ShouldAcceptBodyPack())
 	{
-		const uint64_t* pPtr = p.get_CachedRows(t.m_sidTrgRequested, hCountExtra);
-		if (pPtr)
+		std::deque<uint64_t>::const_iterator itRows;
+		if (p.get_CachedRows(t.m_sidTrgRequested, hCountExtra, itRows))
 		{
 			BEAM_LOG_INFO() << id << " Block pack received " << id.m_Number.v << "-" << (id.m_Number.v + msg.m_Bodies.size() - 1);
 
@@ -2484,7 +2484,7 @@ void Node::Peer::OnMsg(proto::BodyPack&& msg)
 			for (uint64_t n = 0; n < msg.m_Bodies.size(); n++)
 			{
 				NodeDB::StateID sid;
-				sid.m_Row = pPtr[hCountExtra - n];
+				sid.m_Row = itRows[hCountExtra - n];
 				sid.m_Number.v = id.m_Number.v + n;
 
 				const proto::BodyBuffers& bb = msg.m_Bodies[n];

@@ -14,11 +14,12 @@
 
 #pragma once
 
+#include <deque>
+
 #include "../core/radixtree.h"
 #include "../core/proto.h"
 #include "../core/treasury.h"
 #include "../core/mapped_file.h"
-#include "../utility/dvector.h"
 #include "../utility/executor.h"
 #include "../utility/containers.h"
 #include "db.h"
@@ -215,7 +216,7 @@ class NodeProcessor
 		{
 			Block::Number m_Number;
 			bool m_bNeedHdrs;
-			std::dvector<uint64_t> m_Rows;
+			std::deque<uint64_t> m_Rows;
 
 			bool IsContained(const NodeDB::StateID&);
 		};
@@ -555,7 +556,7 @@ public:
 	void RollbackDB();
 
 	void EnumCongestions();
-	const uint64_t* get_CachedRows(const NodeDB::StateID&, uint64_t nCountExtra); // retval valid till next call to this func, or to EnumCongestions()
+	bool get_CachedRows(const NodeDB::StateID&, uint64_t nCountExtra, std::deque<uint64_t>::const_iterator& out); // out valid till next call to this func, or to EnumCongestions()
 	void TryGoUp();
 	void TryGoTo(NodeDB::StateID&);
 	void OnFastSyncOver(MultiblockContext&, bool& bContextFail);
