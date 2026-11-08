@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "core/proto.h"
+#include "core/net/proto.h"
 
 namespace beam::wallet
 {

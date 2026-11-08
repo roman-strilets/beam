@@ -14,7 +14,7 @@
 // limitations under the License.
 #include "dex_order.h"
 #include "utility/logger.h"
-#include "core/common.h"
+#include "core/base/common.h"
 
 namespace {
     const char kBeamAssetSName[] = "BEAM";

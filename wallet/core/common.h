@@ -14,12 +14,12 @@
 
 #pragma once
 
-#include "core/ecc_native.h"
-#include "core/merkle.h"
+#include "core/crypto/ecc_native.h"
+#include "core/consensus/merkle.h"
 
-#include "core/serialization_adapters.h"
+#include "core/consensus/serialization_adapters.h"
 #include "3rdparty/utilstrencodings.h"
-#include "core/proto.h"
+#include "core/net/proto.h"
 #include <algorithm>
 #include "wallet/client/extensions/news_channels/version_info.h"
 #include "wallet/core/exchange_rate.h"

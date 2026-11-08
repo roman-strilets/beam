@@ -13,13 +13,13 @@
 // limitations under the License.
 
 #include "wallet/core/wallet_network.h"
-#include "core/common.h"
+#include "core/base/common.h"
 
 #include "node/node.h"
 #include "node/bridge.h"
-#include "core/ecc_native.h"
-#include "core/serialization_adapters.h"
-#include "core/block_rw.h"
+#include "core/crypto/ecc_native.h"
+#include "core/consensus/serialization_adapters.h"
+#include "core/storage/block_rw.h"
 #include "bvm/bvm2.h"
 #include "utility/cli/options.h"
 #include "utility/log_rotation.h"

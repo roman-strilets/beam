@@ -17,7 +17,7 @@
 #include "wallet_db.h"
 #include "common.h"
 #include "base_transaction.h"
-#include "core/fly_client.h"
+#include "core/net/fly_client.h"
 #include "node/processor.h"
 //#include "contracts/shaders_manager.h"
 

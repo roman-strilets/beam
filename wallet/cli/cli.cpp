@@ -14,7 +14,7 @@
 
 #include "wallet/core/common.h"
 #include "wallet/core/wallet_network.h"
-#include "core/common.h"
+#include "core/base/common.h"
 #include "wallet/core/common_utils.h"
 #include "wallet/core/wallet.h"
 #include "wallet/core/wallet_db.h"
@@ -27,10 +27,10 @@
 
 #include "wallet/transactions/assets/assets_reg_creators.h"
 #include "keykeeper/local_private_key_keeper.h"
-#include "core/ecc_native.h"
-#include "core/serialization_adapters.h"
-#include "core/treasury.h"
-#include "core/block_rw.h"
+#include "core/crypto/ecc_native.h"
+#include "core/consensus/serialization_adapters.h"
+#include "core/consensus/treasury.h"
+#include "core/storage/block_rw.h"
 #include <algorithm>
 #include "mnemonic/mnemonic.h"
 #include "utility/string_helpers.h"
@@ -73,7 +73,7 @@
 #include <iterator>
 #include <future>
 #include <regex>
-#include <core/block_crypt.h>
+#include <core/consensus/block_crypt.h>
 
 using namespace std;
 using namespace beam;

@@ -15,7 +15,7 @@
 #pragma once
 
 #include "utility/logger.h"
-#include "core/proto.h"
+#include "core/net/proto.h"
 #include "utility/io/timer.h"
 #include <boost/intrusive/set.hpp>
 #include <boost/intrusive/list.hpp>

@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "core/ecc.h"
+#include "core/crypto/ecc.h"
 
 namespace beam::wallet
 {

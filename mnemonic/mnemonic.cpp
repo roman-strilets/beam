@@ -14,7 +14,7 @@
 
 #include "mnemonic.h"
 
-#include "core/ecc_native.h"
+#include "core/crypto/ecc_native.h"
 #include "pkcs5_pbkdf2.h"
 
 #include <boost/algorithm/string.hpp>

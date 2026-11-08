@@ -36,7 +36,7 @@ using namespace beam;
 using namespace beam::wallet;
 using namespace std;
 
-// Declared in core/block_crypt.h but intentionally not defined in libcore (built with
+// Declared in core/consensus/block_crypt.h but intentionally not defined in libcore (built with
 // -fvisibility=hidden); every beam executable that uses Rules defines it in its own main TU.
 thread_local const beam::Rules* beam::Rules::s_pInstance = nullptr;
 

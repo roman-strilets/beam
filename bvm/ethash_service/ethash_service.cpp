@@ -17,7 +17,7 @@
 #endif
 
 #include "ethash_utils.h"
-#include "core/block_crypt.h"
+#include "core/consensus/block_crypt.h"
 #include "utility/cli/options.h"
 #include "utility/io/reactor.h"
 #include "utility/logger.h"

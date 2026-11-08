@@ -13,16 +13,16 @@
 // limitations under the License.
 
 #include <iostream>
-#include "../ecc_native.h"
-#include "../block_rw.h"
-#include "../shielded.h"
-#include "../treasury.h"
+#include "core/crypto/ecc_native.h"
+#include "core/storage/block_rw.h"
+#include "core/consensus/shielded.h"
+#include "core/consensus/treasury.h"
 #include "../../utility/serialize.h"
-#include "../serialization_adapters.h"
-#include "../aes.h"
-#include "../proto.h"
-#include "../lelantus.h"
-#include "../base58.h"
+#include "core/consensus/serialization_adapters.h"
+#include "core/crypto/aes.h"
+#include "core/net/proto.h"
+#include "core/crypto/lelantus.h"
+#include "core/crypto/base58.h"
 #include "../../utility/byteorder.h"
 #include "../../utility/executor.h"
 

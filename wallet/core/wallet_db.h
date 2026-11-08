@@ -26,8 +26,8 @@
 #endif
 
 #include <tuple>
-#include "core/common.h"
-#include "core/ecc_native.h"
+#include "core/base/common.h"
+#include "core/crypto/ecc_native.h"
 #include "common.h"
 #include "utility/io/address.h"
 #include "secstring.h"

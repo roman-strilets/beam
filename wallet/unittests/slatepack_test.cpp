@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "wallet/core/slatepack.h"
-#include "core/ecc_native.h" // ECC::GenRandom
+#include "core/crypto/ecc_native.h" // ECC::GenRandom
 #include "test_helpers.h"     // WALLET_TEST_INIT / WALLET_CHECK / WALLET_CHECK_RESULT
 #include <cstring>
 

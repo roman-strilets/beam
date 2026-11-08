@@ -15,9 +15,9 @@
 #include "../node.h"
 #include "../../mnemonic/mnemonic.h"
 #include "../../utility/cli/options.h"
-#include "../../core/fly_client.h"
-#include "../../core/treasury.h"
-#include "../../core/serialization_adapters.h"
+#include "../../core/net/fly_client.h"
+#include "../../core/consensus/treasury.h"
+#include "../../core/consensus/serialization_adapters.h"
 #include <boost/core/ignore_unused.hpp>
 
 #ifndef LOG_VERBOSE_ENABLED

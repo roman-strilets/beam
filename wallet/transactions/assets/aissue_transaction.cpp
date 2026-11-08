@@ -14,7 +14,7 @@
 
 #include "aissue_transaction.h"
 #include "../../core/base_tx_builder.h"
-#include "core/block_crypt.h"
+#include "core/consensus/block_crypt.h"
 #include "utility/logger.h"
 #include "wallet/core/strings_resources.h"
 #include "wallet/core/wallet.h"

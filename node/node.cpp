@@ -16,11 +16,11 @@
 #define HOST_BUILD
 
 #include "node.h"
-#include "../core/serialization_adapters.h"
-#include "../core/proto.h"
-#include "../core/ecc_native.h"
-#include "../core/block_rw.h"
-#include "../core/fly_client.h" // hdr pack decoding moved there
+#include "../core/consensus/serialization_adapters.h"
+#include "../core/net/proto.h"
+#include "../core/crypto/ecc_native.h"
+#include "../core/storage/block_rw.h"
+#include "../core/net/fly_client.h" // hdr pack decoding moved there
 
 #include "../p2p/protocol.h"
 #include "../p2p/connection.h"

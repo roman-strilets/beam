@@ -17,7 +17,7 @@
 #include "utility/log_rotation.h"
 #include "utility/string_helpers.h"
 #include "mnemonic/mnemonic.h"
-#include "core/ecc.h"
+#include "core/crypto/ecc.h"
 #include "keykeeper/local_private_key_keeper.h"
 #include "wallet/core/wallet_network.h"
 #include "wallet/client/extensions/broadcast_gateway/broadcast_router.h"

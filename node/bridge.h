@@ -15,7 +15,7 @@
 #pragma once
 
 #include "../utility/containers.h"
-#include "../core/fly_client.h"
+#include "../core/net/fly_client.h"
 
 namespace beam {
 

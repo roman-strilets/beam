@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "core/ecc_native.h"
+#include "core/crypto/ecc_native.h"
 #include "p2p/protocol.h"
 #include "p2p/connection.h"
 #define LOG_DEBUG_ENABLED 0

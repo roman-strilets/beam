@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "ManagerStd.h"
-#include "../core/serialization_adapters.h"
+#include "../core/consensus/serialization_adapters.h"
 
 namespace beam {
 namespace bvm2 {

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "pull_transaction.h"
-#include "core/shielded.h"
+#include "core/consensus/shielded.h"
 #include "wallet/core/strings_resources.h"
 
 namespace beam::wallet::lelantus

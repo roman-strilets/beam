@@ -14,7 +14,7 @@
 
 #define HOST_BUILD
 
-#include "../../core/block_crypt.h"
+#include "../../core/consensus/block_crypt.h"
 #include "../../utility/test_helpers.h"
 #include "../evm.h"
 #include "nlohmann/json.hpp"

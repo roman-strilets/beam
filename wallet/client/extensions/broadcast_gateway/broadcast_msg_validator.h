@@ -16,7 +16,7 @@
 
 #include "wallet/client/extensions/broadcast_gateway/interface.h"
 
-#include "core/block_crypt.h"   // PeerID
+#include "core/consensus/block_crypt.h"   // PeerID
 
 namespace beam::wallet
 {

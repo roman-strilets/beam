@@ -14,7 +14,7 @@
 
 #include "push_tx_builder.h"
 
-#include "core/shielded.h"
+#include "core/consensus/shielded.h"
 
 namespace beam::wallet::lelantus
 {

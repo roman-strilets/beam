@@ -14,7 +14,7 @@
 
 #include "broadcast_msg_creator.h"
 #include "wallet/core/common.h"
-#include "core/proto.h"
+#include "core/net/proto.h"
 
 namespace beam::wallet
 {

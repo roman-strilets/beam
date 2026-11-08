@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "core/lightning_codes.h"
+#include "core/channels/lightning_codes.h"
 #include "wallet/laser/channel.h"
 #include "utility/logger.h"
 

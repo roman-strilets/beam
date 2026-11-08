@@ -1,8 +1,8 @@
 #include "server.h"
 #include "adapter.h"
 #include "wallet/core/secstring.h"
-#include "core/ecc_native.h"
-#include "core/block_rw.h"
+#include "core/crypto/ecc_native.h"
+#include "core/storage/block_rw.h"
 #include "bvm/bvm2.h"
 
 #include "node/node.h"

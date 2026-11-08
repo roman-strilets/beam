@@ -13,7 +13,7 @@
 // limitations under the License.
 #pragma once
 
-#include "core/uintBig.h"
+#include "core/base/uintBig.h"
 #include "dictionary.h"
 
 #include <vector>

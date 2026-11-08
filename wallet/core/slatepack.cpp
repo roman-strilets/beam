@@ -14,7 +14,7 @@
 
 #include "wallet/core/slatepack.h"
 #include "wallet/core/base58.h"
-#include "core/ecc_native.h" // ECC::Hash, Blob
+#include "core/crypto/ecc_native.h" // ECC::Hash, Blob
 #include "utility/serialize.h"
 #include <cstring>
 

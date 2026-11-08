@@ -16,7 +16,7 @@
 
 #include <string>
 #include <vector>
-#include "core/fly_client.h"
+#include "core/net/fly_client.h"
 #include "wallet/core/node_connection_observer.h"
 
 namespace beam::wallet

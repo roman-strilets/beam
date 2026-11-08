@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "core/block_crypt.h"
+#include "core/consensus/block_crypt.h"
 #include <iostream>
 #include "3rdparty/crypto/equihashR.h"
 #include "wallet/unittests/test_helpers.h"

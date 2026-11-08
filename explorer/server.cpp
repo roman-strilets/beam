@@ -18,8 +18,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <fstream>
-#include "../core/ecc.h"
-#include "../core/block_crypt.h"
+#include "../core/crypto/ecc.h"
+#include "../core/consensus/block_crypt.h"
 
 namespace beam { namespace explorer {
 

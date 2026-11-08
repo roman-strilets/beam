@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include <iostream>
-#include <core/block_crypt.h>
+#include <core/consensus/block_crypt.h>
 #include "test_helpers.h"
 #include "wallet/api/i_wallet_api.h"
 #include "wallet/api/v6_0/v6_api.h"

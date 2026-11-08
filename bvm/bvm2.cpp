@@ -27,7 +27,7 @@
 #include "crypto/blake/sse/blake2.h"
 #endif
 
-#include "../core/keccak.h"
+#include "../core/crypto/keccak.h"
 
 namespace beam {
 namespace bvm2 {

@@ -16,7 +16,7 @@
 
 #include "base_tx_builder.h"
 #include "wallet.h"
-#include "core/block_crypt.h"
+#include "core/consensus/block_crypt.h"
 #include "strings_resources.h"
 
 #include <numeric>

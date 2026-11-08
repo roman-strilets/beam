@@ -1,29 +1,29 @@
 cmake_minimum_required(VERSION 3.13)
 
 set(CORE_SRC
-    uintBig.cpp
-    numeric_utils.cpp
-    ecc.cpp
-    ecc_bulletproof.cpp
-    aes.cpp
-    base58.cpp
-    block_crypt.cpp
-    block_rw.cpp
-    block_validation.cpp
-    difficulty.cpp
-    chainwork.cpp
-    mapped_file.cpp
-    radixtree.cpp
-    merkle.cpp
-    keccak.cpp
-    negotiator.cpp
-    lightning.cpp
-    lelantus.cpp
-    proto.cpp
-    peer_manager.cpp
-    fly_client.cpp
-    treasury.cpp
-    shielded.cpp
+    base/uintBig.cpp
+    base/numeric_utils.cpp
+    crypto/ecc.cpp
+    crypto/ecc_bulletproof.cpp
+    crypto/aes.cpp
+    crypto/base58.cpp
+    consensus/block_crypt.cpp
+    storage/block_rw.cpp
+    consensus/block_validation.cpp
+    consensus/difficulty.cpp
+    consensus/chainwork.cpp
+    base/mapped_file.cpp
+    storage/radixtree.cpp
+    consensus/merkle.cpp
+    crypto/keccak.cpp
+    channels/negotiator.cpp
+    channels/lightning.cpp
+    crypto/lelantus.cpp
+    net/proto.cpp
+    net/peer_manager.cpp
+    net/fly_client.cpp
+    consensus/treasury.cpp
+    consensus/shielded.cpp
 # ~etc
 )
 

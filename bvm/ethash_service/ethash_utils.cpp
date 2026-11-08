@@ -17,10 +17,10 @@
 #endif
 
 #include "ethash_utils.h"
-#include "core/mapped_file.h"
-#include "core/ecc_native.h"
-#include "core/merkle.h"
-#include "core/block_crypt.h"
+#include "core/base/mapped_file.h"
+#include "core/crypto/ecc_native.h"
+#include "core/consensus/merkle.h"
+#include "core/consensus/block_crypt.h"
 #include "utility/byteorder.h"
 #include "ethash/include/ethash/ethash.h"
 #include "ethash/lib/ethash/ethash-internal.hpp"

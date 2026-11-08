@@ -14,7 +14,7 @@
 
 #define _CRT_SECURE_NO_WARNINGS // sprintf
 #include "evm.h"
-#include "../core/keccak.h"
+#include "../core/crypto/keccak.h"
 
 namespace beam {
 

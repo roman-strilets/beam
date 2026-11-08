@@ -18,8 +18,8 @@
 #include <boost/filesystem.hpp>
 #include <fstream>
 #include <sstream>
-#include "core/block_crypt.h"
-#include "core/ecc.h"
+#include "core/consensus/block_crypt.h"
+#include "core/crypto/ecc.h"
 #include "utility/string_helpers.h"
 #include "utility/helpers.h"
 #include "mnemonic/mnemonic.h"

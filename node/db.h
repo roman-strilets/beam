@@ -14,8 +14,8 @@
 
 #pragma once
 
-#include "core/common.h"
-#include "core/block_crypt.h"
+#include "core/base/common.h"
+#include "core/consensus/block_crypt.h"
 #include "sqlite/sqlite3.h"
 
 namespace beam {

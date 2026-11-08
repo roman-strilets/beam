@@ -15,7 +15,7 @@
 #pragma once
 #include "wasm_interpreter.h"
 #include "../utility/containers.h"
-#include "../core/block_crypt.h"
+#include "../core/consensus/block_crypt.h"
 #include "invoke_data.h"
 
 namespace Shaders {

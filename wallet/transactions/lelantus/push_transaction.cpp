@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "push_transaction.h"
-#include "core/shielded.h"
+#include "core/consensus/shielded.h"
 #include "push_tx_builder.h"
 #include "wallet/core/common_utils.h"
 #include "wallet/core/strings_resources.h"

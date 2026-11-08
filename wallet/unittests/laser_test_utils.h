@@ -17,7 +17,7 @@
 #include <functional>
 #include <memory>
 
-#include "core/treasury.h"
+#include "core/consensus/treasury.h"
 #include "wallet/core/wallet_network.h"
 #include "wallet/laser/mediator.h"
 

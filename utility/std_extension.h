@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "core/uintBig.h"
+#include "core/base/uintBig.h"
 
 namespace beam
 {

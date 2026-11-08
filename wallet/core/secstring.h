@@ -1,5 +1,5 @@
 #pragma once
-#include "core/ecc_native.h"
+#include "core/crypto/ecc_native.h"
 #include <string_view>
 
 namespace beam {

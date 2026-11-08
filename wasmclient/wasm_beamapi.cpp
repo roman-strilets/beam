@@ -15,7 +15,7 @@
 #include "wasm_beamapi.h"
 #include <boost/algorithm/string.hpp>
 #include "utility/string_helpers.h"
-#include "core/block_crypt.h"
+#include "core/consensus/block_crypt.h"
 
 using namespace beam;
 using namespace beam::wallet;

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "local_private_key_keeper.h"
-#include "core/shielded.h"
+#include "core/consensus/shielded.h"
 #include "utility/logger.h"
 #include "utility/executor.h"
 

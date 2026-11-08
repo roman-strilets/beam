@@ -13,9 +13,9 @@
 // limitations under the License.
 
 #include "../node.h"
-#include "../../core/fly_client.h"
-#include "../../core/treasury.h"
-#include "../../core/lightning.h"
+#include "../../core/net/fly_client.h"
+#include "../../core/consensus/treasury.h"
+#include "../../core/channels/lightning.h"
 
 #ifndef LOG_VERBOSE_ENABLED
 #define LOG_VERBOSE_ENABLED 0

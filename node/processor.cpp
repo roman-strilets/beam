@@ -13,12 +13,12 @@
 // limitations under the License.
 
 #include "processor.h"
-#include "../core/treasury.h"
-#include "../core/shielded.h"
+#include "../core/consensus/treasury.h"
+#include "../core/consensus/shielded.h"
 #include "../bvm/bvm2.h"
 #include "../bvm/evm.h"
-#include "../core/serialization_adapters.h"
-#include "../core/base58.h"
+#include "../core/consensus/serialization_adapters.h"
+#include "../core/crypto/base58.h"
 #include "../utility/serialize.h"
 #include "../utility/logger.h"
 #include "../utility/logger_checkpoints.h"

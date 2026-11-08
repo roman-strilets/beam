@@ -29,10 +29,10 @@
 #endif  // BEAM_ASSET_SWAP_SUPPORT
 #include "wallet/client/wallet_client.h"
 #include "utility/test_helpers.h"
-#include "core/radixtree.h"
+#include "core/storage/radixtree.h"
 #include "core/unittest/mini_blockchain.h"
-#include "core/negotiator.h"
-#include "core/block_rw.h"
+#include "core/channels/negotiator.h"
+#include "core/storage/block_rw.h"
 #include "node/node.h"
 #include "node/bridge.h"
 #include "wallet/core/private_key_keeper.h"
@@ -54,7 +54,7 @@
 #include <condition_variable>
 #include "utility/thread.h"
 
-#include "core/proto.h"
+#include "core/net/proto.h"
 #include <boost/intrusive/list.hpp>
 
 using namespace beam;

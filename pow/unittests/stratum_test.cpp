@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "pow/stratum.h"
-#include "core/ecc.h"
+#include "core/crypto/ecc.h"
 #include "utility/io/json_serializer.h"
 #include "p2p/line_protocol.h"
 #include "utility/helpers.h"

@@ -17,7 +17,7 @@
 #include "utility/logger.h"
 #include "utility/helpers.h"
 #include "sqlite/sqlite3.h"
-#include "core/block_rw.h"
+#include "core/storage/block_rw.h"
 #include "wallet/core/common.h"
 #include "wallet/core/common_utils.h"
 #include <sstream>
@@ -31,13 +31,13 @@ namespace fs = boost::filesystem;
 #include <filesystem>
 namespace fs = std::filesystem;
 #endif
-#include <core/block_crypt.h>
-#include <core/shielded.h>
+#include <core/consensus/block_crypt.h>
+#include <core/consensus/shielded.h>
 #include "nlohmann/json.hpp"
 #include "utility/std_extension.h"
 #include "keykeeper/local_private_key_keeper.h"
 #include "strings_resources.h"
-#include "core/uintBig.h"
+#include "core/base/uintBig.h"
 #include "utility/test_helpers.h"
 #include <queue>
 #include <unordered_map>

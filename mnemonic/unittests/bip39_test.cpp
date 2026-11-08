@@ -1,6 +1,6 @@
-#include "core/uintBig.h"
-#include "core/ecc.h"
-#include "core/ecc_native.h"
+#include "core/base/uintBig.h"
+#include "core/crypto/ecc.h"
+#include "core/crypto/ecc_native.h"
 
 #include "mnemonic/mnemonic.h"
 #include "utility/helpers.h"

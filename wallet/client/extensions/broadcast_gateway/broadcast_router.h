@@ -17,8 +17,8 @@
 #include "p2p/protocol.h"
 #include "p2p/msg_reader.h"
 
-#include "core/block_crypt.h"   // BbsChannel
-#include "core/fly_client.h"    // INetwork
+#include "core/consensus/block_crypt.h"   // BbsChannel
+#include "core/net/fly_client.h"    // INetwork
 #include "wallet/core/wallet.h" // IWalletMessageEndpoint
 #include "wallet/core/wallet_network.h"
 

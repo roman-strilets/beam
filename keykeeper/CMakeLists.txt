@@ -33,14 +33,14 @@ if(EMSCRIPTEN AND NOT BEAM_WALLET_CLIENT_LIBRARY)
 
     target_sources(keykeeper
         PRIVATE
-            ${PROJECT_SOURCE_DIR}/../core/uintBig.cpp
-            ${PROJECT_SOURCE_DIR}/../core/ecc.cpp
-            ${PROJECT_SOURCE_DIR}/../core/ecc_bulletproof.cpp
-            ${PROJECT_SOURCE_DIR}/../core/block_crypt.cpp
-            ${PROJECT_SOURCE_DIR}/../core/block_rw.cpp
-            ${PROJECT_SOURCE_DIR}/../core/merkle.cpp
-            ${PROJECT_SOURCE_DIR}/../core/block_validation.cpp
-            ${PROJECT_SOURCE_DIR}/../core/aes.cpp
+            ${PROJECT_SOURCE_DIR}/../core/base/uintBig.cpp
+            ${PROJECT_SOURCE_DIR}/../core/crypto/ecc.cpp
+            ${PROJECT_SOURCE_DIR}/../core/crypto/ecc_bulletproof.cpp
+            ${PROJECT_SOURCE_DIR}/../core/consensus/block_crypt.cpp
+            ${PROJECT_SOURCE_DIR}/../core/storage/block_rw.cpp
+            ${PROJECT_SOURCE_DIR}/../core/consensus/merkle.cpp
+            ${PROJECT_SOURCE_DIR}/../core/consensus/block_validation.cpp
+            ${PROJECT_SOURCE_DIR}/../core/crypto/aes.cpp
             ${PROJECT_SOURCE_DIR}/../utility/common.cpp
             ${PROJECT_SOURCE_DIR}/../utility/hex.cpp
 

@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "core/fly_client.h"
+#include "core/net/fly_client.h"
 #include <boost/intrusive/list.hpp>
 
 namespace beam::wallet

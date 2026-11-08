@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "wallet/laser/i_channel_holder.h"
-#include "core/fly_client.h"
+#include "core/net/fly_client.h"
 #include "wallet/laser/channel.h"
 #include "wallet/core/wallet_db.h"
 

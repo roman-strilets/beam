@@ -16,7 +16,7 @@
 #include <boost/filesystem.hpp>
 
 #include "http/http_client.h"
-#include "core/treasury.h"
+#include "core/consensus/treasury.h"
 #include "keykeeper/local_private_key_keeper.h"
 #include "wallet/core/simple_transaction.h"
 #include "utility/test_helpers.h"

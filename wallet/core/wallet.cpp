@@ -15,10 +15,10 @@
 #include "wallet.h"
 #include <boost/uuid/uuid.hpp>
 
-#include "core/ecc_native.h"
-#include "core/block_crypt.h"
-#include "core/shielded.h"
-#include "core/treasury.h"
+#include "core/crypto/ecc_native.h"
+#include "core/consensus/block_crypt.h"
+#include "core/consensus/shielded.h"
+#include "core/consensus/treasury.h"
 #include "utility/logger.h"
 #include "utility/helpers.h"
 #include "simple_transaction.h"

@@ -16,10 +16,10 @@
 
 #include <deque>
 
-#include "../core/radixtree.h"
-#include "../core/proto.h"
-#include "../core/treasury.h"
-#include "../core/mapped_file.h"
+#include "../core/storage/radixtree.h"
+#include "../core/net/proto.h"
+#include "../core/consensus/treasury.h"
+#include "../core/base/mapped_file.h"
 #include "../utility/executor.h"
 #include "../utility/containers.h"
 #include "db.h"

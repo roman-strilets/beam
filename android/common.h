@@ -18,7 +18,7 @@
 #include <vector>
 #include <jni.h>
 
-#include <core/ecc.h>
+#include <core/crypto/ecc.h>
 
 #define CONCAT1(prefix, class, function)    CONCAT2(prefix, class, function)
 #define CONCAT2(prefix, class, function)    Java_ ## prefix ## _ ## class ## _ ## function

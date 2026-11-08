@@ -13,7 +13,7 @@
 // limitations under the License.
 #pragma once
 
-#include "core/treasury.h"
+#include "core/consensus/treasury.h"
 #include "node/node.h"
 #include "wallet/core/wallet_db.h"
 

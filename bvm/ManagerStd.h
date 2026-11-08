@@ -14,7 +14,7 @@
 #pragma once
 
 #include "bvm2.h"
-#include "../core/fly_client.h"
+#include "../core/net/fly_client.h"
 #include "invoke_data.h"
 
 namespace beam::bvm2 {

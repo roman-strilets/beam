@@ -16,7 +16,7 @@
 
 #include "wallet/client/extensions/broadcast_gateway/interface.h"
 
-#include "core/ecc_native.h"    // PrivateKey
+#include "core/crypto/ecc_native.h"    // PrivateKey
 
 namespace beam::wallet
 {

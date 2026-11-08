@@ -15,7 +15,7 @@
 #pragma once
 
 #include <memory>
-#include "core/uintBig.h"
+#include "core/base/uintBig.h"
 #include "utility/common.h"
 
 namespace beam::wallet::laser

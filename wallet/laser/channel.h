@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "core/lightning.h"
+#include "core/channels/lightning.h"
 #include "wallet/laser/i_channel_holder.h"
 #include "wallet/laser/types.h"
 #include "wallet/core/wallet_db.h"

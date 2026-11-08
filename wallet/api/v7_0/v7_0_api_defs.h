@@ -16,7 +16,7 @@
 #include <vector>
 #include <memory>
 #include <string>
-#include "core/ecc_native.h"
+#include "core/crypto/ecc_native.h"
 
 namespace beam::wallet
 {

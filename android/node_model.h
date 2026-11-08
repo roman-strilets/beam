@@ -17,7 +17,7 @@
 #include <memory>
 #include <atomic>
 #include <condition_variable>
-#include "core/block_crypt.h"
+#include "core/consensus/block_crypt.h"
 #include "node/node.h"
 #include "node/node_client.h"
 

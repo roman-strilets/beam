@@ -13,8 +13,8 @@
 // limitations under the License.
 
 #include "base_tx_builder.h"
-#include "core/block_crypt.h"
-#include "core/shielded.h"
+#include "core/consensus/block_crypt.h"
+#include "core/consensus/shielded.h"
 #include "base_transaction.h"
 #include "strings_resources.h"
 #include "utility/executor.h"

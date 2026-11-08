@@ -20,7 +20,7 @@
 #endif  // BEAM_ASSET_SWAP_SUPPORT
 #include "utility/log_rotation.h"
 #include "http/http_client.h"
-#include "core/block_rw.h"
+#include "core/storage/block_rw.h"
 #include "wallet/core/common_utils.h"
 #include "extensions/broadcast_gateway/broadcast_router.h"
 #include "extensions/export/tx_history_to_csv.h"
