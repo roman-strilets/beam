@@ -234,13 +234,6 @@ namespace beam
 		return 0;
 	}
 
-	#define CMP_MEMBER_VECPTR(member) \
-		{ \
-			int n = CmpPtrVectors(member, v.member); \
-			if (n) \
-				return n; \
-		}
-
 	void Transaction::TestValid(Context& ctx) const
 	{
 		assert(Kind::Tx == ctx.m_Params.m_Kind);

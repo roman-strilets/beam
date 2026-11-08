@@ -25,10 +25,6 @@
 #include "wallet/client/extensions/news_channels/interface.h"
 #include "wallet/core/strings_resources.h"
 
-#ifndef LOG_VERBOSE_ENABLED
-    #define LOG_VERBOSE_ENABLED 0
-#endif
-
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
 

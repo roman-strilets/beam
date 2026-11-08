@@ -13,9 +13,6 @@
 // limitations under the License.
 
 #include "utility/io/reactor.h"
-#ifndef LOG_VERBOSE_ENABLED
-    #define LOG_VERBOSE_ENABLED 0
-#endif
 #include "utility/logger.h"
 #include <future>
 #include <iostream>

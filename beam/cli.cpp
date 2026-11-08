@@ -216,10 +216,6 @@ namespace
 	}
 }
 
-#ifndef LOG_VERBOSE_ENABLED
-	#define LOG_VERBOSE_ENABLED 0
-#endif
-
 io::Reactor::Ptr reactor;
 
 static const unsigned LOG_ROTATION_PERIOD_SEC = 3*60*60; // 3 hours

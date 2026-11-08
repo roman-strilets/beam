@@ -610,6 +610,4 @@
 	macro(0xB3, void     , Comm_WaitMsg) \
 	macro(0xB4, void     , Comm_Listen) \
 	macro(0xC0, uint32_t , GetMaxSpend) \
-	macro(0xC1, void     , SetMaxSpend) \
-
-#define EXTRA_LINE_BEFORE_EOF_SO_THAT_THE_STUPID_COMPILER_WONT_COMPLAIN_ABOUT_BACKSLASH_ON_PREVIOUS_LINE
+	macro(0xC1, void     , SetMaxSpend)

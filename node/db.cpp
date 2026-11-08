@@ -527,7 +527,6 @@ void NodeDB::CheckIntegrity()
 void NodeDB::Create()
 {
 	// create tables
-#define TblPrefix_Any(name) "CREATE TABLE [" #name "] ("
 
 	ExecQuick("CREATE TABLE [" TblParams "] ("
 		"[" TblParams_ID	"] INTEGER NOT NULL PRIMARY KEY,"

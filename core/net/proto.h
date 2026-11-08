@@ -637,16 +637,6 @@ namespace proto {
     inline void ZeroInit(PbftReputationMap&) { }
     inline void ZeroInit(Block::Pbft::ValidatorSet&) { }
 
-    template <typename T> struct InitArg {
-        typedef const T& TArg;
-        static void Set(T& var, TArg arg) { var = arg; }
-    };
-
-    template <typename T> struct InitArg<std::unique_ptr<T> > {
-        typedef std::unique_ptr<T>& TArg;
-        static void Set(std::unique_ptr<T>& var, TArg arg) { var = std::move(arg); }
-    };
-
 	namespace Bbs
 	{
 		static const size_t s_MaxMsgSize = 1024 * 1024;
@@ -706,8 +696,6 @@ namespace proto {
         void ReadOnceStrict();
     };
 
-#define THE_MACRO6(type, name) InitArg<type>::Set(m_##name, arg##name);
-#define THE_MACRO5(type, name) typename InitArg<type>::TArg arg##name,
 #define THE_MACRO4(type, name) ZeroInit(m_##name);
 #define THE_MACRO3(type, name) & m_##name
 #define THE_MACRO2(type, name) type m_##name;
@@ -729,8 +717,6 @@ namespace proto {
 #undef THE_MACRO2
 #undef THE_MACRO3
 #undef THE_MACRO4
-#undef THE_MACRO5
-#undef THE_MACRO6
 
 
 	namespace Bbs

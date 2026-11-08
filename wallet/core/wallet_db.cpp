@@ -95,8 +95,6 @@ namespace fs = std::filesystem;
 #define INCOMING_WALLET_MESSAGE_NAME "IncomingWalletMessages"
 #define LASER_CHANNELS_NAME "LaserChannels"
 #define LASER_ADDRESSES_NAME "LaserAddresses"
-#define LASER_OPEN_STATES_NAME "LaserOpenStates"
-#define LASER_UPDATES_NAME "LaserUpdates"
 #define ASSETS_NAME "Assets"
 #define SHIELDED_COINS_NAME "ShieldedCoins"
 #define NOTIFICATIONS_NAME "notifications"
@@ -132,29 +130,21 @@ namespace fs = std::filesystem;
     each(Identity,       Endpoint,       BLOB, obj) sep \
     each(Address,        Token,        TEXT NOT NULL PRIMARY KEY, obj) 
 
-#define ADDRESS_FIELDS ENUM_ADDRESS_FIELDS(LIST, COMMA, )
-
 #define ENUM_TX_PARAMS_FIELDS(each, sep, obj) \
     each(txID,           txID,           BLOB NOT NULL , obj) sep \
     each(subTxID,        subTxID,        INTEGER NOT NULL , obj) sep \
     each(paramID,        paramID,        INTEGER NOT NULL , obj) sep \
     each(value,          value,          BLOB, obj)
 
-#define TX_PARAMS_FIELDS ENUM_TX_PARAMS_FIELDS(LIST, COMMA, )
-
 #define ENUM_WALLET_MESSAGE_FIELDS(each, sep, obj) \
     each(ID,  ID,  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, obj) sep \
     each(PeerID, PeerID,   BLOB, obj) sep \
     each(Message, Message, BLOB, obj)
 
-#define WALLET_MESSAGE_FIELDS ENUM_WALLET_MESSAGE_FIELDS(LIST, COMMA, )
-
 #define ENUM_INCOMING_WALLET_MESSAGE_FIELDS(each, sep, obj) \
     each(ID,  ID,  INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, obj) sep \
     each(Channel, Channel, INTEGER, obj) sep \
     each(Message, Message, BLOB, obj)
-
-#define INCOMING_WALLET_MESSAGE_FIELDS ENUM_INCOMING_WALLET_MESSAGE_FIELDS(LIST, COMMA, )
 
 #define TblStates            "States"
 #define TblStates_Height     "Height"
@@ -190,8 +180,6 @@ namespace fs = std::filesystem;
     ENUM_ASSET_FIELDS_0(each, sep, obj) sep \
     each(Deposit,        Deposit,       INTEGER,           obj)
 
-#define ASSET_FIELDS ENUM_ASSET_FIELDS(LIST, COMMA, )
-
 #define ENUM_SHIELDED_COIN_FIELDS(each, sep, obj) \
     each(Key,                   CoinID.m_Key,         BLOB NOT NULL PRIMARY KEY, obj) sep \
     each(User,                  CoinID.m_User,        BLOB, obj) sep \
@@ -212,8 +200,6 @@ namespace fs = std::filesystem;
     each(createTime,    createTime,     INTEGER,            obj) sep \
     each(content,       content,        BLOB NOT NULL,      obj)
 
-#define NOTIFICATION_FIELDS ENUM_NOTIFICATION_FIELDS(LIST, COMMA, )
-
 #define ENUM_VERIFICATION_FIELDS(each, sep, obj) \
     each(assetID,       assetID,        INTEGER,  obj) sep \
     each(verified,      verified,       INTEGER,  obj) sep \
@@ -221,23 +207,17 @@ namespace fs = std::filesystem;
     each(color,         color,          TEXT,     obj) sep \
     each(updateTime,    updateTime,     INTEGER,  obj)
 
-#define VERIFICATION_FIELDS ENUM_VERIFICATION_FIELDS(LIST, COMMA, )
-
 #define ENUM_EXCHANGE_RATES_FIELDS29(each, sep, obj) \
     each(currency,      currency,       INTEGER,            obj) sep \
     each(unit,          unit,           INTEGER,            obj) sep \
     each(rate,          rate,           INTEGER,            obj) sep \
     each(updateTime,    updateTime,     INTEGER,            obj)
 
-#define EXCHANGE_RATES_FIELDS29 ENUM_EXCHANGE_RATES_FIELDS29(LIST, COMMA, )
-
 #define ENUM_EXCHANGE_RATES_FIELDS(each, sep, obj) \
     each(cfrom,         from.m_value,   TEXT NOT NULL,      obj) sep \
     each(cto,           to.m_value,     TEXT NOT NULL,      obj) sep \
     each(rate,          rate,           INTEGER,            obj) sep \
     each(updateTime,    updateTime,     INTEGER,            obj)
-
-#define EXCHANGE_RATES_FIELDS ENUM_EXCHANGE_RATES_FIELDS(LIST, COMMA, )
 
 #define ENUM_EXCHANGE_RATES_HISTORY_FIELDS29(each, sep, obj) \
     each(height,        height,         INTEGER,            obj) sep \
@@ -246,8 +226,6 @@ namespace fs = std::filesystem;
     each(rate,          rate,           INTEGER,            obj) sep \
     each(updateTime,    updateTime,     INTEGER,            obj)
 
-#define EXCHANGE_RATES_HISTORY_FIELDS29 ENUM_EXCHANGE_RATES_HISTORY_FIELDS29(LIST, COMMA, )
-
 #define ENUM_EXCHANGE_RATES_HISTORY_FIELDS(each, sep, obj) \
     each(height,        height,         INTEGER,            obj) sep \
     each(cfrom,         from.m_value,   TEXT NOT NULL,      obj) sep \
@@ -255,14 +233,10 @@ namespace fs = std::filesystem;
     each(rate,          rate,           INTEGER,            obj) sep \
     each(updateTime,    updateTime,     INTEGER,            obj)
 
-#define EXCHANGE_RATES_HISTORY_FIELDS ENUM_EXCHANGE_RATES_HISTORY_FIELDS(LIST, COMMA, )
-
 #define ENUM_VOUCHERS_FIELDS(each, sep, obj) \
     each(WalletID,  WalletID,  BLOB NOT NULL, obj) sep \
     each(Voucher,   Voucher,   BLOB NOT NULL UNIQUE, obj) sep \
     each(Flags,     Flags,     INTEGER, obj)
-
-#define VOUCHERS_FIELDS ENUM_VOUCHERS_FIELDS(LIST, COMMA, )
 
 
 #define ENUM_EVENTS_FIELDS(each, sep, obj) \
@@ -270,14 +244,10 @@ namespace fs = std::filesystem;
     each(Body,    Body,   BLOB NOT NULL, obj) sep \
     each(Key,     Key,    BLOB NOT NULL, obj)
 
-#define EVENTS_FIELDS ENUM_EVENTS_FIELDS(LIST, COMMA, )
-
 #define ENUM_DEX_OFFERS_FIELDS(each, sep, obj) \
     each(id,               id,             TEXT NOT NULL PRIMARY KEY, obj) sep \
     each(data,             data,           BLOB, obj) sep \
     each(isMine,           isMine,         INTEGER, obj)
-
-#define DEX_OFFERS_FIELDS ENUM_DEX_OFFERS_FIELDS(LIST, COMMA, )
 
 #define ENUM_TX_SUMMARY_FIELDS(each) \
     each(CreateTime, Timestamp) \
@@ -291,8 +261,6 @@ namespace fs = std::filesystem;
     each(message,     message,        BLOB NOT NULL,    obj) sep \
     each(is_income,   is_income,      INTEGER,    obj) sep \
     each(is_read,     is_read,        INTEGER,    obj)
-
-#define IM_FIELDS ENUM_IM_FIELDS(LIST, COMMA, )
 
 //namespace std
 //{

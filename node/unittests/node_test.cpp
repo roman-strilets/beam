@@ -29,9 +29,6 @@
 #include "../../bvm/bvm2.h"
 #include "../../bvm/evm.h"
 
-#ifndef LOG_VERBOSE_ENABLED
-    #define LOG_VERBOSE_ENABLED 0
-#endif
 #include "utility/logger.h"
 
 namespace ECC {

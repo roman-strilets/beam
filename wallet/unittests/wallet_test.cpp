@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef LOG_VERBOSE_ENABLED
-    #define LOG_VERBOSE_ENABLED 0
-#endif
 #define BEAM_BUILD_THREAD_POOL
 #include "wallet/core/common.h"
 #include "wallet/core/common_utils.h"

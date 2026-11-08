@@ -16,10 +16,6 @@
 // with NO SBBS endpoint. Proves the manual transport carries a full S1->S2->finalize
 // negotiation when the only message endpoint is a SlatepackEndpoint.
 
-#ifndef LOG_VERBOSE_ENABLED
-    #define LOG_VERBOSE_ENABLED 0
-#endif
-
 #include "utility/logger.h"
 #include "node/node.h"
 #include "core/unittest/mini_blockchain.h"

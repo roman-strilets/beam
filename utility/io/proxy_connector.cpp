@@ -18,9 +18,6 @@
 #include "utility/config.h"
 #include "utility/helpers.h"
 
-#ifndef LOG_VERBOSE_ENABLED
-    #define LOG_VERBOSE_ENABLED 0
-#endif
 #include "utility/logger.h"
 
 namespace beam {

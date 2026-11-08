@@ -17,9 +17,6 @@
 #include "../core/base/uintBig.h"
 #include <sstream>
 
-#define MY_TOKENIZE2(a, b) a##b
-#define MY_TOKENIZE1(a, b) MY_TOKENIZE2(a, b)
-
 namespace beam {
 namespace Wasm {
 

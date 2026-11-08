@@ -396,9 +396,6 @@ namespace beam::wallet
             };
         };
 
-#define REQUEST_Cmp_less_Single { return false; }
-#define REQUEST_Cmp_less_Multiple ;
-
 #define THE_MACRO(type) \
         struct MyRequest##type \
             :public Request##type \
@@ -463,8 +460,6 @@ namespace beam::wallet
     WalletFlyClientRequests_All(THE_MACRO)
 
 #undef THE_MACRO
-#undef REQUEST_Cmp_less_Single
-#undef REQUEST_Cmp_less_Multiple
 
 
         IWalletDB::Ptr m_WalletDB; 
