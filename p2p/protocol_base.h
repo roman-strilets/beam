@@ -123,14 +123,11 @@ public:
     ) :
         V0(protocol_version_0), V1(protocol_version_1), V2(protocol_version_2),
         _errorHandler(errorHandler),
-        _maxMessageTypes(maxMessageTypes)
-    {
-        _dispatchTable = new DispatchTableItem[_maxMessageTypes];
-    }
+        _maxMessageTypes(maxMessageTypes),
+        _dispatchTable(maxMessageTypes)
+    {}
 
-    virtual ~ProtocolBase() {
-        delete[] _dispatchTable;
-    }
+    virtual ~ProtocolBase() = default;
 
     /// Returns header with unknow size for serializer
     MsgHeader get_default_header() {
@@ -224,7 +221,7 @@ protected:
     size_t _maxMessageTypes;
 
     /// Raw messages dispatch table for this protocol
-    DispatchTableItem* _dispatchTable;
+    std::vector<DispatchTableItem> _dispatchTable;
 };
 
 } //namespace

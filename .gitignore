@@ -81,7 +81,6 @@ utility/unittest/asyncevent_test
 utility/unittest/channel_test
 utility/unittest/logger_test
 utility/unittest/reactor_test
-utility/unittest/shared_data_test
 utility/unittest/tcpclient_test
 utility/unittest/tcpserver_test
 wallet/unittests/keychain_test
