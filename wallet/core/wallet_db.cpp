@@ -3053,7 +3053,7 @@ namespace beam::wallet
         BEAM_LOG_INFO() << boost::format(kWalletAddrNewGenerated) % addr.m_Token;
 
         if (addr.m_Endpoint != Zero) {
-            BEAM_LOG_INFO() << boost::format(kAddrNewGeneratedEndpoint) % std::to_base58(addr.m_Endpoint);
+            BEAM_LOG_INFO() << boost::format(kAddrNewGeneratedEndpoint) % beam::to_base58(addr.m_Endpoint);
         }
 
         if (!addr.m_label.empty()) {
@@ -6880,7 +6880,8 @@ namespace beam::wallet
                     TxID,
                     std::unordered_map<
                     TxParameterID,
-                    TxParameter>
+                    TxParameter>,
+                    ArrayHash
                 > importedTransactionsMap;
                 for (const auto& jsonTxParameter : obj[Fields::TransactionParameters])
                 {
@@ -7145,10 +7146,10 @@ namespace beam::wallet
 
             std::ostringstream s;
             s
-                << "Sender:            " << std::to_string(m_Sender) << "\n"
-                << "Receiver:          " << std::to_string(m_Receiver) << "\n"
+                << "Sender:            " << beam::to_string(m_Sender) << "\n"
+                << "Receiver:          " << beam::to_string(m_Receiver) << "\n"
                 << "Amount:            " << PrintableAmount(m_Amount, false, m_AssetID, names.first, names.second) << "\n"
-                << "KernelID:          " << std::to_string(m_KernelID) << "\n";
+                << "KernelID:          " << beam::to_string(m_KernelID) << "\n";
             return s.str();
         }
 
@@ -7194,10 +7195,10 @@ namespace beam::wallet
 
             std::ostringstream s;
             s
-                << "Sender:            " << std::to_string(m_Sender) << "\n"
-                << "Receiver:          " << std::to_string(m_Receiver) << "\n"
+                << "Sender:            " << beam::to_string(m_Sender) << "\n"
+                << "Receiver:          " << beam::to_string(m_Receiver) << "\n"
                 << "Amount:            " << PrintableAmount(m_Amount, false, m_AssetID, names.first, names.second) << "\n"
-                << "KernelID:          " << std::to_string(m_KernelID) << "\n";
+                << "KernelID:          " << beam::to_string(m_KernelID) << "\n";
             return s.str();
         }
 
@@ -7623,7 +7624,7 @@ namespace beam::wallet
 
             uint32_t nRemaining = N - sc.get_WndIndex(N) - 1;
 
-            std::setmax(nShieldedOuts, sc.m_TxoID + 1);
+            beam::setmax(nShieldedOuts, sc.m_TxoID + 1);
             nShieldedOuts -= sc.m_TxoID; // to relative
             assert(nShieldedOuts);
 
@@ -7758,7 +7759,7 @@ namespace beam::wallet
         params.SetParameter(TxParameterID::PeerEndpoint,        address.m_Endpoint);
         params.SetParameter(TxParameterID::IsPermanentPeerID,   address.isPermanent());
 
-        return std::to_string(params);
+        return beam::to_string(params);
     }
 
     std::string GenerateMaxPrivacyToken(const WalletAddress& address, const IWalletDB& walletDB, Amount amount, Asset::ID assetId, const std::string& clientVersion)
@@ -7773,7 +7774,7 @@ namespace beam::wallet
         params.SetParameter(TxParameterID::PeerEndpoint, address.m_Endpoint);
         params.SetParameter(TxParameterID::Voucher, vouchers.front());
 
-        return std::to_string(params);
+        return beam::to_string(params);
     }
 
     std::string GeneratePublicToken(const WalletAddress& address, const IWalletDB& walletDB, const std::string& clientVersion)
@@ -7793,12 +7794,12 @@ namespace beam::wallet
         params.SetParameter(TxParameterID::PeerEndpoint, address.m_Endpoint);
         AppendLibraryVersion(params);
 
-        return std::to_string(params);
+        return beam::to_string(params);
     }
 
     std::string  GenerateRegularOldToken(const WalletAddress& address)
     {
-        return std::to_string(address.m_BbsAddr);
+        return beam::to_string(address.m_BbsAddr);
     }
 
     std::string  GenerateRegularNewToken(const WalletAddress& address, Amount amount, Asset::ID assetId, const std::string& clientVersion)
@@ -7810,7 +7811,7 @@ namespace beam::wallet
         params.SetParameter(TxParameterID::IsPermanentPeerID, address.isPermanent());
         params.SetParameter(TxParameterID::TransactionType, TxType::Simple);
 
-        return std::to_string(params);
+        return beam::to_string(params);
     }
 
     std::string  GenerateTokenDefaultAddr(TokenType type, IWalletDB::Ptr walletDB, uint32_t offlineCount /* = 0 */)
@@ -7883,7 +7884,7 @@ namespace beam::wallet
                         return TokenType::RegularOldStyle;
                     }
 
-                    if (std::to_string(wid) == token)
+                    if (beam::to_string(wid) == token)
                     {
                         return TokenType::RegularOldStyle;
                     }

@@ -324,7 +324,7 @@ namespace beam::wallet
     {
         if (!x.m_Count)
             return Status::Success;
-        std::setmin(x.m_Count, 30U);
+        beam::setmin(x.m_Count, 30U);
 
         ECC::Scalar::Native sk;
         m_pKdf->DeriveKey(sk, Key::ID(x.m_iEndpoint, Key::Type::EndPoint));

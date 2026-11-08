@@ -185,7 +185,7 @@ bool parse_cmdline(int argc, char* argv[], Options& o, Rules& r) {
             auto sPath = vArg.as<std::string>();
             if (!sPath.empty())
             {
-                std::FStream fs;
+                beam::FStream fs;
                 fs.Open(sPath.c_str(), true, true);
 
                 o.m_RichParser.resize(static_cast<size_t>(fs.get_Remaining()));

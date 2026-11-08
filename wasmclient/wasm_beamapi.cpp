@@ -149,7 +149,7 @@ void WasmAppApi::ClientThread_getSendConsent(const std::string& request, const n
     }
 
     const auto amount = (*oamounts.begin())["amount"].get<Amount>();
-    info.push_back({"amount", std::to_string(PrintableAmount(amount))});
+    info.push_back({"amount", beam::to_string(PrintableAmount(amount))});
 
     const auto assetID = (*oamounts.begin())["assetID"].get<Asset::ID>();
     info.push_back({"assetID", assetID});

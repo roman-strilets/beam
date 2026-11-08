@@ -627,7 +627,7 @@ void Channel::OnRolledBack()
 		m_State.m_Close.m_nRevision = 0;
 	}
 
-	std::setmin(m_State.m_hQueryLast, h);
+	beam::setmin(m_State.m_hQueryLast, h);
 
 	if (m_State.m_hTxSentLast > h)
 		m_State.m_hTxSentLast = 0; // could be lost

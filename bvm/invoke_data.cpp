@@ -248,7 +248,7 @@ namespace beam::bvm2 {
 		const auto& fs = Transaction::FeeSettings::get(h);
 
 		Amount ret = fs.Calculate(s); // accounts for contract kernel size, but not charge
-		std::setmax(ret, fs.get_DefaultStd()); // round up to std fee
+		beam::setmax(ret, fs.get_DefaultStd()); // round up to std fee
 
 		ret += fs.CalculateForBvm(s, m_Charge); // accounts for charge, adds at least min contract exec fee
 

@@ -112,7 +112,7 @@ namespace beam::wallet
 
         msg = json
         {
-            {"txId", std::to_string(tx.m_txId)},
+            {"txId", beam::to_string(tx.m_txId)},
             {"status", tx.m_status},
             {"status_string", statusStr},
             {"sender", tx.getAddressFrom()},
@@ -236,7 +236,7 @@ namespace beam::wallet
         {
             if (tx.m_txType != TxType::AssetInfo && tx.m_txType != TxType::AtomicSwap)
             {
-                msg["kernel"] = std::to_string(tx.m_kernelID);
+                msg["kernel"] = beam::to_string(tx.m_kernelID);
             }
         }
 
@@ -939,7 +939,7 @@ namespace beam::wallet
             {"id", id},
             {"result",
                 {
-                    {"txid", std::to_string(res.txid)}
+                    {"txid", beam::to_string(res.txid)}
                 }
             }
         };
@@ -960,7 +960,7 @@ namespace beam::wallet
 
         if (res.txid)
         {
-            msg["result"]["txid"] = std::to_string(*res.txid);
+            msg["result"]["txid"] = beam::to_string(*res.txid);
         }
 
         if (res.invokeData)
@@ -1018,13 +1018,13 @@ namespace beam::wallet
                 {"own",         addr.isOwn()},
                 {"own_id",      addr.m_OwnID},
                 {"own_id_str",  std::to_string(addr.m_OwnID)},
-                {"wallet_id",   std::to_string(addr.m_BbsAddr)},
+                {"wallet_id",   beam::to_string(addr.m_BbsAddr)},
                 {"type",        getTokenType(type)}
             };
 
             if (addr.m_Endpoint != Zero)
             {
-                obj["identity"] = std::to_string(addr.m_Endpoint);
+                obj["identity"] = beam::to_string(addr.m_Endpoint);
             }
 
             parent.push_back(obj);
@@ -1095,7 +1095,7 @@ namespace beam::wallet
             {"id", id},
             {"result",
                 {
-                    {"txId", std::to_string(res.txId)}
+                    {"txId", beam::to_string(res.txId)}
                 }
             }
         };
@@ -1109,7 +1109,7 @@ namespace beam::wallet
             {"id", id},
             {"result",
                 {
-                    {"txId", std::to_string(res.txId)}
+                    {"txId", beam::to_string(res.txId)}
                 }
             }
         };
@@ -1123,7 +1123,7 @@ namespace beam::wallet
             {"id", id},
             {"result",
                 {
-                    {"txId", std::to_string(res.txId)}
+                    {"txId", beam::to_string(res.txId)}
                 }
             }
         };
@@ -1140,7 +1140,7 @@ namespace beam::wallet
         res["ownerId"]       = info.m_Owner.str();
         res["isOwned"]       = info.m_IsOwned;
         res["metadata"]      = strMeta;
-        res["emission_str"]  = std::to_string(info.m_Value);
+        res["emission_str"]  = beam::to_string(info.m_Value);
 
         auto val = info.m_Value.ToNumber();
         if(val <= kMaxAllowedInt)
@@ -1200,7 +1200,7 @@ namespace beam::wallet
             {"id", id},
             {"result",
                 {
-                    {"txId", std::to_string(res.txId)}
+                    {"txId", beam::to_string(res.txId)}
                 }
             }
         };
@@ -1226,7 +1226,7 @@ namespace beam::wallet
             {"id", id},
             {"result",
                 {
-                    {"txId", std::to_string(res.txId)}
+                    {"txId", beam::to_string(res.txId)}
                 }
             }
         };
@@ -1309,7 +1309,7 @@ namespace beam::wallet
                 jtotals["asset_id"] = totals.AssetId;
 
                 auto avail = totals.Avail; avail += totals.AvailShielded;
-                jtotals["available_str"] = std::to_string(avail);
+                jtotals["available_str"] = beam::to_string(avail);
 
                 if (avail <= kMaxAllowedInt)
                 {
@@ -1317,7 +1317,7 @@ namespace beam::wallet
                 }
 
                 auto incoming = totals.Incoming; incoming += totals.IncomingShielded;
-                jtotals["receiving_str"] = std::to_string(incoming);
+                jtotals["receiving_str"] = beam::to_string(incoming);
 
                 if (incoming <= kMaxAllowedInt)
                 {
@@ -1325,7 +1325,7 @@ namespace beam::wallet
                 }
 
                 auto outgoing = totals.Outgoing; outgoing += totals.OutgoingShielded;
-                jtotals["sending_str"] = std::to_string(outgoing);
+                jtotals["sending_str"] = beam::to_string(outgoing);
 
                 if (outgoing <= kMaxAllowedInt)
                 {
@@ -1333,7 +1333,7 @@ namespace beam::wallet
                 }
 
                 auto maturing = totals.Maturing; maturing += totals.MaturingShielded;
-                jtotals["maturing_str"] = std::to_string(maturing);
+                jtotals["maturing_str"] = beam::to_string(maturing);
 
                 if (maturing <= kMaxAllowedInt)
                 {
@@ -1351,7 +1351,7 @@ namespace beam::wallet
         {
             {JsonRpcHeader, JsonRpcVersion},
             {"id", id},
-            {"result", std::to_string(res.txId)}
+            {"result", beam::to_string(res.txId)}
         };
     }
 
@@ -1381,10 +1381,10 @@ namespace beam::wallet
                     {
                         {"is_valid", pi.IsValid()},
 
-                        {"sender", std::to_string(pi.m_Sender)},
-                        {"receiver", std::to_string(pi.m_Receiver)},
+                        {"sender", beam::to_string(pi.m_Sender)},
+                        {"receiver", beam::to_string(pi.m_Receiver)},
                         {"amount", pi.m_Amount},
-                        {"kernel", std::to_string(pi.m_KernelID)},
+                        {"kernel", beam::to_string(pi.m_KernelID)},
                         {"asset_id", pi.m_AssetID}
                         //{"signature", std::to_string(res.paymentInfo.m_Signature)}
                     }

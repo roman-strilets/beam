@@ -150,7 +150,7 @@ namespace beam::EthashUtils
 		hdr.m_FullItems = ByteOrder::to_le(nFullItems);
 		hdr.m_CacheItems = ByteOrder::to_le((uint32_t)pCtx->light_cache_num_items);
 
-		std::FStream fs;
+		beam::FStream fs;
 		fs.Open(szPath, false, true);
 		fs.write(&hdr, sizeof(hdr));
 
@@ -172,7 +172,7 @@ namespace beam::EthashUtils
 		hdr.m_FullItems = ByteOrder::to_le(nFullItems);
 		hdr.m_h0 = ByteOrder::to_le(h0);
 
-		std::FStream fs;
+		beam::FStream fs;
 		fs.Open(szPathMerkle, false, true);
 		fs.write(&hdr, sizeof(hdr));
 
@@ -198,7 +198,7 @@ namespace beam::EthashUtils
 
 	void GenerateSuperTree(const char* szRes, const char* szPathCache, const char* szPathMerkle, uint32_t h0)
 	{
-		std::FStream fs;
+		beam::FStream fs;
 		fs.Open(szRes, false, true);
 
 		MyMultiProofBase wrk;
@@ -260,7 +260,7 @@ namespace beam::EthashUtils
 		Hdr hdrDst = hdrSrc;
 		hdrDst.m_h0 = ByteOrder::to_le(h0 + dh);
 
-		std::FStream fs;
+		beam::FStream fs;
 		fs.Open(szDst, false, true);
 		fs.write(&hdrDst, sizeof(hdrDst));
 

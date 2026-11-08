@@ -18,14 +18,14 @@
 #include <regex>
 
 
-namespace std
+namespace beam
 {
-    string to_string(const beam::Version& v)
+    std::string to_string(const beam::Version& v)
     {
-        string maj(to_string(v.m_major));
-        string min(to_string(v.m_minor));
-        string rev(to_string(v.m_revision));
-        string res;
+        std::string maj(to_string(v.m_major));
+        std::string min(to_string(v.m_minor));
+        std::string rev(to_string(v.m_revision));
+        std::string res;
         res.reserve(maj.size() + min.size() + rev.size());
         res.append(maj).push_back('.');
         res.append(min).push_back('.');

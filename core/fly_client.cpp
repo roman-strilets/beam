@@ -725,7 +725,7 @@ void FlyClient::NetworkStd::Connection::PostChainworkProof(const StateArray& arr
         {
             const Connection& c = *it;
             if (c.m_pSync)
-                std::setmin(c.m_pSync->m_LowHeight, w.m_LowErase - 1);
+                beam::setmin(c.m_pSync->m_LowHeight, w.m_LowErase - 1);
         }
 
         if (bRolledBack)

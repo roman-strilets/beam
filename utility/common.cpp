@@ -443,7 +443,7 @@ namespace beam
 
 } // namespace beam
 
-namespace std
+namespace beam
 {
 	void ThrowLastError()
 	{
@@ -461,11 +461,11 @@ namespace std
 		{
 			std::string message(buffer, buffer + count);
 			::LocalFree(&buffer);
-			throw runtime_error(message);
+			throw std::runtime_error(message);
 		}
 		ThrowSystemError(error);
 #else // WIN32
-		throw runtime_error(strerror(errno));
+		throw std::runtime_error(strerror(errno));
 #endif // WIN32
 	}
 
@@ -473,10 +473,10 @@ namespace std
 	{
 		char sz[0x20];
 		snprintf(sz, _countof(sz), "System Error=%d", nErrorCode);
-		throw runtime_error(sz);
+		throw std::runtime_error(sz);
 	}
 
-	void TestNoError(const ios& obj)
+	void TestNoError(const std::ios& obj)
 	{
 		if (obj.fail())
 			ThrowLastError();
@@ -491,9 +491,9 @@ namespace std
 	{
 		m_Remaining = 0;
 
-		int mode = ios_base::binary;
-		mode |= bRead ? ios_base::ate : bAppend ? ios_base::app : ios_base::trunc;
-		mode |= bRead ? ios_base::in : ios_base::out;
+		int mode = std::ios_base::binary;
+		mode |= bRead ? std::ios_base::ate : bAppend ? std::ios_base::app : std::ios_base::trunc;
+		mode |= bRead ? std::ios_base::in : std::ios_base::out;
 
 #ifdef WIN32
 		std::wstring sPathArg = beam::Utf8toUtf16(sz);
@@ -501,7 +501,7 @@ namespace std
 		const char* sPathArg = sz;
 #endif // WIN32
 
-		m_F.open(sPathArg, (ios_base::openmode) mode);
+		m_F.open(sPathArg, (std::ios_base::openmode) mode);
 
 		if (m_F.fail())
 		{
@@ -543,13 +543,13 @@ namespace std
 
 	void FStream::NotImpl()
 	{
-		throw runtime_error("not impl");
+		throw std::runtime_error("not impl");
 	}
 
 	void FStream::ensure_size(size_t s)
 	{
 		if (s > m_Remaining)
-			throw runtime_error("underflow");
+			throw std::runtime_error("underflow");
 	}
 
 	size_t FStream::read(void* pPtr, size_t nSize)
@@ -559,7 +559,7 @@ namespace std
 		m_Remaining -= ret;
 
 		if (ret != nSize)
-			throw runtime_error("underflow");
+			throw std::runtime_error("underflow");
 
 		return ret;
 	}
@@ -603,14 +603,14 @@ namespace std
 		if (!IsOpen())
 			return 0;
 
-		iostream::pos_type ret = m_F.tellg();
-		if (iostream::pos_type(-1) == ret)
+		std::iostream::pos_type ret = m_F.tellg();
+		if (std::iostream::pos_type(-1) == ret)
 			ThrowLastError();
 
 		return ret;
 	}
 
-} // namespace std
+} // namespace beam
 
 #if defined(BEAM_USE_STATIC)
 

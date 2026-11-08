@@ -626,7 +626,7 @@ void TestAddresses()
     a.m_OwnID = 44;
     db->get_SbbsWalletID(a.m_BbsAddr, a.m_OwnID);
     WALLET_CHECK(a.m_Endpoint == Zero);
-    a.m_Token = std::to_string(a.m_BbsAddr);
+    a.m_Token = beam::to_string(a.m_BbsAddr);
     db->saveAddress(a);
 
     WalletAddress c = {};

@@ -869,18 +869,22 @@ namespace beam
     std::ostream& operator<<(std::ostream& os, const wallet::TxID& uuid);
 }  // namespace beam
 
+namespace beam
+{
+    std::string to_string(const beam::wallet::WalletID&);
+    std::string to_string(const beam::Merkle::Hash& hash);
+    std::string to_string(const beam::wallet::PrintableAmount& amount);
+    std::string to_string(const beam::wallet::TxParameters&);
+    std::string to_string(const beam::wallet::TxID&);
+    std::string to_string(const beam::PeerID&);
+    std::string to_base58(const beam::PeerID&);
+    std::string to_string(const beam::AmountBig::Type&);
+    std::string to_string(const beam::AmountBig::Number&);
+    unsigned to_unsigned(const std::string&, bool throws = true);
+}
+
 namespace std
 {
-    string to_string(const beam::wallet::WalletID&);
-    string to_string(const beam::Merkle::Hash& hash);
-    string to_string(const beam::wallet::PrintableAmount& amount);
-    string to_string(const beam::wallet::TxParameters&);
-    string to_string(const beam::wallet::TxID&);
-    string to_string(const beam::PeerID&);
-    string to_base58(const beam::PeerID&);
-    string to_string(const beam::AmountBig::Type&);
-    string to_string(const beam::AmountBig::Number&);
-
     template<>
     struct hash<beam::wallet::WalletID>
     {
@@ -889,6 +893,4 @@ namespace std
             return std::hash<ECC::uintBig>{}(key.m_Pk);
         }
     };
-
-    unsigned to_unsigned(const std::string&, bool throws = true);
 }

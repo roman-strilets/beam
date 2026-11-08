@@ -748,8 +748,8 @@ void TestDirectAnonymousPayment(Rules& r)
             // the payment proof is the sender's, and the receiver's records have their own TxIDs
             TxID txID = *sender.m_WalletDB->getTxHistory(TxType::PushTransaction).front().GetTxID();
 
-            WALLET_CHECK(txHistory[0].getSenderEndpoint() == std::to_base58(sender.m_Endpoint));
-//            WALLET_CHECK(txHistory[0].getReceiverEndpoint() == std::to_base58(receiver.m_Endpoint));
+            WALLET_CHECK(txHistory[0].getSenderEndpoint() == beam::to_base58(sender.m_Endpoint));
+//            WALLET_CHECK(txHistory[0].getReceiverEndpoint() == beam::to_base58(receiver.m_Endpoint));
             ByteBuffer b = storage::ExportPaymentProof(*sender.m_WalletDB, txID);
 
             WALLET_CHECK(storage::VerifyPaymentProof(b, *sender.m_WalletDB));

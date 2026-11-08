@@ -49,8 +49,8 @@ void V74Api::getResponse(const JsonRpcId& id, const SendSbbsMessage::Response& r
         {"id", id},
         {"result",
             {
-                {"from", std::to_string(res.sender)},
-                {"to", std::to_string(res.receiver)},
+                {"from", beam::to_string(res.sender)},
+                {"to", beam::to_string(res.receiver)},
                 {"bytes", res.bytes}
             }
         }
@@ -81,7 +81,7 @@ void V74Api::getResponse(const JsonRpcId& id, const ReadSbbsMessages::Response& 
             {
                 {"id", message.m_id},
                 {"timestamp", message.m_timestamp},
-                {"sender", std::to_string(message.m_counterpart)},
+                {"sender", beam::to_string(message.m_counterpart)},
                 {"message", json::parse(message.m_message)}
             });
     }

@@ -92,7 +92,7 @@ namespace
     }
 }
 
-namespace std
+namespace beam
 {
     string to_string(const beam::wallet::WalletID& id)
     {
@@ -170,14 +170,14 @@ namespace std
         return to_string(amount.ToNumber());
     }
 
-}  // namespace std
+}  // namespace beam
 
 namespace beam
 {
     std::ostream& operator<<(std::ostream& os, const wallet::TxID& uuid)
     {
         stringstream ss;
-        ss << "[" << std::to_string(uuid) << "]";
+        ss << "[" << beam::to_string(uuid) << "]";
         os << ss.str();
         return os;
     }
@@ -1026,24 +1026,24 @@ namespace beam::wallet
 
     std::string TxDescription::getSender() const
     {
-        return std::to_string(m_sender ? m_myAddr : m_peerAddr);
+        return beam::to_string(m_sender ? m_myAddr : m_peerAddr);
     }
 
     std::string TxDescription::getReceiver() const
     {
-        return std::to_string(!m_sender ? m_myAddr : m_peerAddr);
+        return beam::to_string(!m_sender ? m_myAddr : m_peerAddr);
     }
 
     std::string TxDescription::getEndpoint(bool isMy) const
     {
         auto v = GetParameter<PeerID>(isMy ? TxParameterID::MyEndpoint : TxParameterID::PeerEndpoint);
         if (v)
-            return std::to_base58(*v);
+            return beam::to_base58(*v);
 
         // try from addr
         const WalletID& wid = isMy ? m_myAddr : m_peerAddr;
         if (wid.m_Pk != Zero)
-            return std::to_base58(wid.m_Pk);
+            return beam::to_base58(wid.m_Pk);
 
         return {};
     }
@@ -1054,7 +1054,7 @@ namespace beam::wallet
         {
             return getSenderEndpoint();
         }
-        return std::to_string(m_sender ? m_myAddr : m_peerAddr);
+        return beam::to_string(m_sender ? m_myAddr : m_peerAddr);
     }
 
     std::string TxDescription::getAddressTo() const
@@ -1063,11 +1063,11 @@ namespace beam::wallet
         {
             auto token = getToken();
             if (token.empty())
-                return std::to_string(m_peerAddr);
+                return beam::to_string(m_peerAddr);
 
             return token;
         }
-        return std::to_string(m_myAddr);
+        return beam::to_string(m_myAddr);
     }
 
     uint64_t get_RandomID()
@@ -1103,7 +1103,7 @@ namespace beam::wallet
         parameters.SetParameter(TxParameterID::TransactionType, beam::wallet::TxType::Simple);
         parameters.SetParameter(TxParameterID::PeerEndpoint, *endPoint);
 
-        return std::to_string(parameters);
+        return beam::to_string(parameters);
     }
 
     ShieldedVoucherList GenerateVoucherList(const std::shared_ptr<IPrivateKeyKeeper2>& pKeeper, uint64_t ownID, size_t count)
@@ -1192,7 +1192,7 @@ namespace beam::wallet
         template<typename T>
         string ToJsonValue(const T& v)
         {
-            return std::to_string(v);
+            return beam::to_string(v);
         }
 
         json ToJsonValue(TxType v)
@@ -1494,7 +1494,7 @@ namespace beam::wallet
 
         json res = json
         {
-            { TxIDName, txID.is_initialized() ? json(std::to_string(*txID)) : json{}},
+            { TxIDName, txID.is_initialized() ? json(beam::to_string(*txID)) : json{}},
             { ParamsName, params }
         };
         return res.dump();
@@ -1529,7 +1529,7 @@ namespace beam::wallet
                 ByteBuffer value = GetParameterValue(id, p.value());
                 txParams.SetParameter(id, value);
             }
-            return std::to_string(txParams);
+            return beam::to_string(txParams);
         }
         catch (const nlohmann::detail::exception&)
         {
@@ -1593,7 +1593,7 @@ namespace beam::wallet
                 version.from_string(*libVersion) &&
                 myVersion < version)
             {
-                auto versionStr = std::to_string(version);
+                auto versionStr = beam::to_string(version);
                 if (func)
                 {
                     func(versionStr, myLibVersionStr);

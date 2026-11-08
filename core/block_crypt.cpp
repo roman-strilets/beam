@@ -109,8 +109,8 @@ namespace beam
 
 	void HeightRange::Intersect(const HeightRange& x)
 	{
-		std::setmax(m_Min, x.m_Min);
-		std::setmin(m_Max, x.m_Max);
+		beam::setmax(m_Min, x.m_Min);
+		beam::setmin(m_Max, x.m_Max);
 	}
 
 	bool HeightRange::IsEmpty() const
@@ -4105,7 +4105,7 @@ namespace beam
 		assert(n);
 
 		if (nMax <  n)
-			std::setmax(nMax, n + N / 2); // guess
+			beam::setmax(nMax, n + N / 2); // guess
 
 		if (nMax < N)
 			return 0;

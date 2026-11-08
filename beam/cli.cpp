@@ -155,7 +155,7 @@ namespace
 		if (sPath.empty())
 			return false;
 
-		std::FStream f;
+		beam::FStream f;
 		if (!f.Open(sPath.c_str(), true))
 			return false;
 
@@ -565,7 +565,7 @@ int main(int argc, char* argv[])
 						auto sPath = vm[cli::CONTRACT_RICH_PARSER].as<std::string>();
 						if (!sPath.empty())
 						{
-							std::FStream fs;
+							beam::FStream fs;
 							fs.Open(sPath.c_str(), true, true);
 
 							bufRichParser.resize(static_cast<size_t>(fs.get_Remaining()));

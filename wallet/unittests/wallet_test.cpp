@@ -1777,7 +1777,7 @@ namespace
                     .SetParameter(TxParameterID::AmountList, AmountList{Amount(2), Amount(34)})
                     .SetParameter(TxParameterID::Fee, Amount(32));
 
-                auto token1 = std::to_string(jsParams);
+                auto token1 = beam::to_string(jsParams);
                 auto jsonParams = ConvertTokenToJson(token1);
                 auto token2 = ConvertJsonToToken(jsonParams);
                 auto jsonParams2 = ConvertTokenToJson(token2);
@@ -1811,7 +1811,7 @@ namespace
 
                 allParams.DeleteParameter(TxParameterID::SubTxIndex);
                 allParams.DeleteParameter(TxParameterID::PublicAddreessGen);
-                auto token1 = std::to_string(allParams);
+                auto token1 = beam::to_string(allParams);
 
                 auto jsonParams = ConvertTokenToJson(token1);
                 WALLET_CHECK(!jsonParams.empty());
@@ -1825,7 +1825,7 @@ namespace
             std::string s = "3ab404a243fd09f827e8941e419e523a5b21e17c70563bfbc211dbe0e87ca95";
             auto identity = GetPeerIDFromHex(s);
             WALLET_CHECK(identity.is_initialized());
-            auto r = std::to_string(*identity);
+            auto r = beam::to_string(*identity);
             WALLET_CHECK(r == s);
         }
 
@@ -1867,7 +1867,7 @@ namespace
             p.SetParameter(TxParameterID::PeerAddr, invalidWalletID);
             TxToken invalidToken(p);
             WALLET_CHECK(!invalidToken.IsValid());
-            WALLET_CHECK(!CheckReceiverAddress(std::to_string(p)));
+            WALLET_CHECK(!CheckReceiverAddress(beam::to_string(p)));
             WALLET_CHECK(!CheckReceiverAddress("6dFBAa1SQ6gtPdZGimrFpxr6ByuQSg3XyzXAjXb5xTrj7x1izcFv29ropCqXs5opBUCN9uS4fCJpR2HEUYhmfpRvTijFcVsP"));
         }
         {
@@ -1878,7 +1878,7 @@ namespace
             p.SetParameter(TxParameterID::PeerAddr, validWalletID);
             TxToken invalidToken(p);
             WALLET_CHECK(invalidToken.IsValid());
-            WALLET_CHECK(CheckReceiverAddress(std::to_string(p)));
+            WALLET_CHECK(CheckReceiverAddress(beam::to_string(p)));
         }
 
         {
@@ -3526,10 +3526,10 @@ void TestAddressVersions()
 template <typename T>
 void FSave(const T& x, const std::string& sPath)
 {
-    std::FStream f;
+    beam::FStream f;
     f.Open(sPath.c_str(), false, true);
 
-    yas::binary_oarchive<std::FStream, SERIALIZE_OPTIONS> arc(f);
+    yas::binary_oarchive<beam::FStream, SERIALIZE_OPTIONS> arc(f);
     arc& x;
 }
 

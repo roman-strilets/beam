@@ -205,7 +205,7 @@ namespace beam::wallet
             return false;
         }
 
-        info.m_TxID = std::to_string(decrypted.m_TxID);
+        info.m_TxID = beam::to_string(decrypted.m_TxID);
 
         if (auto tx = m_WalletDB->getTx(decrypted.m_TxID))
         {
@@ -224,8 +224,8 @@ namespace beam::wallet
             decrypted.GetParameter(TxParameterID::AssetID, info.m_AssetID);
             decrypted.GetParameter(TxParameterID::Fee, info.m_Fee);
             info.m_IsSend      = false;
-            info.m_AddressFrom = std::to_string(decrypted.m_From);
-            info.m_AddressTo   = std::to_string(myAddr);
+            info.m_AddressFrom = beam::to_string(decrypted.m_From);
+            info.m_AddressTo   = beam::to_string(myAddr);
         }
 
         // Hold the message until the user confirms (Commit) or discards (CancelPending).

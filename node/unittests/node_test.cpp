@@ -1695,7 +1695,7 @@ namespace beam
 					n.get_Processor().OnBlock(id, bc.m_Body.m_Perishable, bc.m_Body.m_Eternal, PeerID());
 					n.get_Processor().TryGoUp();
 
-					std::setmax(m_HeightMax, bc.m_Hdr.get_Height());
+					beam::setmax(m_HeightMax, bc.m_Hdr.get_Height());
 
 					printf("Mined block Height = %u, node = %u \n", (unsigned int) bc.m_Hdr.get_Height(), (unsigned int)m_iNode);
 

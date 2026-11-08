@@ -43,7 +43,7 @@ std::string getEndpoint(const TxParameters& txParams, bool isSender)
     auto v = isSender ? txParams.GetParameter<PeerID>(TxParameterID::MyEndpoint)
                       : txParams.GetParameter<PeerID>(TxParameterID::PeerEndpoint);
 
-    return v ? std::to_string(*v) : "";
+    return v ? beam::to_string(*v) : "";
 }
 
 std::string getToken(const TxParameters& txParams)
@@ -132,10 +132,10 @@ std::string ExportTxHistoryToCsv(const IWalletDB& db)
            << beam::wallet::interpretStatus(tx) << ","                                      // Status
            << std::string { tx.m_message.begin(), tx.m_message.end() } << ","               // Comment
            << to_hex(tx.m_txId.data(), tx.m_txId.size()) << ","                             // Transaction ID
-           << std::to_string(tx.m_kernelID) << ","                                          // Kernel ID
-           << std::to_string(tx.m_sender ? tx.m_myAddr : tx.m_peerAddr) << ","              // Sending address
+           << beam::to_string(tx.m_kernelID) << ","                                          // Kernel ID
+           << beam::to_string(tx.m_sender ? tx.m_myAddr : tx.m_peerAddr) << ","              // Sending address
            << getEndpoint(tx, tx.m_sender) << ","                                           // Sending wallet's endpoint
-           << std::to_string(!tx.m_sender ? tx.m_myAddr : tx.m_peerAddr) << ","             // Receiving address
+           << beam::to_string(!tx.m_sender ? tx.m_myAddr : tx.m_peerAddr) << ","             // Receiving address
            << getEndpoint(tx, !tx.m_sender) << ","                                          // Receiving wallet's endpoint
            << getToken(tx) << ","                                                           // Token
            << strProof << std::endl;                                                        // Payment proof
@@ -176,9 +176,9 @@ std::string ExportAssetsSwapTxHistoryToCsv(const IWalletDB& db)
             << beam::wallet::interpretStatus(tx) << ","                                        // Status
             << "\"" << std::string { tx.m_message.begin(), tx.m_message.end() } << "\"" << "," // Comment
             << to_hex(tx.m_txId.data(), tx.m_txId.size()) << ","                               // Transaction ID
-            << std::to_string(tx.m_kernelID) << ","                                            // Kernel ID
-            << std::to_string(tx.m_peerAddr) << ","                                            // Peer address
-            << std::to_string(tx.m_myAddr) << std::endl;                                       // My address
+            << beam::to_string(tx.m_kernelID) << ","                                            // Kernel ID
+            << beam::to_string(tx.m_peerAddr) << ","                                            // Peer address
+            << beam::to_string(tx.m_myAddr) << std::endl;                                       // My address
     }
 
     return ss.str();
@@ -269,7 +269,7 @@ std::string ExportContractTxHistoryToCsv(const IWalletDB& db)
             << contractCids << ","                                                             // Application shader ID
             << "\"" << std::string { tx.m_message.begin(), tx.m_message.end() } << "\"" << "," // Description
             << to_hex(tx.m_txId.data(), tx.m_txId.size()) << ","                               // Transaction ID
-            << std::to_string(tx.m_kernelID) << std::endl;                                     // Kernel ID
+            << beam::to_string(tx.m_kernelID) << std::endl;                                     // Kernel ID
     }
 
     return ss.str();

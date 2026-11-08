@@ -1189,8 +1189,8 @@ private:
             if (msg.m_Id0 < nShieldedOuts)
             {
                 size_t n = nShieldedOuts - msg.m_Id0;
-                std::setmin(n, msg.m_Count);
-                std::setmin(n, Rules::get().Shielded.m_ProofMax.get_N() * 2);
+                beam::setmin(n, msg.m_Count);
+                beam::setmin(n, Rules::get().Shielded.m_ProofMax.get_N() * 2);
 
                 msgOut.m_Items.resize(n);
                 std::copy(v.begin() + msg.m_Id0, v.begin() + msg.m_Id0 + n, msgOut.m_Items.begin());

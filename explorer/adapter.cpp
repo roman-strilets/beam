@@ -90,13 +90,13 @@ public:
                         && rate.m_height <= height;
                 });
             return it != _ratesCache.end()
-                ? std::to_string(wallet::PrintableAmount(it->m_rate, true))
+                ? beam::to_string(wallet::PrintableAmount(it->m_rate, true))
                 : "-";
         }
         else
         {
             const auto rate = _walletDB->getExchangeRateNearPoint(wallet::Currency::BEAM(), toCurrency, height);
-            return rate ? std::to_string(wallet::PrintableAmount(rate->m_rate, true)) : "-";
+            return rate ? beam::to_string(wallet::PrintableAmount(rate->m_rate, true)) : "-";
         }
     }
 
@@ -1832,7 +1832,7 @@ private:
             HeightPos hpLast = { 0 };
             bool bMore = false;
 
-            std::setmin(nMaxTxs, 2000u);
+            beam::setmin(nMaxTxs, 2000u);
 
             NodeDB::KrnInfo::Walker wlk;
             for (_nodeBackend.get_DB().KrnInfoEnum(wlk, cid, hr.m_Max); wlk.MoveNext(); nCount++)
@@ -2416,10 +2416,10 @@ private:
 
     json get_hdrs(Height hMax, uint64_t nMax, uint64_t dn, const TotalsCol* pCols, uint32_t nCols) override
     {
-        std::setmin(nMax, 2048u);
-        std::setmin(hMax, _nodeBackend.m_Cursor.m_hh.m_Height);
+        beam::setmin(nMax, 2048u);
+        beam::setmin(hMax, _nodeBackend.m_Cursor.m_hh.m_Height);
 
-        std::setmax(dn, 1u);
+        beam::setmax(dn, 1u);
 
         json jRet = json::array();
 
@@ -2980,10 +2980,10 @@ private:
                 {"id", order.getID().to_string()},
                 {"send_asset_id", order.getFirstAssetId()},
                 {"send_currency", order.getFirstAssetSname()},
-                {"send_amount", std::to_string(wallet::PrintableAmount(order.getFirstAmount()))},
+                {"send_amount", beam::to_string(wallet::PrintableAmount(order.getFirstAmount()))},
                 {"receive_asset_id", order.getSecondAssetId()},
                 {"receive_currency", order.getSecondAssetSname()},
-                {"receive_amount", std::to_string(wallet::PrintableAmount(order.getSecondAmount()))},
+                {"receive_amount", beam::to_string(wallet::PrintableAmount(order.getSecondAmount()))},
                 {"create_time", order.getCreation()},
                 {"expire_time", order.getExpiration()},
             });
@@ -3024,8 +3024,8 @@ private:
             assets.push_back(json{
                 {"asset_id", pair.first},
                 {"currency", pair.second.sname},
-                {"amount_offered", std::to_string(wallet::PrintableAmount(pair.second.offered))},
-                {"amount_wanted", std::to_string(wallet::PrintableAmount(pair.second.wanted))},
+                {"amount_offered", beam::to_string(wallet::PrintableAmount(pair.second.offered))},
+                {"amount_wanted", beam::to_string(wallet::PrintableAmount(pair.second.wanted))},
             });
         }
 

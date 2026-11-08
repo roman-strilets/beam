@@ -159,7 +159,7 @@ namespace ECC {
 
 		NTSTATUS ntStatus = BCryptGenRandom(NULL, (PUCHAR) p, nSize, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
 		if (ntStatus)
-			std::ThrowSystemError(ntStatus);
+			beam::ThrowSystemError(ntStatus);
 
 #else // WIN32
 
@@ -185,7 +185,7 @@ namespace ECC {
 //#	endif // __linux__
 
 		if (!bRet)
-			std::ThrowLastError();
+			beam::ThrowLastError();
 
 #endif // WIN32
 	}
@@ -1560,7 +1560,7 @@ namespace ECC {
 						assert(nOdd & 1);
 
 						unsigned int nElem = (nOdd >> 1);
-						std::setmax(f.m_nNeeded, nElem + 1);
+						beam::setmax(f.m_nNeeded, nElem + 1);
 					}
 					assert(f.m_nNeeded <= Casual::Fast::nCount);
 

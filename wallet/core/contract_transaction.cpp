@@ -736,7 +736,7 @@ namespace beam::wallet
                 {
                     fee = cdata.get_FeeMin(builder.m_Height.m_Min);
                     if (!i)
-                        std::setmax(fee, builder.m_Fee);
+                        beam::setmax(fee, builder.m_Fee);
                 }
 
                 cdata.Generate(*builder.m_pTransaction, *pKdf, builder.m_Height, fee);

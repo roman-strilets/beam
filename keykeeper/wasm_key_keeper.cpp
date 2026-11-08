@@ -357,7 +357,7 @@ private:
         {
             WalletID walletID;
             get_SbbsWalletID(walletID, ownID);
-            return std::to_string(walletID);
+            return beam::to_string(walletID);
         }
 
         std::string GetSbbsAddressPrivate(uint64_t ownID)

@@ -22,7 +22,7 @@ namespace beam::wallet
         if (sPath.empty())
             return false;
 
-        std::FStream f;
+        beam::FStream f;
         if (!f.Open(sPath.c_str(), true))
             return false;
 
@@ -112,8 +112,8 @@ void CoinsSelectionInfo::Calculate(Height h, const IWalletDB::Ptr& walletDB, boo
         valBeams = 0;
     }
 
-    std::setmax(m_minimalExplicitFee, m_minimalRawFee);
-    std::setmax(m_explicitFee, m_minimalExplicitFee);
+    beam::setmax(m_minimalExplicitFee, m_minimalRawFee);
+    beam::setmax(m_explicitFee, m_minimalExplicitFee);
     valBeams += m_explicitFee + m_involuntaryFee;
 
     m_changeBeam = 0;
@@ -125,7 +125,7 @@ void CoinsSelectionInfo::Calculate(Height h, const IWalletDB::Ptr& walletDB, boo
 
         // change output is necessary
         m_minimalRawFee += fs.m_Output;
-        std::setmax(m_minimalExplicitFee, m_minimalRawFee);
+        beam::setmax(m_minimalExplicitFee, m_minimalRawFee);
 
         if (m_explicitFee < m_minimalExplicitFee)
         {

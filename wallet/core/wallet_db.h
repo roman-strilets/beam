@@ -337,13 +337,13 @@ namespace beam::wallet
     template<typename T>
     std::string GetCoinCreateTxID(const T& c)
     {
-        return c.m_createTxId.is_initialized() ? std::to_string(*c.m_createTxId) : "";
+        return c.m_createTxId.is_initialized() ? beam::to_string(*c.m_createTxId) : "";
     }
 
     template<typename T>
     std::string GetCoinSpentTxID(const T& c)
     {
-        return c.m_spentTxId.is_initialized() ? std::to_string(*c.m_spentTxId) : "";
+        return c.m_spentTxId.is_initialized() ? beam::to_string(*c.m_spentTxId) : "";
     }
 
     // Notifications for all collection changes
@@ -1320,7 +1320,7 @@ namespace beam::wallet
     uint32_t GetCoinStatus(const ShieldedCoin& c);
 }  // namespace beam::wallet
 
-namespace std
+namespace beam
 {
     inline std::string to_string(beam::wallet::ChangeAction ac)
     {

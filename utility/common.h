@@ -327,10 +327,13 @@ namespace beam
 
 }
 
-namespace std
+namespace beam
 {
+	// lets beam::to_string be called for built-in types too, next to the overloads for project types
+	using std::to_string;
+
 	void ThrowLastError();
-	void TestNoError(const ios& obj);
+	void TestNoError(const std::ios& obj);
 	void ThrowSystemError(int);
 
 	// wrapper for std::fstream, with semantics suitable for serialization

@@ -16,12 +16,13 @@
 
 #include "core/uintBig.h"
 
-namespace std
+namespace beam
 {
-	template<class T, size_t N> 
-	struct hash<std::array<T, N>>
+	// std::hash may not be specialized for std::array of built-in types
+	struct ArrayHash
 	{
-	    auto operator() (const std::array<T, N>& key) const
+	    template<class T, size_t N>
+	    size_t operator() (const std::array<T, N>& key) const
 	    {
 	        std::hash<T> hasher;
 	        size_t result = 0;
@@ -32,7 +33,10 @@ namespace std
 	        return result;
 	    }
 	};
+}
 
+namespace std
+{
     template<>
     struct hash<ECC::uintBig>
     {

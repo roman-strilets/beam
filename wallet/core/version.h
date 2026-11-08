@@ -58,7 +58,8 @@ namespace beam
     };
 }
 
-namespace std
+namespace beam
 {
-    string to_string(const beam::Version&);
+    using std::to_string;
+    std::string to_string(const beam::Version&);
 }

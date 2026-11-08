@@ -146,7 +146,7 @@ namespace beam::wallet
             return false;
         }
 
-        if (auto peerID = params.GetParameter<WalletID>(beam::wallet::TxParameterID::PeerAddr); !peerID || std::to_string(*peerID) != addressOrToken)
+        if (auto peerID = params.GetParameter<WalletID>(beam::wallet::TxParameterID::PeerAddr); !peerID || beam::to_string(*peerID) != addressOrToken)
         {
             params.SetParameter(beam::wallet::TxParameterID::OriginalToken, addressOrToken);
         }

@@ -600,17 +600,17 @@ namespace beam::wallet
         pShared->m_Remaining = 0;
 
         Asset::ID aidMax = m_Tx.GetWalletDB()->get_AidMax();
-        std::setmax(aidMax, 1u); // insist on hiding asset type anyway
+        beam::setmax(aidMax, 1u); // insist on hiding asset type anyway
 
         // in case aidMax wasn't updated - make sure it covers our coins used in this tx (could also use all owned coins)
         for (const auto& cid : m_Coins.m_Output)
-            std::setmax(aidMax, cid.m_AssetID);
+            beam::setmax(aidMax, cid.m_AssetID);
 
         for (const auto& cid : m_Coins.m_Input)
-            std::setmax(aidMax, cid.m_AssetID);
+            beam::setmax(aidMax, cid.m_AssetID);
 
         for (const auto& ins : m_Coins.m_InputShielded)
-            std::setmax(aidMax, ins.m_AssetID);
+            beam::setmax(aidMax, ins.m_AssetID);
 
         Asset::Proof::Params::Override po(aidMax);
 
@@ -666,7 +666,7 @@ namespace beam::wallet
         m_Method.m_pKernel->m_Fee = si.m_Fee;
 
         TxoID nShieldedCurrently = b.m_Tx.GetWalletDB()->get_ShieldedOuts();
-        std::setmax(nShieldedCurrently, c.m_TxoID + 1); // assume stored shielded count may be inaccurate, the being-spent element must be present
+        beam::setmax(nShieldedCurrently, c.m_TxoID + 1); // assume stored shielded count may be inaccurate, the being-spent element must be present
 
         ShieldedCoin::UnlinkStatus us(c, nShieldedCurrently);
 

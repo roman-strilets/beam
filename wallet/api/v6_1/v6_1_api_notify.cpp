@@ -143,7 +143,7 @@ namespace beam::wallet
                 {"result",
                     {
                         {"change", action},
-                        {"change_str", std::to_string(action)},
+                        {"change_str", beam::to_string(action)},
                         {"assets", json::array()}
                     }
                 }
@@ -171,7 +171,7 @@ namespace beam::wallet
                     }
                     else
                     {
-                        BEAM_LOG_WARNING() << "onAssetsChanged: failed to find asset " << aid << ", action" << std::to_string(action);
+                        BEAM_LOG_WARNING() << "onAssetsChanged: failed to find asset " << aid << ", action" << beam::to_string(action);
                     }
                 }
             }
@@ -218,7 +218,7 @@ namespace beam::wallet
             {"result",
                 {
                     {"change", action},
-                    {"change_str", std::to_string(action)},
+                    {"change_str", beam::to_string(action)},
                     {"utxos", json::array()}
                 }
             }
@@ -291,7 +291,7 @@ namespace beam::wallet
                 {"result",
                     {
                         {"change", action},
-                        {"change_str", std::to_string(action)},
+                        {"change_str", beam::to_string(action)},
                         {"addrs", json::array()}
                     }
                 }
@@ -347,7 +347,7 @@ namespace beam::wallet
                 {"result",
                     {
                         {"change", action},
-                        {"change_str", std::to_string(action)},
+                        {"change_str", beam::to_string(action)},
                         {"txs", json::array()}
                     }
                 }

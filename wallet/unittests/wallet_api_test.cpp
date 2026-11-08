@@ -302,7 +302,7 @@ namespace
             WALLET_CHECK(walletID.IsValid());
 
             json res;
-            CreateAddress::Response response{ std::to_string(walletID) };
+            CreateAddress::Response response{ beam::to_string(walletID) };
             api.getResponse(123, response, res);
             testResultHeader(res);
 

@@ -31,7 +31,7 @@ namespace beam
     std::ostream& operator<<(std::ostream& os, const wallet::BaseTransaction::TxContext& context)
     {
         std::stringstream ss;
-        ss << "[" << std::to_string(context.GetTxID()) << "]";
+        ss << "[" << beam::to_string(context.GetTxID()) << "]";
         if (context.GetSubTxID() != wallet::kDefaultSubTxID)
         {
             ss << "[" << std::to_string(context.GetSubTxID()) << "]";
@@ -599,12 +599,12 @@ namespace beam::wallet
             {
                 if (bIn)
                 {
-                    std::setmin(coin.m_confirmHeight, proofHeight);
+                    beam::setmin(coin.m_confirmHeight, proofHeight);
                     coin.m_maturity = proofHeight; // so far we don't use incubation for our created outputs
                 }
                 if (bOut)
                 {
-                    std::setmin(coin.m_spentHeight, proofHeight);
+                    beam::setmin(coin.m_spentHeight, proofHeight);
                 }
             }
         }

@@ -180,7 +180,7 @@ JNIEXPORT jobject JNICALL BEAM_JAVA_WALLET_INTERFACE(getTransactionParameters)(J
 
             if (auto walletIdentity = params->GetParameter<beam::PeerID>(TxParameterID::PeerWalletIdentity); walletIdentity)
             {
-                setStringField(env, TransactionParametersClass, jParameters, "identity", std::to_base58(*walletIdentity));
+                setStringField(env, TransactionParametersClass, jParameters, "identity", beam::to_base58(*walletIdentity));
             }
             else 
             {
@@ -189,7 +189,7 @@ JNIEXPORT jobject JNICALL BEAM_JAVA_WALLET_INTERFACE(getTransactionParameters)(J
             
             if (auto peerIdentity = params->GetParameter<WalletID>(TxParameterID::PeerID); peerIdentity)
             {
-                setStringField(env, TransactionParametersClass, jParameters, "address", std::to_string(*peerIdentity));
+                setStringField(env, TransactionParametersClass, jParameters, "address", beam::to_string(*peerIdentity));
             }
             else {
                 setStringField(env, TransactionParametersClass, jParameters, "address", "");

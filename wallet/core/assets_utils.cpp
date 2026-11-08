@@ -103,7 +103,7 @@ namespace beam::wallet {
             const auto it = _values.find(VERSION_KEY);
             if (it == _values.end()) return false;
 
-            const auto version = std::to_unsigned(it->second, false);
+            const auto version = beam::to_unsigned(it->second, false);
             return version == CURRENT_META_VERSION;
         };
 
@@ -230,7 +230,7 @@ namespace beam::wallet {
     unsigned WalletAssetMeta::GetSchemaVersion() const
     {
         const auto it = _values.find(SHORT_NAME_KEY);
-        return it != _values.end() ? std::to_unsigned(it->second, false) : 0;
+        return it != _values.end() ? beam::to_unsigned(it->second, false) : 0;
     }
 
     WalletAsset::WalletAsset(const Asset::Full& full, Height refreshHeight)

@@ -1119,7 +1119,7 @@ namespace beam::wallet
                 auto address = m_WalletDB->getAddress(msg.m_From);
                 if (!address.is_initialized())
                 {
-                    BEAM_LOG_WARNING() << "Received vouchers for unknown address: " << std::to_string(msg.m_From);
+                    BEAM_LOG_WARNING() << "Received vouchers for unknown address: " << beam::to_string(msg.m_From);
                     FailTxWaitingForVouchers(msg.m_From);
                     return;
                 }
@@ -2006,7 +2006,7 @@ namespace beam::wallet
 
         if (bAdd)
         {
-            std::setmin(c.m_confirmHeight, h); // in case of std utxo proofs - the event height may be bigger than actual utxo height
+            beam::setmin(c.m_confirmHeight, h); // in case of std utxo proofs - the event height may be bigger than actual utxo height
 
             // Check if this Coin participates in any active transaction
             // if it does and mark it as outgoing (bug: ux_504)
@@ -2027,7 +2027,7 @@ namespace beam::wallet
             if (!bExists)
                 return; // should alert!
 
-            std::setmin(c.m_spentHeight, h); // reported spend height may be bigger than it actuall was (in case of macroblocks)
+            beam::setmin(c.m_spentHeight, h); // reported spend height may be bigger than it actuall was (in case of macroblocks)
         }
 
         m_WalletDB->saveCoin(c);

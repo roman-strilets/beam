@@ -155,9 +155,9 @@ namespace beam::wallet
                 jtotals["asset_id"] = totals.AssetId;
 
                 auto avail = totals.Avail; avail += totals.AvailShielded;
-                jtotals["available_str"] = std::to_string(avail);
-                jtotals["available_regular_str"] = std::to_string(totals.Avail);
-                jtotals["available_mp_str"] = std::to_string(totals.AvailShielded);
+                jtotals["available_str"] = beam::to_string(avail);
+                jtotals["available_regular_str"] = beam::to_string(totals.Avail);
+                jtotals["available_mp_str"] = beam::to_string(totals.AvailShielded);
 
                 if (avail <= kMaxAllowedInt)
                 {
@@ -175,9 +175,9 @@ namespace beam::wallet
                 }
 
                 auto incoming = totals.Incoming; incoming += totals.IncomingShielded;
-                jtotals["receiving_str"] = std::to_string(incoming);
-                jtotals["receiving_regular_str"] = std::to_string(totals.Incoming);
-                jtotals["receiving_mp_str"] = std::to_string(totals.IncomingShielded);
+                jtotals["receiving_str"] = beam::to_string(incoming);
+                jtotals["receiving_regular_str"] = beam::to_string(totals.Incoming);
+                jtotals["receiving_mp_str"] = beam::to_string(totals.IncomingShielded);
 
                 if (incoming <= kMaxAllowedInt)
                 {
@@ -195,9 +195,9 @@ namespace beam::wallet
                 }
 
                 auto outgoing = totals.Outgoing; outgoing += totals.OutgoingShielded;
-                jtotals["sending_str"] = std::to_string(outgoing);
-                jtotals["sending_regular_str"] = std::to_string(totals.Outgoing);
-                jtotals["sending_mp_str"] = std::to_string(totals.OutgoingShielded);
+                jtotals["sending_str"] = beam::to_string(outgoing);
+                jtotals["sending_regular_str"] = beam::to_string(totals.Outgoing);
+                jtotals["sending_mp_str"] = beam::to_string(totals.OutgoingShielded);
 
                 if (outgoing <= kMaxAllowedInt)
                 {
@@ -215,9 +215,9 @@ namespace beam::wallet
                 }
 
                 auto maturing = totals.Maturing; maturing += totals.MaturingShielded;
-                jtotals["maturing_str"] = std::to_string(maturing);
-                jtotals["maturing_regular_str"] = std::to_string(totals.Maturing);
-                jtotals["maturing_mp_str"] = std::to_string(totals.MaturingShielded);
+                jtotals["maturing_str"] = beam::to_string(maturing);
+                jtotals["maturing_regular_str"] = beam::to_string(totals.Maturing);
+                jtotals["maturing_mp_str"] = beam::to_string(totals.MaturingShielded);
 
                 if (maturing <= kMaxAllowedInt)
                 {
@@ -235,7 +235,7 @@ namespace beam::wallet
                 }
 
                 auto change = totals.ReceivingChange;
-                jtotals["change_str"] = std::to_string(change);
+                jtotals["change_str"] = beam::to_string(change);
 
                 if (change <= kMaxAllowedInt)
                 {
@@ -245,7 +245,7 @@ namespace beam::wallet
                 auto locked = totals.Maturing;
                 locked += totals.MaturingShielded;
                 locked += totals.ReceivingChange;
-                jtotals["locked_str"] = std::to_string(locked);
+                jtotals["locked_str"] = beam::to_string(locked);
 
                 if (locked <= kMaxAllowedInt)
                 {
@@ -314,7 +314,7 @@ namespace beam::wallet
 
         if (res.txid)
         {
-            msg["result"]["txid"] = std::to_string(*res.txid);
+            msg["result"]["txid"] = beam::to_string(*res.txid);
         }
 
         if (res.invokeData)

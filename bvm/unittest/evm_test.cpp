@@ -747,7 +747,7 @@ namespace beam
 
 		json FReadTxtJson(const char* sz)
 		{
-			std::FStream fs;
+			beam::FStream fs;
 			verify_test(fs.Open(sz, true));
 
 			std::string sRet;

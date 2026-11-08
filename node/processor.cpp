@@ -63,12 +63,12 @@ void NodeProcessor::Horizon::SetStdFastSync()
 
 void NodeProcessor::Horizon::Normalize()
 {
-	std::setmax(m_Branching, Height(1));
+	beam::setmax(m_Branching, Height(1));
 
 	Height r = Rules::get().MaxRollback;
 
-	std::setmax(m_Sync.Hi, std::max(r, m_Branching));
-	std::setmax(m_Sync.Lo, m_Sync.Hi);
+	beam::setmax(m_Sync.Hi, std::max(r, m_Branching));
+	beam::setmax(m_Sync.Lo, m_Sync.Hi);
 
 	// Some nodes in production have a bug: if (Sync.Lo == Sync.Hi) - the last generated block that they send may be incorrect
 	// Workaround: make sure (Sync.Lo > Sync.Hi), at least by 1
@@ -78,8 +78,8 @@ void NodeProcessor::Horizon::Normalize()
 		m_Sync.Lo++;
 
 	// though not required, we prefer m_Local to be no less than m_Sync
-	std::setmax(m_Local.Hi, m_Sync.Hi);
-	std::setmax(m_Local.Lo, std::max(m_Local.Hi, m_Sync.Lo));
+	beam::setmax(m_Local.Hi, m_Sync.Hi);
+	beam::setmax(m_Local.Lo, std::max(m_Local.Hi, m_Sync.Lo));
 }
 
 void NodeProcessor::Initialize(const char* szPath)
@@ -773,7 +773,7 @@ void NodeProcessor::EnumCongestions()
 			if (pMaxTarget->m_Number.v > m_Horizon.m_Sync.Lo)
 				m_SyncData.m_TxoLo.v = pMaxTarget->m_Number.v - m_Horizon.m_Sync.Lo;
 
-			std::setmax(m_SyncData.m_TxoLo.v, m_Extra.m_TxoLo.v);
+			beam::setmax(m_SyncData.m_TxoLo.v, m_Extra.m_TxoLo.v);
 		}
 
 		// check if the target should be moved fwd
@@ -901,7 +901,7 @@ Block::Number NodeProcessor::get_LowestReturnNumber()
 	if (n0.v > nMaxRollback)
 	{
 		n0.v -= nMaxRollback;
-		std::setmax(numRet.v, n0.v);
+		beam::setmax(numRet.v, n0.v);
 	}
 
 	return numRet;
@@ -1026,8 +1026,8 @@ void NodeProcessor::MultiSigmaContext::Add(TxoID id0, uint32_t nCount, const ECC
 		}
 		else
 		{
-			std::setmin(n.m_Min, nOffset);
-			std::setmax(n.m_Max, nOffset + nPortion);
+			beam::setmin(n.m_Min, nOffset);
+			beam::setmax(n.m_Max, nOffset + nPortion);
 		}
 
 		ECC::Scalar::Native* pT = n.m_pS + nOffset;
@@ -5512,7 +5512,7 @@ void NodeProcessor::BlockInterpretCtx::MyEvmProcessor::InvokeGuarded(const TxKer
 	if (numGas.get_ConstSlice().get_clz_Words() >= numGas.nWords - MultiWord::NumberForType<uint32_t>::Type::nWords)
 	{
 		numGas.get_Element(nGasLimit);
-		std::setmin(nGasLimit, m_Bic.m_ChargePerBlock);
+		beam::setmin(nGasLimit, m_Bic.m_ChargePerBlock);
 	}
 
 	if (nGasLimit < r.Evm.MinTxGasUnits)
@@ -7088,8 +7088,8 @@ Difficulty NodeProcessor::get_NextDifficulty()
 	}
 
 	// apply "emergency" threshold
-	std::setmin(dtSrc_s, dtTrg_s * 2);
-	std::setmax(dtSrc_s, dtTrg_s / 2);
+	beam::setmin(dtSrc_s, dtTrg_s * 2);
+	beam::setmax(dtSrc_s, dtTrg_s / 2);
 
 
 	Difficulty::Raw& dWrk = thw0.second.second;
@@ -7687,7 +7687,7 @@ bool NodeProcessor::GenerateNewBlock(BlockContext& bc)
 		bc.m_Hdr.m_TimeStamp = getTimestamp();
 		// Adjust the timestamp to be no less than the moving median (otherwise the block'll be invalid)
 		Timestamp tm = get_MovingMedian() + 1;
-		std::setmax(bc.m_Hdr.m_TimeStamp, tm);
+		beam::setmax(bc.m_Hdr.m_TimeStamp, tm);
 
 		bc.m_Hdr.m_PoW.m_Difficulty = m_Cursor.m_DifficultyNext;
 	}
@@ -8210,8 +8210,8 @@ bool NodeProcessor::GetBlock(const NodeDB::StateID& sid, ByteBuffer* pEthernal, 
 	//	if CreateHeight <= h0 then transfer
 	//	Otherwise - don't transfer
 
-	std::setmax(nHi1.v, sid.m_Number.v); // valid block can't spend its own output. Hence this means full block should be transferred
-	std::setmax(nLo1.v, sid.m_Number.v - 1);
+	beam::setmax(nHi1.v, sid.m_Number.v); // valid block can't spend its own output. Hence this means full block should be transferred
+	beam::setmax(nLo1.v, sid.m_Number.v - 1);
 
 	if (m_Extra.m_TxoHi.v > nHi1.v)
 		return false;

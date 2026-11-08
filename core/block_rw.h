@@ -63,7 +63,7 @@ namespace beam
 
 		struct Writer
 		{
-			std::FStream m_Stream;
+			beam::FStream m_Stream;
 
 			void Open(const char*, const Block::ChainWorkProof&, Height hMax);
 		};

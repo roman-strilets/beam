@@ -121,7 +121,7 @@ void V72Api::getResponse(const JsonRpcId& id, const AssetsSwapAccept::Response& 
     {
         {JsonRpcHeader, JsonRpcVersion},
         {"id", id},
-        {"tx_id", std::to_string(res.txId)},
+        {"tx_id", beam::to_string(res.txId)},
         {"offer", {
             {"id", order.getID().to_string()},
             {"sendAmount", order.getSendAmount()},

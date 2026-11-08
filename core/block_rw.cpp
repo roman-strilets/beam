@@ -356,7 +356,7 @@ namespace beam
 	void RecoveryInfo::Writer::Open(const char* sz, const Block::ChainWorkProof& cwp, Height hMax)
 	{
 		m_Stream.Open(sz, false, true);
-		yas::binary_oarchive<std::FStream, SERIALIZE_OPTIONS> ser(m_Stream);
+		yas::binary_oarchive<beam::FStream, SERIALIZE_OPTIONS> ser(m_Stream);
 
 		const Rules& r = Rules::get();
 
@@ -372,8 +372,8 @@ namespace beam
 	struct RecoveryInfo::IParser::Context
 	{
 		IParser& m_Parser;
-		std::FStream m_Stream;
-		yas::binary_iarchive<std::FStream, SERIALIZE_OPTIONS> m_Der;
+		beam::FStream m_Stream;
+		yas::binary_iarchive<beam::FStream, SERIALIZE_OPTIONS> m_Der;
 		Block::ChainWorkProof m_Cwp;
 		Block::SystemState::Full m_Tip;
 		uint64_t m_Total;

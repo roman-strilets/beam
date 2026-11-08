@@ -133,7 +133,7 @@ namespace
         {
             namespace fs = boost::filesystem;
             const std::string opt = vm[cli::SLATEPACK_SAVE].as<std::string>();
-            const std::string name = std::to_string(txID) + ".slatepack";
+            const std::string name = beam::to_string(txID) + ".slatepack";
             fs::path out;
             if (opt.empty())                    // bare --save -> wallet dir
                 out = fs::path(vm[cli::WALLET_STORAGE].as<std::string>()).parent_path() / name;
@@ -231,7 +231,7 @@ namespace
               << PrintableAmount(desc.m_amount, false, desc.m_assetId, unitName, nthName) << std::endl;
         }
 
-        s << "KernelID:          " << std::to_string(desc.m_kernelID) << std::endl;
+        s << "KernelID:          " << beam::to_string(desc.m_kernelID) << std::endl;
 
         return s.str();
 
@@ -253,11 +253,11 @@ namespace
     template <typename T>
     bool FLoad(T& x, const std::string& sPath, bool bStrict = true)
     {
-        std::FStream f;
+        beam::FStream f;
         if (!f.Open(sPath.c_str(), true, bStrict))
             return false;
 
-        yas::binary_iarchive<std::FStream, SERIALIZE_OPTIONS> arc(f);
+        yas::binary_iarchive<beam::FStream, SERIALIZE_OPTIONS> arc(f);
         arc & x;
         return true;
     }
@@ -265,10 +265,10 @@ namespace
     template <typename T>
     void FSave(const T& x, const std::string& sPath)
     {
-        std::FStream f;
+        beam::FStream f;
         f.Open(sPath.c_str(), false, true);
 
-        yas::binary_oarchive<std::FStream, SERIALIZE_OPTIONS> arc(f);
+        yas::binary_oarchive<beam::FStream, SERIALIZE_OPTIONS> arc(f);
         arc & x;
     }
 
@@ -923,7 +923,7 @@ namespace
 
             if (address.m_BbsAddr.IsValid())
             {
-                std::cout << kAddrListBbsAddr << std::to_string(address.m_BbsAddr) << std::endl;
+                std::cout << kAddrListBbsAddr << beam::to_string(address.m_BbsAddr) << std::endl;
             }
 
             const auto expirationDateText = (address.m_duration == 0)
@@ -935,7 +935,7 @@ namespace
             const auto& ep = (wallet::TokenType::RegularOldStyle == addrType) ? address.m_BbsAddr.m_Pk : address.m_Endpoint;
 
             std::cout
-                << kAddrListEndpoint << std::to_base58(ep) << std::endl
+                << kAddrListEndpoint << beam::to_base58(ep) << std::endl
                 << kAddrListActive   << (address.isExpired() ? "false" : "true") << std::endl
                 << kAddrListExprDate << expirationDateText << std::endl
                 << kAddrListCreated  << creationDateText << std::endl
@@ -968,7 +968,7 @@ namespace
 
         std::cout
             << kAddrListAddress << wa.m_Token << std::endl
-            << kAddrListEndpoint << std::to_base58(wa.m_Endpoint) << std::endl;
+            << kAddrListEndpoint << beam::to_base58(wa.m_Endpoint) << std::endl;
 
         if (!wa.isOwn())
         {
@@ -2484,7 +2484,7 @@ namespace
 
     void CompileShader(ByteBuffer& res, const char* sz, bvm2::Processor::Kind kind, Wasm::Compiler::DebugInfo* pDbgInfo = nullptr)
     {
-        std::FStream fs;
+        beam::FStream fs;
         fs.Open(sz, true, true);
 
         res.resize(static_cast<size_t>(fs.get_Remaining()));

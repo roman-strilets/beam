@@ -50,10 +50,10 @@ bool Node::SyncStatus::operator == (const SyncStatus& x) const
 
 void Node::SyncStatus::ToRelative(Height hDone0)
 {
-	std::setmin(hDone0, m_Done); // prevent overflow (though should not happen)
+	beam::setmin(hDone0, m_Done); // prevent overflow (though should not happen)
 
 	assert(m_Total); // never 0, accounts at least for treasury
-	std::setmin(hDone0, m_Total - 1); // prevent "indefinite" situation where sync status is 0/0
+	beam::setmin(hDone0, m_Total - 1); // prevent "indefinite" situation where sync status is 0/0
 
 	m_Done -= hDone0;
 	m_Total -= hDone0;
@@ -124,18 +124,18 @@ void Node::UpdateSyncStatusRaw()
 		{
 			assert(t.m_Key.first.m_Number.v);
 			// all the blocks up to this had been dloaded
-			std::setmax(hTotal, t.m_sidTrg.m_Number.v);
-			std::setmax(hDoneHdrs, t.m_sidTrg.m_Number.v);
-			std::setmax(hDoneBlocks, t.m_Key.first.m_Number.v - 1);
+			beam::setmax(hTotal, t.m_sidTrg.m_Number.v);
+			beam::setmax(hDoneHdrs, t.m_sidTrg.m_Number.v);
+			beam::setmax(hDoneBlocks, t.m_Key.first.m_Number.v - 1);
 		}
 		else
 		{
 			if (!t.m_pOwner)
 				continue; // don't account for unowned
 
-			std::setmax(hTotal, t.m_sidTrg.m_Number.v);
+			beam::setmax(hTotal, t.m_sidTrg.m_Number.v);
 			if (t.m_sidTrg.m_Number.v > t.m_Key.first.m_Number.v)
-				std::setmax(hDoneHdrs, m_Processor.m_Cursor.m_Full.m_Number.v + t.m_sidTrg.m_Number.v - t.m_Key.first.m_Number.v);
+				beam::setmax(hDoneHdrs, m_Processor.m_Cursor.m_Full.m_Number.v + t.m_sidTrg.m_Number.v - t.m_Key.first.m_Number.v);
 		}
 	}
 
@@ -149,8 +149,8 @@ void Node::UpdateSyncStatusRaw()
 	}
 
 	// corrections
-	std::setmax(hDoneHdrs, hDoneBlocks);
-	std::setmax(hTotal, hDoneHdrs);
+	beam::setmax(hDoneHdrs, hDoneBlocks);
+	beam::setmax(hTotal, hDoneHdrs);
 
 	// consider the timestamp of the tip, upon successful sync it should not be too far in the past
 	if (!m_Processor.m_Cursor.m_Full.m_Number.v)
@@ -173,7 +173,7 @@ void Node::UpdateSyncStatusRaw()
 
 			const uint32_t& trg_ms = Rules::get().DA.Target_ms;
 			if (trg_ms)
-				std::setmax(hTotal, m_Processor.m_Cursor.m_Full.m_Number.v + ts1_s * 1000 / trg_ms);
+				beam::setmax(hTotal, m_Processor.m_Cursor.m_Full.m_Number.v + ts1_s * 1000 / trg_ms);
 		}
 
 	}
@@ -595,7 +595,7 @@ void Node::Processor::FlushInsanePeers()
 void Node::DeleteOutdated()
 {
 	auto dh = m_Cfg.m_RollbackLimit.m_Max;
-	std::setmin(dh, Rules::get().MaxRollback);
+	beam::setmin(dh, Rules::get().MaxRollback);
 
 	auto hTop = m_Processor.m_Cursor.m_hh.m_Height;
 
@@ -951,7 +951,7 @@ uint32_t Node::Processor::get_MaxAutoRollback()
 	{
 		Timestamp ts_s = getTimestamp();
 		if (ts_s < m_Cursor.m_Full.m_TimeStamp + get_ParentObj().m_Cfg.m_RollbackLimit.m_TimeoutSinceTip_s)
-			std::setmin(h, get_ParentObj().m_Cfg.m_RollbackLimit.m_Max);
+			beam::setmin(h, get_ParentObj().m_Cfg.m_RollbackLimit.m_Max);
 	}
 	return h;
 }
@@ -1037,7 +1037,7 @@ void Node::Processor::OnInvalidBlock(const Block::SystemState::Full& s, const Bl
 		sPath += os.str();
 	}
 
-	std::FStream fs;
+	beam::FStream fs;
 	if (fs.Open(sPath.c_str(), false))
 	{
 		Serializer ser;
@@ -2184,7 +2184,7 @@ void Node::Peer::SendHdrs(NodeDB::StateID& sid, uint32_t nCount)
 	if (nCount && sid.m_Row)
 	{
 		// don't throw unexpected if pack size is bigger than max. In case it'll be increased in future versions - just truncate it.
-		std::setmin(nCount, proto::g_HdrPackMaxSize);
+		beam::setmin(nCount, proto::g_HdrPackMaxSize);
 
 		proto::HdrPack msgOut;
 		msgOut.m_vElements.reserve(nCount);
@@ -3912,7 +3912,7 @@ void Node::Peer::OnMsg(proto::GetShieldedList&& msg)
 	Processor& p = m_This.m_Processor;
 	if ((msg.m_Id0 < p.m_Extra.m_ShieldedOutputs) && msg.m_Count)
 	{
-		std::setmin(msg.m_Count, Rules::get().Shielded.m_ProofMax.get_N() * 2); // no reason to ask for more
+		beam::setmin(msg.m_Count, Rules::get().Shielded.m_ProofMax.get_N() * 2); // no reason to ask for more
 
 		TxoID n = p.m_Extra.m_ShieldedOutputs - msg.m_Id0;
 
@@ -4045,7 +4045,7 @@ void Node::Peer::OnMsg(proto::BbsMsg&& msg)
 	uint64_t id = db.BbsIns(wlk.m_Data);
 	m_This.m_Bbs.m_W.Delete(wlk.m_Data.m_Key);
 
-	std::setmax(m_This.m_Bbs.m_HighestPosted_s, msg.m_TimePosted);
+	beam::setmax(m_This.m_Bbs.m_HighestPosted_s, msg.m_TimePosted);
 	m_This.m_Bbs.m_Totals.m_Count++;
 	m_This.m_Bbs.m_Totals.m_Size += wlk.m_Data.m_Message.n;
 
@@ -5174,13 +5174,13 @@ void Node::Beacon::Start()
 	addr.fill_sockaddr_in(sa);
 
 	if (uv_udp_bind(m_pUdp, (sockaddr*)&sa, UV_UDP_REUSEADDR)) // should allow multiple nodes on the same machine (for testing)
-		std::ThrowLastError();
+		beam::ThrowLastError();
 
 	if (uv_udp_recv_start(m_pUdp, AllocBuf, OnRcv))
-		std::ThrowLastError();
+		beam::ThrowLastError();
 
 	if (uv_udp_set_broadcast(m_pUdp, 1))
-		std::ThrowLastError();
+		beam::ThrowLastError();
 
 	m_pTimer = io::Timer::create(io::Reactor::get_Current());
 	m_pTimer->start(get_ParentObj().m_Cfg.m_BeaconPeriod_ms, true, [this]() { OnTimer(); }); // periodic timer
@@ -5401,7 +5401,7 @@ bool Node::GenerateRecoveryInfo(const char* szPath)
 	if (!m_Processor.BuildCwp())
 		return false; // no info yet
 
-	typedef yas::binary_oarchive<std::FStream, SERIALIZE_OPTIONS> MySerializer;
+	typedef yas::binary_oarchive<beam::FStream, SERIALIZE_OPTIONS> MySerializer;
 
 	struct MyTraveler
 		:public RadixTree::ITraveler

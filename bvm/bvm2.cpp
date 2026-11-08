@@ -1093,9 +1093,9 @@ namespace bvm2 {
 			return false;
 
 		// grow
-		std::setmax(nSizeNew, 0x1000U); // 4K 
-		std::setmax(nSizeNew, static_cast<uint32_t>(m_Heap.m_vMem.size()) * 2);
-		std::setmin(nSizeNew, nHeapMax);
+		beam::setmax(nSizeNew, 0x1000U); // 4K 
+		beam::setmax(nSizeNew, static_cast<uint32_t>(m_Heap.m_vMem.size()) * 2);
+		beam::setmin(nSizeNew, nHeapMax);
 
 		HeapReserveStrict(nSizeNew);
 
@@ -1390,7 +1390,7 @@ namespace bvm2 {
 		{
 			Exc::Test(IsPastFork_<4>());
 
-			std::setmin(nKeyBufSize, Limits::VarKeySize);
+			beam::setmin(nKeyBufSize, Limits::VarKeySize);
 			Exc::Test(nKey <= nKeyBufSize);
 
 			((ProcessorPlusEnv_Contract*) this)->SetVarKeyFromShader(vk, nType, key, false);
@@ -1515,7 +1515,7 @@ namespace bvm2 {
 					// Make sure that the pointer is valid (i.e. between current and max stack pointers)
 					uint32_t nSize;
 					get_AddrExVar(pArgs, nSize, false); // ensures it's a valid alias stack pointer.
-					std::setmin(nArgs, nSize);
+					beam::setmin(nArgs, nSize);
 
 					// Note: the above does NOT ensure it's not below current stack pointer, it has less strict validation criteria (see comments in its implementation for more info).
 					// Hence - the following is necessary.
@@ -3164,7 +3164,7 @@ namespace bvm2 {
 		uint32_t n = static_cast<uint32_t>(pVal->size()) + 1;
 		if (nLen)
 		{
-			std::setmin(nLen, n);
+			beam::setmin(nLen, n);
 
 			memcpy(szRes, pVal->c_str(), nLen - 1);
 			szRes[nLen - 1] = 0;

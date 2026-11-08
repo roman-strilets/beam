@@ -445,7 +445,7 @@ struct Context
         m_TxosSH.OnRolledBack(h);
 
         m_EventsHandler.Abort();
-        std::setmin(m_EventsHandler.m_hEvents, h + 1);
+        beam::setmin(m_EventsHandler.m_hEvents, h + 1);
     }
 
     void OnNewTip()
@@ -1085,7 +1085,7 @@ int main_Guarded(int argc, char* argv[])
         node.m_PostStartSynced = true;
 
     Amount nMinInOut = ctx.m_Cfg.m_pFees->m_Kernel + ctx.m_Cfg.m_pFees->m_Output + ctx.m_Cfg.m_pFees->m_ShieldedOutputTotal + ctx.m_Cfg.m_pFees->m_ShieldedInputTotal;
-    std::setmax(ctx.m_Cfg.m_BulletValue, nMinInOut + 10);
+    beam::setmax(ctx.m_Cfg.m_BulletValue, nMinInOut + 10);
 
     ctx.m_pKdf = pKdf;
     ctx.m_Network.m_Cfg.m_vNodes.push_back(io::Address(INADDR_LOOPBACK, g_LocalNodePort));

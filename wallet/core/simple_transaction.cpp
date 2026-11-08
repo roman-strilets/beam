@@ -287,7 +287,7 @@ namespace beam::wallet
                 ss << ", asset ID: " << builder.m_AssetID;
 
             if (hasEndpoints)
-                ss << ", my EP: " << std::to_base58(myEndpoint) << ", peer EP: " << std::to_base58(peerEndpoint);
+                ss << ", my EP: " << beam::to_base58(myEndpoint) << ", peer EP: " << beam::to_base58(peerEndpoint);
 
             BEAM_LOG_INFO() << ss.str();
             builder.SaveCoins();

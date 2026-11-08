@@ -21,7 +21,7 @@ using namespace beam::bvm2;
 
 void LoadCode(ByteBuffer& res, const char* sz)
 {
-    std::FStream fs;
+    beam::FStream fs;
     fs.Open(sz, true, true);
 
     res.resize(static_cast<size_t>(fs.get_Remaining()));

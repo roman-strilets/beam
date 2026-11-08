@@ -2066,7 +2066,7 @@ namespace Wasm {
 		m_Instruction.Read(nLabels);
 
 		Word nOperand = m_Stack.Pop<Word>();
-		std::setmin(nOperand, nLabels); // fallback to 'def' if out-of-range
+		beam::setmin(nOperand, nLabels); // fallback to 'def' if out-of-range
 
 		nLabels++;
 		uint32_t nSize = sizeof(Word) * nLabels;

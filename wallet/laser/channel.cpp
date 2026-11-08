@@ -178,8 +178,8 @@ void Channel::SendPeer(Negotiator::Storage::Map&& dataOut)
     //ser & (*m_ID);
     ser & Cast::Down<FieldMap>(dataOut);
 
-    BEAM_LOG_INFO() << "Send From: " << std::to_string(m_widMy)
-               << " To peer: " << std::to_string(m_widTrg);
+    BEAM_LOG_INFO() << "Send From: " << beam::to_string(m_widMy)
+               << " To peer: " << beam::to_string(m_widTrg);
 
 
     m_rHolder.get_Gateway().Send(m_widTrg, Blob(ser.buffer().first, (uint32_t) ser.buffer().second));
@@ -526,7 +526,7 @@ void Channel::Subscribe()
         EnsureMyBbsParams();
         m_rHolder.get_Gateway().Listen(m_widMy, m_skMy, &m_CommHandler);
         m_isSubscribed = true;
-        BEAM_LOG_INFO() << "beam::wallet::laser::Channel WalletID: "  << std::to_string(m_widMy) << " subscribes";
+        BEAM_LOG_INFO() << "beam::wallet::laser::Channel WalletID: "  << beam::to_string(m_widMy) << " subscribes";
     }
 }
 
@@ -546,7 +546,7 @@ void Channel::UnsubscribeInternal()
         EnsureMyBbsParams();
         m_rHolder.get_Gateway().Unlisten(m_widMy);
 
-        BEAM_LOG_INFO() << "beam::wallet::laser::Channel WalletID: "  << std::to_string(m_widMy) << " unsubscribed";
+        BEAM_LOG_INFO() << "beam::wallet::laser::Channel WalletID: "  << beam::to_string(m_widMy) << " unsubscribed";
     }    
 }
 

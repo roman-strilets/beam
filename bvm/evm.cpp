@@ -1379,7 +1379,7 @@ void Processor::Context::OnFrameDone(Processor& p, bool bSuccess, bool bHaveRetv
 
 			auto& wResAddr = pPrev->m_Stack.Pop();
 			auto nResSize = WtoU32(pPrev->m_Stack.Pop());
-			std::setmin(nResSize, p.m_RetVal.m_Blob.n);
+			beam::setmin(nResSize, p.m_RetVal.m_Blob.n);
 
 			auto* pRes = pPrev->get_Memory(wResAddr, nResSize); // may rasise no-gas exc
 			memcpy(pRes, p.m_RetVal.m_Blob.p, nResSize);

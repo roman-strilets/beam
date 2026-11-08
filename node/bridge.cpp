@@ -802,7 +802,7 @@ void L2Bridge::OnMsgEx(Shaders::SidechainPos::L1::Msg::GetSignature& msg)
 	const auto& fs = Transaction::FeeSettings::get(msg.m_hMin);
 
 	krn.m_Fee = fs.Calculate(s); // accounts for contract kernel size, but not charge
-	std::setmax(krn.m_Fee, fs.get_DefaultStd()); // round up to std fee
+	beam::setmax(krn.m_Fee, fs.get_DefaultStd()); // round up to std fee
 	krn.m_Fee += fs.CalculateForBvm(s, msg.m_nCharge); // accounts for charge, adds at least min contract exec fee
 
 	krn.m_Commitment = msg.m_Commitment;
