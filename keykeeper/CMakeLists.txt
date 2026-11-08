@@ -36,7 +36,13 @@ if(EMSCRIPTEN AND NOT BEAM_WALLET_CLIENT_LIBRARY)
             ${PROJECT_SOURCE_DIR}/../core/base/uintBig.cpp
             ${PROJECT_SOURCE_DIR}/../core/crypto/ecc.cpp
             ${PROJECT_SOURCE_DIR}/../core/crypto/ecc_bulletproof.cpp
-            ${PROJECT_SOURCE_DIR}/../core/consensus/block_crypt.cpp
+            ${PROJECT_SOURCE_DIR}/../core/consensus/chain_types.cpp
+            ${PROJECT_SOURCE_DIR}/../core/consensus/asset.cpp
+            ${PROJECT_SOURCE_DIR}/../core/consensus/rules.cpp
+            ${PROJECT_SOURCE_DIR}/../core/consensus/txo.cpp
+            ${PROJECT_SOURCE_DIR}/../core/consensus/tx_kernel.cpp
+            ${PROJECT_SOURCE_DIR}/../core/consensus/transaction.cpp
+            ${PROJECT_SOURCE_DIR}/../core/consensus/block.cpp
             ${PROJECT_SOURCE_DIR}/../core/storage/block_rw.cpp
             ${PROJECT_SOURCE_DIR}/../core/consensus/merkle.cpp
             ${PROJECT_SOURCE_DIR}/../core/consensus/block_validation.cpp

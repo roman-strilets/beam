@@ -35,7 +35,7 @@ if(NOT BEAM_BVM_ONLY)
 endif()
 
 if (NOT BEAM_WALLET_CLIENT_LIBRARY)
-    add_executable(miner_client miner_client.cpp ../core/consensus/block_crypt.cpp) # ???????????????????????????
+    add_executable(miner_client miner_client.cpp)
 
     target_link_libraries(miner_client external_pow Boost::program_options)
 endif()

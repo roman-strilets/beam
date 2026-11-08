@@ -7,7 +7,13 @@ set(CORE_SRC
     crypto/ecc_bulletproof.cpp
     crypto/aes.cpp
     crypto/base58.cpp
-    consensus/block_crypt.cpp
+    consensus/chain_types.cpp
+    consensus/asset.cpp
+    consensus/rules.cpp
+    consensus/txo.cpp
+    consensus/tx_kernel.cpp
+    consensus/transaction.cpp
+    consensus/block.cpp
     storage/block_rw.cpp
     consensus/block_validation.cpp
     consensus/difficulty.cpp
