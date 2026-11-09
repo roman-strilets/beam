@@ -41,10 +41,6 @@ uint32_t RT3[256];
 
 uint32_t RCON[10];
 
-/* tables generation flag */
-
-int do_init = 1;
-
 /* tables generation routine */
 
 #define ROTR8(x) ( ( ( x << 24 ) & 0xFFFFFFFF ) | \
@@ -161,12 +157,7 @@ void AES::Encoder::Init(const uint8_t* pKey)
 	int i;
 	uint32_t *RK;
 
-	if (do_init)
-	{
-		aes_gen_tables();
-
-		do_init = 0;
-	}
+	[[maybe_unused]] static const bool s_bTablesReady = (aes_gen_tables(), true); // thread-safe one-time initialization
 
 	RK = m_erk;
 
