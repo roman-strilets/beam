@@ -16,6 +16,23 @@ target_sources(wallet_core
         wallet_network.cpp
         node_network.cpp
         wallet_db.cpp
+        wallet_db_addresses.cpp
+        wallet_db_assets.cpp
+        wallet_db_coins.cpp
+        wallet_db_exchange.cpp
+        wallet_db_laser.cpp
+        wallet_db_messages.cpp
+        wallet_db_payment.cpp
+        wallet_db_recovery.cpp
+        wallet_db_schema.cpp
+        wallet_db_shielded.cpp
+        wallet_db_state.cpp
+        wallet_db_storage.cpp
+        wallet_db_storage_json.cpp
+        wallet_db_storage_restore.cpp
+        wallet_db_tokens.cpp
+        wallet_db_tx.cpp
+        wallet_db_types.cpp
         base58.cpp
         slatepack.cpp
         slatepack_endpoint.cpp
