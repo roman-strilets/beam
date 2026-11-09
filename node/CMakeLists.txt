@@ -2,6 +2,17 @@ cmake_minimum_required(VERSION 3.13)
 
 set(NODE_SRC
     node.cpp
+    node_bbs.cpp
+    node_diag.cpp
+    node_discovery.cpp
+    node_miner.cpp
+    node_pbft.cpp
+    node_pbft_validators.cpp
+    node_peer.cpp
+    node_peer_query.cpp
+    node_peer_sync.cpp
+    node_processor.cpp
+    node_tx.cpp
     db.cpp
     processor.cpp
     processor_assets.cpp
