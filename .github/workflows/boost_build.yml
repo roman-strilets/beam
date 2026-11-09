@@ -1,8 +1,5 @@
 name: Build Boost
 on:
-  push:
-    tags:
-      - boost_prebuild*
   workflow_dispatch:
 
 jobs:

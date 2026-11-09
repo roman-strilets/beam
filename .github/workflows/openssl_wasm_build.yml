@@ -1,8 +1,6 @@
 name: Build Openssl wasm
 on:
-  push:
-    tags:
-      - openssl_wasm*
+  workflow_dispatch:
 
 env:
   OPENSSL: openssl-1.1.1i

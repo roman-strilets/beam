@@ -1,11 +1,6 @@
 name: Publish npm Package
 
 on:
-  push:
-    tags:
-      - wasm_publish*
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       version:
