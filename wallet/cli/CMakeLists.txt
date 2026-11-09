@@ -5,6 +5,16 @@ set(TARGET_NAME beam-wallet)
 
 set(CLI_SRC
     cli.cpp
+    cli_address.cpp
+    cli_assets.cpp
+    cli_blocks.cpp
+    cli_common.cpp
+    cli_export.cpp
+    cli_info.cpp
+    cli_init.cpp
+    cli_shader.cpp
+    cli_transactions.cpp
+    cli_treasury.cpp
     utils.cpp
 )
 if(BEAM_LASER_SUPPORT)
@@ -18,6 +28,7 @@ if(BEAM_ASSET_SWAP_SUPPORT)
     set(CLI_SRC
         ${CLI_SRC}
         assets_swap.cpp
+        cli_assets_swap.cpp
     )
 endif()
 
