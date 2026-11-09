@@ -5,6 +5,12 @@ add_library(wallet_core STATIC)
 target_sources(wallet_core
     PRIVATE
         common.cpp
+        common_to_string.cpp
+        common_token_json.cpp
+        common_tx_description.cpp
+        common_tx_parameters.cpp
+        common_tx_status.cpp
+        common_version.cpp
         common_utils.cpp
         default_peers.cpp
         wallet.cpp

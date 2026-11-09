@@ -54,6 +54,12 @@ if(EMSCRIPTEN AND NOT BEAM_WALLET_CLIENT_LIBRARY)
             ${PROJECT_SOURCE_DIR}/../mnemonic/mnemonic.cpp
             ${PROJECT_SOURCE_DIR}/../wallet/core/private_key_keeper.cpp
             ${PROJECT_SOURCE_DIR}/../wallet/core/common.cpp
+            ${PROJECT_SOURCE_DIR}/../wallet/core/common_to_string.cpp
+            ${PROJECT_SOURCE_DIR}/../wallet/core/common_token_json.cpp
+            ${PROJECT_SOURCE_DIR}/../wallet/core/common_tx_description.cpp
+            ${PROJECT_SOURCE_DIR}/../wallet/core/common_tx_parameters.cpp
+            ${PROJECT_SOURCE_DIR}/../wallet/core/common_tx_status.cpp
+            ${PROJECT_SOURCE_DIR}/../wallet/core/common_version.cpp
             ${PROJECT_SOURCE_DIR}/../wallet/core/base58.cpp
 
             ${PROJECT_SOURCE_DIR}/../3rdparty/hmac_sha512.c
