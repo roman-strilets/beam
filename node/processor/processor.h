@@ -16,14 +16,14 @@
 
 #include <deque>
 
-#include "../core/storage/radixtree.h"
-#include "../core/net/proto.h"
-#include "../core/consensus/treasury.h"
-#include "../core/base/mapped_file.h"
-#include "../utility/executor.h"
-#include "../utility/containers.h"
-#include "db.h"
-#include "txpool.h"
+#include "core/storage/radixtree.h"
+#include "core/net/proto.h"
+#include "core/consensus/treasury.h"
+#include "core/base/mapped_file.h"
+#include "utility/executor.h"
+#include "utility/containers.h"
+#include "node/storage/db.h"
+#include "node/storage/txpool.h"
 
 namespace beam {
 

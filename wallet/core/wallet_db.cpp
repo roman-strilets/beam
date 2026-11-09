@@ -44,7 +44,7 @@ namespace fs = std::filesystem;
 #include <boost/algorithm/string.hpp>
 
 #include "base_transaction.h"
-#include "node/processor.h"
+#include "node/processor/processor.h"
 #include "wallet/core/strings_resources.h"
 #include <boost/format.hpp>
 

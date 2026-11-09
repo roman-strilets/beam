@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "pow/external_pow.h"
-#include "node/node.h"
+#include "node/net/node.h"
 #include "utility/io/reactor.h"
 #include "utility/io/timer.h"
 #include "utility/logger.h"

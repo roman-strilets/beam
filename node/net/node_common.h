@@ -21,20 +21,20 @@
 #define HOST_BUILD
 
 #include "node.h"
-#include "../core/consensus/serialization_adapters.h"
-#include "../core/net/proto.h"
-#include "../core/crypto/ecc_native.h"
-#include "../core/storage/block_rw.h"
-#include "../core/net/fly_client.h" // hdr pack decoding moved there
+#include "core/consensus/serialization_adapters.h"
+#include "core/net/proto.h"
+#include "core/crypto/ecc_native.h"
+#include "core/storage/block_rw.h"
+#include "core/net/fly_client.h" // hdr pack decoding moved there
 
-#include "../p2p/protocol.h"
-#include "../p2p/connection.h"
+#include "p2p/protocol.h"
+#include "p2p/connection.h"
 
-#include "../utility/io/tcpserver.h"
-#include "../utility/logger.h"
-#include "../utility/logger_checkpoints.h"
+#include "utility/io/tcpserver.h"
+#include "utility/logger.h"
+#include "utility/logger_checkpoints.h"
 
-#include "../bvm/bvm2.h"
+#include "bvm/bvm2.h"
 
 #include "pow/external_pow.h"
 

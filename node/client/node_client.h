@@ -18,7 +18,7 @@
 #include <memory>
 #include <atomic>
 #include <condition_variable>
-#include "node/node.h"
+#include "node/net/node.h"
 #include "core/consensus/rules.h"
 #include "utility/io/errorhandling.h"
 #include "utility/io/reactor.h"

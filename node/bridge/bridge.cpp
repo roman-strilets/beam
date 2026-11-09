@@ -13,16 +13,16 @@
 // limitations under the License.
 
 #define LOG_DEBUG_ENABLED 1
-#include "../utility/logger.h"
+#include "utility/logger.h"
 
 #include "bridge.h"
-#include "../bvm/bvm2.h"
-#include "node.h"
+#include "bvm/bvm2.h"
+#include "node/net/node.h"
 
 namespace Shaders {
 #	define HOST_BUILD
-#	include "../bvm/Shaders/common.h"
-#	include "../bvm/Shaders/sidechain_pos/contract_l1.h"
+#	include "bvm/Shaders/common.h"
+#	include "bvm/Shaders/sidechain_pos/contract_l1.h"
 } // namespace Shaders
 
 namespace beam {

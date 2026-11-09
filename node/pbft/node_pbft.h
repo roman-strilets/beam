@@ -15,12 +15,12 @@
 #pragma once
 
 // Definitions shared by the parts of Node::Validator implementation.
-#include "node_common.h"
+#include "node/net/node_common.h"
 
 namespace Shaders {
 #	define HOST_BUILD
-#	include "../bvm/Shaders/common.h"
-#	include "../bvm/Shaders/pbft/i_pbft.h"
+#	include "bvm/Shaders/common.h"
+#	include "bvm/Shaders/pbft/i_pbft.h"
 } // namespace Shaders
 
 namespace beam {

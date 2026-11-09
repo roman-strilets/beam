@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../node.h"
+#include "node/net/node.h"
 #include "../../mnemonic/mnemonic.h"
 #include "../../utility/cli/options.h"
 #include "../../core/net/fly_client.h"

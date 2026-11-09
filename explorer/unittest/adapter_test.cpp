@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "explorer/adapter.h"
-#include "node/node.h"
+#include "node/net/node.h"
 #include "utility/logger.h"
 #include <future>
 #include <boost/filesystem.hpp>

@@ -18,8 +18,8 @@
 #include <atomic>
 #include <condition_variable>
 #include "core/consensus/block_crypt.h"
-#include "node/node.h"
-#include "node/node_client.h"
+#include "node/net/node.h"
+#include "node/client/node_client.h"
 
 class NodeModel
     : private beam::INodeClientObserver

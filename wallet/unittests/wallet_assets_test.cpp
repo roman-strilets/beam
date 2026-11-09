@@ -18,7 +18,7 @@
 #include "wallet/core/base_transaction.h"
 #include "wallet/core/simple_transaction.h"
 #include "wallet/transactions/assets/assets_reg_creators.h"
-#include "node/node.h"
+#include "node/net/node.h"
 #include "core/unittest/mini_blockchain.h"
 #include "utility/test_helpers.h"
 #include "test_helpers.h"

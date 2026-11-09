@@ -14,9 +14,9 @@
 
 #pragma once
 
-#include "../utility/containers.h"
-#include "../core/consensus/block_crypt.h"
-#include "../utility/io/timer.h"
+#include "utility/containers.h"
+#include "core/consensus/block_crypt.h"
+#include "utility/io/timer.h"
 
 namespace beam {
 

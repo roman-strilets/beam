@@ -17,16 +17,16 @@
 // The include set shared by all parts of NodeProcessor implementation.
 // Kept identical for all of them, so that each one sees the same serialization adapters.
 #include "processor.h"
-#include "../core/consensus/treasury.h"
-#include "../core/consensus/shielded.h"
-#include "../bvm/bvm2.h"
-#include "../bvm/evm.h"
-#include "../core/consensus/serialization_adapters.h"
-#include "../core/crypto/base58.h"
-#include "../utility/serialize.h"
-#include "../utility/logger.h"
-#include "../utility/logger_checkpoints.h"
-#include "../utility/blobmap.h"
+#include "core/consensus/treasury.h"
+#include "core/consensus/shielded.h"
+#include "bvm/bvm2.h"
+#include "bvm/evm.h"
+#include "core/consensus/serialization_adapters.h"
+#include "core/crypto/base58.h"
+#include "utility/serialize.h"
+#include "utility/logger.h"
+#include "utility/logger_checkpoints.h"
+#include "utility/blobmap.h"
 #include <atomic>
 #include <condition_variable>
 #include <cctype>

@@ -14,7 +14,7 @@
 #pragma once
 
 #include "core/consensus/treasury.h"
-#include "node/node.h"
+#include "node/net/node.h"
 #include "wallet/core/wallet_db.h"
 
 

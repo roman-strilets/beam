@@ -23,7 +23,7 @@
 #include "core/unittest/mini_blockchain.h"
 #include "utility/test_helpers.h"
 
-#include "node/node.h"
+#include "node/net/node.h"
 
 #include "test_helpers.h"
 #include "wallet_test_node.h"

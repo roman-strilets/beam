@@ -17,7 +17,7 @@
 // negotiation when the only message endpoint is a SlatepackEndpoint.
 
 #include "utility/logger.h"
-#include "node/node.h"
+#include "node/net/node.h"
 #include "core/unittest/mini_blockchain.h"
 #include "utility/test_helpers.h"
 #include "test_helpers.h"

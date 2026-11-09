@@ -14,7 +14,7 @@
 
 #include "utility/logger.h"
 #include "wallet/laser/mediator.h"
-#include "node/node.h"
+#include "node/net/node.h"
 #include "core/unittest/mini_blockchain.h"
 #include "utility/test_helpers.h"
 #include "laser_test_utils.h"

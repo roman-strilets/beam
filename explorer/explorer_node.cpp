@@ -5,7 +5,7 @@
 #include "core/storage/block_rw.h"
 #include "bvm/bvm2.h"
 
-#include "node/node.h"
+#include "node/net/node.h"
 #include "utility/cli/options.h"
 #include "utility/logger.h"
 #include "utility/helpers.h"

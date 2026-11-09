@@ -1,35 +1,35 @@
 cmake_minimum_required(VERSION 3.13)
 
 set(NODE_SRC
-    node.cpp
-    node_bbs.cpp
-    node_diag.cpp
-    node_discovery.cpp
-    node_miner.cpp
-    node_pbft.cpp
-    node_pbft_validators.cpp
-    node_peer.cpp
-    node_peer_query.cpp
-    node_peer_sync.cpp
-    node_processor.cpp
-    node_tx.cpp
-    db.cpp
-    processor.cpp
-    processor_assets.cpp
-    processor_block.cpp
-    processor_chain.cpp
-    processor_contracts.cpp
-    processor_evm.cpp
-    processor_generate.cpp
-    processor_interpret.cpp
-    processor_maintenance.cpp
-    processor_multiblock.cpp
-    processor_query.cpp
-    processor_recognizer.cpp
-    processor_storage.cpp
-    txpool.cpp
-    bridge.cpp
-    node_client.cpp
+    net/node.cpp
+    net/node_bbs.cpp
+    net/node_diag.cpp
+    net/node_discovery.cpp
+    net/node_miner.cpp
+    pbft/node_pbft.cpp
+    pbft/node_pbft_validators.cpp
+    net/node_peer.cpp
+    net/node_peer_query.cpp
+    net/node_peer_sync.cpp
+    net/node_processor.cpp
+    net/node_tx.cpp
+    storage/db.cpp
+    processor/processor.cpp
+    processor/processor_assets.cpp
+    processor/processor_block.cpp
+    processor/processor_chain.cpp
+    processor/processor_contracts.cpp
+    processor/processor_evm.cpp
+    processor/processor_generate.cpp
+    processor/processor_interpret.cpp
+    processor/processor_maintenance.cpp
+    processor/processor_multiblock.cpp
+    processor/processor_query.cpp
+    processor/processor_recognizer.cpp
+    processor/processor_storage.cpp
+    storage/txpool.cpp
+    bridge/bridge.cpp
+    client/node_client.cpp
 )
 
 if(ANDROID)

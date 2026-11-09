@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "processor.h"
+#include "node/processor/processor.h"
 #include "utility/io/timer.h"
 #include "core/net/proto.h"
 #include "core/consensus/block_crypt.h"

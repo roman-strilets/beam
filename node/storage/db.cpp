@@ -14,9 +14,9 @@
 
 #include "db.h"
 #include <algorithm> // sort
-#include "../core/net/peer_manager.h"
-#include "../utility/logger.h"
-#include "../utility/byteorder.h"
+#include "core/net/peer_manager.h"
+#include "utility/logger.h"
+#include "utility/byteorder.h"
 #include <algorithm>
 
 namespace beam {

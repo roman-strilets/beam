@@ -13,7 +13,7 @@
 // limitations under the License
 
 #include "node_model.h"
-#include "node/node.h"
+#include "node/net/node.h"
 #include <mutex>
 
 #include "pow/external_pow.h"

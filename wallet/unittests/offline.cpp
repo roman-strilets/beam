@@ -16,7 +16,7 @@
 #include "util.h"
 #include "wallet/core/wallet_network.h"
 #include "wallet/core/simple_transaction.h"
-#include "node/node.h"
+#include "node/net/node.h"
 #include "utility/logger.h"
 #include <future>
 #include <boost/filesystem.hpp>

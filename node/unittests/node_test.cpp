@@ -14,10 +14,10 @@
 
 //#include "../node.h"
 
-#include "../node.h"
-#include "../db.h"
-#include "../processor.h"
-#include "../bridge.h"
+#include "node/net/node.h"
+#include "node/storage/db.h"
+#include "node/processor/processor.h"
+#include "node/bridge/bridge.h"
 #include "../../core/net/fly_client.h"
 #include "../../core/consensus/serialization_adapters.h"
 #include "../../core/consensus/treasury.h"

@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "processor.h"
-#include "../utility/logger.h"
-#include "../utility/logger_checkpoints.h"
+#include "node/processor/processor.h"
+#include "utility/logger.h"
+#include "utility/logger_checkpoints.h"
 
 namespace beam {
 

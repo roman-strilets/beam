@@ -15,8 +15,8 @@
 #include "wallet/core/wallet_network.h"
 #include "core/base/common.h"
 
-#include "node/node.h"
-#include "node/bridge.h"
+#include "node/net/node.h"
+#include "node/bridge/bridge.h"
 #include "core/crypto/ecc_native.h"
 #include "core/consensus/serialization_adapters.h"
 #include "core/storage/block_rw.h"
