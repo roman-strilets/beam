@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "core/consensus/treasury.h"
+#include <atomic>
 
 namespace beam
 {
@@ -96,7 +97,7 @@ namespace beam
 		struct Verifier
 			:public Context
 		{
-			volatile bool m_bValid;
+			std::atomic<bool> m_bValid;
 			Verifier() :m_bValid(true) {}
 
 			void Do(size_t iTask) override
@@ -107,7 +108,7 @@ namespace beam
 				MyBatch::Scope scope(*p);
 
 				if (!Verify(iTask) || !p->Flush())
-					m_bValid = false; // sync isn't required
+					m_bValid = false;
 			}
 
 			virtual bool Verify(size_t iTask) = 0;

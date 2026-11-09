@@ -23,6 +23,7 @@
 #include "../utility/logger.h"
 #include "../utility/logger_checkpoints.h"
 #include "../utility/blobmap.h"
+#include <atomic>
 #include <condition_variable>
 #include <cctype>
 
@@ -1380,7 +1381,7 @@ struct NodeProcessor::MultiblockContext
 	MultiAssetContext m_Mac;
 
 	size_t m_SizePending = 0;
-	bool m_bFail = false;
+	std::atomic<bool> m_bFail = false;
 	bool m_bBatchDirty = false;
 	std::string m_sErr;
 

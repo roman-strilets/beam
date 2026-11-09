@@ -14,6 +14,7 @@
 
 #pragma once
 #include "core/consensus/tx_kernel.h"
+#include <atomic>
 
 namespace beam
 {
@@ -206,7 +207,7 @@ namespace beam
 
 			// for multi-tasking, parallel verification
 			uint32_t m_nVerifiers;
-			volatile bool* m_pAbort;
+			std::atomic<bool>* m_pAbort;
 
 			Params(); // defaults
 		};

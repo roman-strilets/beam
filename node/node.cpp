@@ -4968,8 +4968,7 @@ void Node::Miner::StartMining(Task::Ptr&& pTask)
 		}
 		else
 		{
-			pTask->m_pStop.reset(new bool);
-			*pTask->m_pStop = false;
+			pTask->m_pStop = std::make_shared<std::atomic<bool>>(false);
 		}
 
 		m_pTask = std::move(pTask);

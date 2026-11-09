@@ -22,6 +22,7 @@
 #include "core/net/peer_manager.h"
 #include <boost/intrusive/list.hpp>
 #include <boost/intrusive/set.hpp>
+#include <atomic>
 #include <condition_variable>
 #include <pow/external_pow.h>
 #include <optional>
@@ -759,7 +760,7 @@ private:
 
 			// Task is mutable. But modifications are allowed only when holding the mutex.
 
-			std::shared_ptr<volatile bool> m_pStop;
+			std::shared_ptr<std::atomic<bool>> m_pStop;
 
 			ECC::Hash::Value m_hvNonceSeed; // immutable
 		};

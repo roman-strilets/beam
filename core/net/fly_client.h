@@ -17,6 +17,7 @@
 #include "core/net/proto.h"
 #include "utility/containers.h"
 #include <boost/intrusive_ptr.hpp>
+#include <atomic>
 
 namespace beam {
 namespace proto {
@@ -379,7 +380,7 @@ namespace proto {
 				RequestList m_lstMined;
 
 				ECC::Hash::Processor m_hpPartial;
-				volatile uint64_t m_iCurrent;
+				std::atomic<uint64_t> m_iCurrent;
 
 				void Thread(uint32_t);
 				void OnMined();
