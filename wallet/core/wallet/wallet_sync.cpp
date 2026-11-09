@@ -29,7 +29,7 @@ namespace beam::wallet
         for (const auto& tx : m_ActiveTransactions)
         {
             const auto& txocoins = m_WalletDB->getCoinsCreatedByTx(tx.first);
-            ocoins.insert(ocoins.end(), txocoins.begin(), txocoins.end());
+            ocoins.append_range(txocoins);
             auto shieldedCoin = m_WalletDB->getShieldedCoin(tx.first);
 
             // save newly created coins only to be able to accomplish the transaction,

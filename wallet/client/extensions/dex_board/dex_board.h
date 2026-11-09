@@ -46,7 +46,7 @@ namespace beam::wallet {
 
         void Subscribe(IObserver* observer)
         {
-            assert(std::find(_observers.begin(), _observers.end(), observer) == _observers.end());
+            assert(!std::ranges::contains(_observers, observer));
             _observers.push_back(observer);
         }
 

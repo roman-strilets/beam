@@ -579,7 +579,7 @@ void FlyClient::NetworkStd::Connection::OnMsg(proto::AssetsListAt&& msg)
         if (r.m_Res.empty())
             r.m_Res = std::move(msg.m_Assets);
         else
-            r.m_Res.insert(r.m_Res.end(), msg.m_Assets.begin(), msg.m_Assets.end());
+            r.m_Res.append_range(msg.m_Assets);
 
 
         r.m_Msg.m_Aid0 = aid0;

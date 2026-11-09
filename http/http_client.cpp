@@ -73,7 +73,7 @@ expected<uint64_t, io::ErrorCode> HttpClient::send_request(const HttpClient::Req
     }
 
     if (bodySize) {
-        ctx->unsent.insert(ctx->unsent.end(), request.body_.begin(), request.body_.end());
+        ctx->unsent.append_range(request.body_);
     }
 
     io::Result result;

@@ -140,7 +140,7 @@ namespace beam::wallet
             {
                 std::vector<Coin::ID> icoins;
                 txptr->GetParameter(TxParameterID::InputCoins, icoins);
-                if (std::find(icoins.begin(), icoins.end(), c.m_ID) != icoins.end())
+                if (std::ranges::contains(icoins, c.m_ID))
                 {
                     c.m_status = Coin::Status::Outgoing;
                     c.m_spentTxId = txid;
@@ -194,7 +194,7 @@ namespace beam::wallet
 
             std::vector<IPrivateKeyKeeper2::ShieldedInput> inputShielded;
             txptr->GetParameter(TxParameterID::InputCoinsShielded, inputShielded);
-            if (std::find(inputShielded.begin(), inputShielded.end(), shieldedEvt.m_CoinID) != inputShielded.end())
+            if (std::ranges::contains(inputShielded, shieldedEvt.m_CoinID))
             {
                 shieldedCoin->m_Status = ShieldedCoin::Status::Outgoing;;
                 shieldedCoin->m_spentTxId = txid;

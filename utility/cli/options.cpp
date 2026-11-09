@@ -760,7 +760,7 @@ namespace beam
             {
                 auto csv = string_helpers::split(peer, ',');
 
-                peers.insert(peers.end(), csv.begin(), csv.end());
+                peers.append_range(csv);
             }
         }
 

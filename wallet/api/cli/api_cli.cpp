@@ -268,7 +268,7 @@ namespace
 
                 if (!_whitelist.empty())
                 {
-                    if (std::find(_whitelist.begin(), _whitelist.end(), peer.ip()) == _whitelist.end())
+                    if (!std::ranges::contains(_whitelist, peer.ip()))
                     {
                         BEAM_LOG_WARNING() << peer.str() << " not in IP whitelist, closing";
                         return;

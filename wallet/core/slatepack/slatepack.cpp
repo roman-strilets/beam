@@ -45,7 +45,7 @@ namespace beam::wallet::slatepack
         body.reserve(kHeaderSize + payload.size() + kChecksumSize);
         body.push_back(kVersion);
         body.push_back(static_cast<uint8_t>(type));
-        body.insert(body.end(), payload.begin(), payload.end());
+        body.append_range(payload);
 
         uint8_t cs[kChecksumSize];
         ComputeChecksum(body, cs);

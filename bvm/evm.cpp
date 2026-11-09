@@ -17,6 +17,8 @@
 #include "../core/consensus/asset.h"
 #include "../core/crypto/keccak.h"
 
+#include <print>
+
 namespace beam {
 
 	namespace Shaders {
@@ -349,19 +351,19 @@ struct Processor::Context :public Processor::Frame
 
 void Processor::Context::LogOpCode(const char* sz)
 {
-	printf("\t%08x, %s\n", m_Code.m_Ip - 1, sz);
+	std::print("\t{:08x}, {}\n", m_Code.m_Ip - 1, sz);
 }
 
 void Processor::Context::LogOpCode(const char* sz, uint32_t n)
 {
-	printf("\t%08x, %s%u\n", m_Code.m_Ip - 1, sz, n);
+	std::print("\t{:08x}, {}{}\n", m_Code.m_Ip - 1, sz, n);
 }
 
 void Processor::Context::LogOperand(const Word& x)
 {
 	char sz[Word::nTxtLen + 1];
 	x.Print(sz);
-	printf("\t\t%s\n", sz);
+	std::print("\t\t{}\n", sz);
 }
 
 void Processor::BaseFrame::DrainGas(uint64_t n)
@@ -545,7 +547,7 @@ void Processor::RunOnce()
 	}
 	catch (const std::exception& e)
 	{
-		printf("\texc: %s\n", e.what());
+		std::print("\texc: {}\n", e.what());
 	}
 
 	while (true)
@@ -559,7 +561,7 @@ void Processor::RunOnce()
 		}
 		catch (const std::exception& e)
 		{
-			printf("\texc during revert: %s\n", e.what());
+			std::print("\texc during revert: {}\n", e.what());
 		}
 
 	}

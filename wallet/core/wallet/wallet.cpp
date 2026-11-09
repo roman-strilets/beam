@@ -188,7 +188,7 @@ namespace beam::wallet
 
     void Wallet::Subscribe(IWalletObserver* observer)
     {
-        assert(std::find(m_subscribers.begin(), m_subscribers.end(), observer) == m_subscribers.end());
+        assert(!std::ranges::contains(m_subscribers, observer));
         m_subscribers.push_back(observer);
         m_WalletDB->Subscribe(observer);
     }

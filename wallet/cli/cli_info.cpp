@@ -178,17 +178,17 @@ namespace
             if (assetId != Asset::s_InvalidID)
             {
                 auto txSimple = walletDB->getTxHistory(TxType::Simple);
-                txHistory.insert(txHistory.end(), txSimple.begin(), txSimple.end());
+                txHistory.append_range(txSimple);
             }
 
-            txHistory.insert(txHistory.end(), txReg.begin(), txReg.end());
-            txHistory.insert(txHistory.end(), txIssue.begin(), txIssue.end());
-            txHistory.insert(txHistory.end(), txConsume.begin(), txConsume.end());
-            txHistory.insert(txHistory.end(), txUnreg.begin(), txUnreg.end());
-            txHistory.insert(txHistory.end(), txInfo.begin(), txInfo.end());
-            txHistory.insert(txHistory.end(), txMaxPriv.begin(), txMaxPriv.end());
+            txHistory.append_range(txReg);
+            txHistory.append_range(txIssue);
+            txHistory.append_range(txConsume);
+            txHistory.append_range(txUnreg);
+            txHistory.append_range(txInfo);
+            txHistory.append_range(txMaxPriv);
 #ifdef BEAM_ASSET_SWAP_SUPPORT
-            txHistory.insert(txHistory.end(), txAssetsSwaps.begin(), txAssetsSwaps.end());
+            txHistory.append_range(txAssetsSwaps);
 #endif  // BEAM_ASSET_SWAP_SUPPORT
         }
 
@@ -454,7 +454,7 @@ namespace
                 for (auto type : types)
                 {
                     auto v = walletDB->getTxHistory(type);
-                    txHistory.insert(txHistory.end(), v.begin(), v.end());
+                    txHistory.append_range(v);
                 }
             }
 

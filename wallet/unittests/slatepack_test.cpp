@@ -37,7 +37,7 @@ namespace
     {
         const ByteBuffer payload = RandomBytes(300);
         const string s = slatepack::Armor(slatepack::PayloadType::TxNegotiation, payload);
-        WALLET_CHECK(s.rfind("BEGINSLATEPACK.", 0) == 0);
+        WALLET_CHECK(s.starts_with("BEGINSLATEPACK."));
         WALLET_CHECK(s.contains("ENDSLATEPACK."));
 
         // Survives being pasted inside other text with reflowed whitespace.
