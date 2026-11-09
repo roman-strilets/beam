@@ -4,6 +4,14 @@ set(CORE_SRC
     base/uintBig.cpp
     base/numeric_utils.cpp
     crypto/ecc.cpp
+    crypto/ecc_scalar.cpp
+    crypto/ecc_hash.cpp
+    crypto/ecc_point.cpp
+    crypto/ecc_generator.cpp
+    crypto/ecc_multimac.cpp
+    crypto/ecc_kdf.cpp
+    crypto/ecc_signature.cpp
+    crypto/ecc_rangeproof.cpp
     crypto/ecc_bulletproof.cpp
     crypto/aes.cpp
     crypto/base58.cpp

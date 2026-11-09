@@ -35,6 +35,14 @@ if(EMSCRIPTEN AND NOT BEAM_WALLET_CLIENT_LIBRARY)
         PRIVATE
             ${PROJECT_SOURCE_DIR}/../core/base/uintBig.cpp
             ${PROJECT_SOURCE_DIR}/../core/crypto/ecc.cpp
+            ${PROJECT_SOURCE_DIR}/../core/crypto/ecc_scalar.cpp
+            ${PROJECT_SOURCE_DIR}/../core/crypto/ecc_hash.cpp
+            ${PROJECT_SOURCE_DIR}/../core/crypto/ecc_point.cpp
+            ${PROJECT_SOURCE_DIR}/../core/crypto/ecc_generator.cpp
+            ${PROJECT_SOURCE_DIR}/../core/crypto/ecc_multimac.cpp
+            ${PROJECT_SOURCE_DIR}/../core/crypto/ecc_kdf.cpp
+            ${PROJECT_SOURCE_DIR}/../core/crypto/ecc_signature.cpp
+            ${PROJECT_SOURCE_DIR}/../core/crypto/ecc_rangeproof.cpp
             ${PROJECT_SOURCE_DIR}/../core/crypto/ecc_bulletproof.cpp
             ${PROJECT_SOURCE_DIR}/../core/consensus/chain_types.cpp
             ${PROJECT_SOURCE_DIR}/../core/consensus/asset.cpp
