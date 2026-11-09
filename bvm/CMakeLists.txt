@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.13)
 
 set(BVM_SRC
     wasm_interpreter.cpp
+    wasm_parser.cpp
+    wasm_compiler.cpp
     bvm2.cpp
     bvm2_compiler.cpp
     bvm2_contract.cpp
