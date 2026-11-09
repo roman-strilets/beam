@@ -3,6 +3,18 @@ cmake_minimum_required(VERSION 3.13)
 set(BVM_SRC
     wasm_interpreter.cpp
     bvm2.cpp
+    bvm2_compiler.cpp
+    bvm2_contract.cpp
+    bvm2_methods_common.cpp
+    bvm2_heap.cpp
+    bvm2_methods_contract.cpp
+    bvm2_hash.cpp
+    bvm2_secp.cpp
+    bvm2_manager.cpp
+    bvm2_manager_enum.cpp
+    bvm2_manager_keys.cpp
+    bvm2_manager_doc.cpp
+    bvm2_manager_kernel.cpp
     invoke_data.cpp
     ManagerStd.cpp
     evm.cpp
