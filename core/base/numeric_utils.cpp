@@ -16,50 +16,6 @@
 
 namespace beam {
 
-namespace NumericUtils {
-
-	namespace details
-	{
-		template <uint32_t nBits>
-		struct PerBits {
-
-			template <typename T>
-			static uint32_t clz(T x)
-			{
-				const uint32_t nHalf = nBits / 2;
-				if constexpr (nHalf > 0)
-				{
-					auto x1 = static_cast<uint32_t>(x >> nHalf);
-					if (x1)
-						return PerBits<nHalf>::clz(x1);
-
-					return nHalf + PerBits<nHalf>::clz(static_cast<uint32_t>(x));
-				}
-				else
-				{
-					assert(x <= 1);
-					return !x;
-				}
-			}
-		};
-	}
-
-	template <typename T>
-	uint32_t clz(T x)
-	{
-		static_assert(std::is_integral_v<T>, "");
-		static_assert(!std::is_signed_v<T>, "");
-		return details::PerBits<sizeof(T) * 8>::clz(x);
-	}
-
-	template uint32_t clz<uint64_t>(uint64_t);
-	template uint32_t clz<uint32_t>(uint32_t);
-	template uint32_t clz<uint16_t>(uint16_t);
-	template uint32_t clz<uint8_t>(uint8_t);
-
-} // namespace NumericUtils
-
-
 namespace MultiWord {
 
 void Slice::Copy(ConstSlice x) const

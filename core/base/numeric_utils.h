@@ -14,6 +14,7 @@
 
 #pragma once
 #include "core/base/common.h"
+#include <bit>
 
 #ifdef _MSC_VER
 #   define __restrict__ __restrict
@@ -30,7 +31,10 @@ namespace beam {
 namespace NumericUtils
 {
 	template <typename T>
-	uint32_t clz(T x); // count leading zeroes
+	inline uint32_t clz(T x) // count leading zeroes
+	{
+		return static_cast<uint32_t>(std::countl_zero(x));
+	}
 
 	namespace details
 	{
