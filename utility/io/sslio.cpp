@@ -15,6 +15,7 @@
 #include "sslio.h"
 #include <openssl/bio.h>
 #include <assert.h>
+#include <memory>
 #include <sstream>
 
 #define LOG_DEBUG_ENABLED 1
@@ -327,7 +328,9 @@ Result SSLIO::do_handshake() {
 Result SSLIO::on_encrypted_data_from_stream(const void *data, size_t size) {
     //BEAM_LOG_DEBUG() << TRACE(size); // << std::string((const char*)data, size);
 
-    void* buf = alloca(_fragmentSize);
+    // not a member: _onDecryptedData may delete this object
+    std::unique_ptr<char[]> pBuf(new char[_fragmentSize]);
+    void* buf = pBuf.get();
     auto ptr = (const uint8_t *) data;
     int bytesRemaining = (int) size;
 
