@@ -14,6 +14,16 @@ set(NODE_SRC
     net/node_processor.cpp
     net/node_tx.cpp
     storage/db.cpp
+    storage/db_assets.cpp
+    storage/db_contracts.cpp
+    storage/db_events.cpp
+    storage/db_kv.cpp
+    storage/db_peers_bbs.cpp
+    storage/db_schema.cpp
+    storage/db_states.cpp
+    storage/db_states_data.cpp
+    storage/db_streams.cpp
+    storage/db_txo.cpp
     processor/processor.cpp
     processor/processor_assets.cpp
     processor/processor_block.cpp
