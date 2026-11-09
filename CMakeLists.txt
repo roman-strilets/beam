@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.13)
 cmake_policy(SET CMP0074 NEW)
 
+# C++23 needs CMake 3.20+. Keep the policy version above at 3.13: raising it enables
+# CMP0091, which removes the /MD flags that the static MSVC runtime setup below replaces.
+if(CMAKE_VERSION VERSION_LESS 3.20)
+    message(FATAL_ERROR "Building Beam requires CMake 3.20 or newer")
+endif()
+
 set(VERSION_MAJOR 7)
 set(VERSION_MINOR 5 )
 set(VERSION_REVISION 0)
@@ -118,9 +124,9 @@ endif()
 
 include(AddTest)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
-target_compile_features(beam INTERFACE cxx_std_20)
+target_compile_features(beam INTERFACE cxx_std_23)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 

@@ -84,7 +84,7 @@ target_link_libraries(wallet_core
         sqlite
 )
 
-target_compile_features(wallet_core PUBLIC cxx_std_20)
+target_compile_features(wallet_core PUBLIC cxx_std_23)
 
 
 if (NOT ANDROID)

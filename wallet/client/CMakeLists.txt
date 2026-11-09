@@ -31,7 +31,7 @@ target_link_libraries(wallet_client
     PRIVATE http
 )
 
-target_compile_features(wallet_client PUBLIC cxx_std_20)
+target_compile_features(wallet_client PUBLIC cxx_std_23)
 
 add_subdirectory(extensions)
 

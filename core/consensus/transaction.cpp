@@ -15,6 +15,7 @@
 #include "core/consensus/transaction.h"
 #include "core/consensus/rules.h"
 #include "core/consensus/impl_helpers.h"
+#include <algorithm>
 
 namespace beam
 {

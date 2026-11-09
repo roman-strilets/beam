@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "core/consensus/treasury.h"
+#include <algorithm>
 #include <atomic>
 
 namespace beam
