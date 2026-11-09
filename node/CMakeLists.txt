@@ -4,6 +4,18 @@ set(NODE_SRC
     node.cpp
     db.cpp
     processor.cpp
+    processor_assets.cpp
+    processor_block.cpp
+    processor_chain.cpp
+    processor_contracts.cpp
+    processor_evm.cpp
+    processor_generate.cpp
+    processor_interpret.cpp
+    processor_maintenance.cpp
+    processor_multiblock.cpp
+    processor_query.cpp
+    processor_recognizer.cpp
+    processor_storage.cpp
     txpool.cpp
     bridge.cpp
     node_client.cpp
