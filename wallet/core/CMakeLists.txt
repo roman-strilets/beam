@@ -8,6 +8,14 @@ target_sources(wallet_core
         common_utils.cpp
         default_peers.cpp
         wallet.cpp
+        wallet_bodies.cpp
+        wallet_events.cpp
+        wallet_messages.cpp
+        wallet_requests.cpp
+        wallet_sync.cpp
+        wallet_transactions.cpp
+        wallet_vouchers.cpp
+        wallet_widgets.cpp
         base_transaction.cpp
         base_tx_builder.cpp
         simple_transaction.cpp
