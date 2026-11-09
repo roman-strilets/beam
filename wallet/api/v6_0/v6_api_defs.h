@@ -14,7 +14,7 @@
 #pragma once
 
 #include <boost/optional.hpp>
-#include "wallet/core/wallet.h"
+#include "wallet/core/wallet/wallet.h"
 #include "wallet/api/base/api_base.h"
 #include "wallet/api/base/api_errors_imp.h"
 #include "bvm/invoke_data.h"

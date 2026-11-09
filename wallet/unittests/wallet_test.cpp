@@ -13,14 +13,14 @@
 // limitations under the License.
 
 #define BEAM_BUILD_THREAD_POOL
-#include "wallet/core/common.h"
-#include "wallet/core/common_utils.h"
-#include "wallet/core/wallet_network.h"
-#include "wallet/core/wallet.h"
-#include "wallet/core/secstring.h"
-#include "wallet/core/base58.h"
+#include "wallet/core/common/common.h"
+#include "wallet/core/common/common_utils.h"
+#include "wallet/core/net/wallet_network.h"
+#include "wallet/core/wallet/wallet.h"
+#include "wallet/core/keys/secstring.h"
+#include "wallet/core/common/base58.h"
 #include "wallet/core/contracts/shaders_manager.h"
-#include "wallet/core/simple_transaction.h"
+#include "wallet/core/tx/simple_transaction.h"
 #ifdef BEAM_ASSET_SWAP_SUPPORT
 #include "wallet/transactions/dex/dex_tx.h"
 #endif  // BEAM_ASSET_SWAP_SUPPORT
@@ -32,7 +32,7 @@
 #include "core/storage/block_rw.h"
 #include "node/net/node.h"
 #include "node/bridge/bridge.h"
-#include "wallet/core/private_key_keeper.h"
+#include "wallet/core/keys/private_key_keeper.h"
 #include "keykeeper/local_private_key_keeper.h"
 #include "utility/hex.h"
 #include "bvm/ManagerStd.h"

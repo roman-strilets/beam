@@ -15,7 +15,7 @@
 #pragma once
 
 #include "core/storage/block_rw.h"
-#include "wallet/core/private_key_keeper.h"
+#include "wallet/core/keys/private_key_keeper.h"
 
 namespace beam::wallet
 {

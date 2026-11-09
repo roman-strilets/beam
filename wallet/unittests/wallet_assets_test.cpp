@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include <boost/filesystem.hpp>
-#include "wallet/core/common.h"
+#include "wallet/core/common/common.h"
 #include "utility/logger.h"
-#include "wallet/core/wallet_network.h"
-#include "wallet/core/base_transaction.h"
-#include "wallet/core/simple_transaction.h"
+#include "wallet/core/net/wallet_network.h"
+#include "wallet/core/tx/base_transaction.h"
+#include "wallet/core/tx/simple_transaction.h"
 #include "wallet/transactions/assets/assets_reg_creators.h"
 #include "node/net/node.h"
 #include "core/unittest/mini_blockchain.h"

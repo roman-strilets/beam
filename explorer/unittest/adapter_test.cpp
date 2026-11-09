@@ -17,7 +17,7 @@
 #include "utility/logger.h"
 #include <future>
 #include <boost/filesystem.hpp>
-#include <wallet/core/common_utils.h>
+#include <wallet/core/common/common_utils.h>
 
 namespace beam {
 

@@ -15,7 +15,7 @@
 
 #include <string>
 #include <vector>
-#include "wallet/core/wallet_db.h"
+#include "wallet/core/db/wallet_db.h"
 
 namespace beam::wallet
 {

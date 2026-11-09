@@ -1,5 +1,5 @@
 #include "util.h"
-#include "wallet/core/wallet.h"
+#include "wallet/core/wallet/wallet.h"
 #include "core/crypto/ecc_native.h"
 #include "core/consensus/serialization_adapters.h"
 #include "utility/logger.h"

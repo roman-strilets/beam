@@ -14,8 +14,8 @@
 #pragma once
 
 #include "bvm/invoke_data.h"
-#include "wallet/core/wallet_db.h"
-#include "wallet/core/wallet.h"
+#include "wallet/core/db/wallet_db.h"
+#include "wallet/core/wallet/wallet.h"
 
 namespace beam::wallet
 {

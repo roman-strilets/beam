@@ -14,7 +14,7 @@
 #pragma once
 
 #include "api_errors_imp.h"
-#include "wallet/core/common.h"
+#include "wallet/core/common/common.h"
 #include "utility/common.h"
 #include "../i_wallet_api.h"
 #include "parse_utils.h"

@@ -23,7 +23,7 @@
 
 #include "common.h"
 #include "wallet/client/wallet_client.h"
-#include "wallet/core/wallet_db.h"
+#include "wallet/core/db/wallet_db.h"
 #include "wallet/api/i_wallet_api.h"
 #include "wallet/client/apps_api/apps_utils.h"
 #include "wallet/transactions/lelantus/lelantus_reg_creators.h"

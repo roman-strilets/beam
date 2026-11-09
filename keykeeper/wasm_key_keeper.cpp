@@ -15,7 +15,7 @@
 #include "local_private_key_keeper.h"
 #include "mnemonic/mnemonic.h"
 #include "wasm_key_keeper.h"
-#include "wallet/core/wallet_db.h"
+#include "wallet/core/db/wallet_db.h"
 
 #include <boost/algorithm/string.hpp>
 #include "utility/string_helpers.cpp"

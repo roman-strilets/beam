@@ -13,10 +13,10 @@
 // limitations under the License.
 #pragma once
 
-#include "wallet/core/common.h"
-#include "wallet/core/wallet_db.h"
-#include "wallet/core/base_transaction.h"
-#include "wallet/core/base_tx_builder.h"
+#include "wallet/core/common/common.h"
+#include "wallet/core/db/wallet_db.h"
+#include "wallet/core/tx/base_transaction.h"
+#include "wallet/core/tx/base_tx_builder.h"
 
 namespace beam::wallet
 {

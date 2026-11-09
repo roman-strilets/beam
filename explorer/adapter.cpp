@@ -21,13 +21,13 @@
 #include "utility/helpers.h"
 #include "utility/logger.h"
 
-#include "wallet/core/common.h"
-#include "wallet/core/common_utils.h"
-#include "wallet/core/wallet.h"
-#include "wallet/core/wallet_db.h"
+#include "wallet/core/common/common.h"
+#include "wallet/core/common/common_utils.h"
+#include "wallet/core/wallet/wallet.h"
+#include "wallet/core/db/wallet_db.h"
 #include "wallet/client/wallet_client.h"
 #include "wallet/client/extensions/broadcast_gateway/broadcast_router.h"
-#include "wallet/core/wallet_network.h"
+#include "wallet/core/net/wallet_network.h"
 
 #ifdef BEAM_ASSET_SWAP_SUPPORT
 #include "wallet/client/extensions/dex_board/dex_board.h"

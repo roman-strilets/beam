@@ -13,7 +13,7 @@
 // limitations under the License.
 #pragma once
 
-#include "wallet/core/version.h"
+#include "wallet/core/common/version.h"
 #include "utility/serialize_fwd.h"
 #include "stdint.h"
 #include <string>

@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "../../core/base_tx_builder.h"
+#include "wallet/core/tx/base_tx_builder.h"
 
 namespace beam::wallet::lelantus
 {

@@ -17,8 +17,8 @@
 #include "core/channels/lightning.h"
 #include "wallet/laser/i_channel_holder.h"
 #include "wallet/laser/types.h"
-#include "wallet/core/wallet_db.h"
-#include "wallet/core/common.h"
+#include "wallet/core/db/wallet_db.h"
+#include "wallet/core/common/common.h"
 
 namespace beam::wallet::laser
 {

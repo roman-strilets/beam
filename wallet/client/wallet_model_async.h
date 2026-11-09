@@ -13,8 +13,8 @@
 // limitations under the License.
 #pragma once
 
-#include "wallet/core/common_utils.h"
-#include "wallet/core/common.h"
+#include "wallet/core/common/common_utils.h"
+#include "wallet/core/common/common.h"
 #include "boost/any.hpp"
 
 namespace beam::wallet

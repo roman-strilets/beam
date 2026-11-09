@@ -16,7 +16,7 @@
 
 #include "core/channels/negotiator.h"
 #include "core/net/fly_client.h"
-#include "wallet/core/common.h"
+#include "wallet/core/common/common.h"
 #include <boost/intrusive/list.hpp>
 
 namespace beam {

@@ -14,8 +14,8 @@
 
 
 #include "util.h"
-#include "wallet/core/wallet_network.h"
-#include "wallet/core/simple_transaction.h"
+#include "wallet/core/net/wallet_network.h"
+#include "wallet/core/tx/simple_transaction.h"
 #include "node/net/node.h"
 #include "utility/logger.h"
 #include <future>

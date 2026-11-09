@@ -13,7 +13,7 @@
 // limitations under the License.
 #include "web_api_creator.h"
 #include "wallet/api/i_wallet_api.h"
-#include "wallet/core/common.h"
+#include "wallet/core/common/common.h"
 #include "wallet/client/apps_api/apps_utils.h"
 #include "bvm/invoke_data.h"
 

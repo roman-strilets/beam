@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "wallet/core/wallet_db.h"
-#include "wallet/core/base_transaction.h"
+#include "wallet/core/db/wallet_db.h"
+#include "wallet/core/tx/base_transaction.h"
 #include <assert.h>
 #include "test_helpers.h"
 #include "utility/test_helpers.h"

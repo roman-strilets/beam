@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "wallet/core/wallet_db.h"
+#include "wallet/core/db/wallet_db.h"
 #include "core/net/fly_client.h"
 
 namespace beam::wallet::laser

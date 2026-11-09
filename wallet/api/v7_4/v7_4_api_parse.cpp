@@ -13,7 +13,7 @@
 // limitations under the License.
 #include "v7_4_api.h"
 #include "version.h"
-#include "wallet/core/base58.h"
+#include "wallet/core/common/base58.h"
 
 namespace beam::wallet
 {

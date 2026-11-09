@@ -15,8 +15,8 @@
 #include <map>
 #include <vector>
 
-#include "wallet/core/wallet_network.h"
-#include "wallet/core/common.h"
+#include "wallet/core/net/wallet_network.h"
+#include "wallet/core/common/common.h"
 
 using namespace beam::wallet;
 using namespace beam::proto;

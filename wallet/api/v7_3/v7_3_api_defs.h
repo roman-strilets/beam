@@ -15,7 +15,7 @@
 
 #include <string>
 #include <vector>
-#include "wallet/core/assets_utils.h"
+#include "wallet/core/assets/assets_utils.h"
 
 namespace beam::wallet
 {

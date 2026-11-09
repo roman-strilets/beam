@@ -18,7 +18,7 @@
 #include <memory>
 
 #include "core/consensus/treasury.h"
-#include "wallet/core/wallet_network.h"
+#include "wallet/core/net/wallet_network.h"
 #include "wallet/laser/mediator.h"
 
 using namespace beam::wallet;

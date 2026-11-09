@@ -14,7 +14,7 @@
 #include <string_view>
 #include <locale>
 #include "v6_api.h"
-#include "wallet/core/common_utils.h"
+#include "wallet/core/common/common_utils.h"
 #include "utility/fsutils.h"
 #include "bvm/ManagerStd.h"
 

@@ -15,7 +15,7 @@
 
 #include "core/consensus/treasury.h"
 #include "node/net/node.h"
-#include "wallet/core/wallet_db.h"
+#include "wallet/core/db/wallet_db.h"
 
 
 namespace beam::wallet

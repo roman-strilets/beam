@@ -14,9 +14,9 @@
 
 #include "utils.h"
 
-#include "wallet/core/common_utils.h"
-#include "wallet/core/strings_resources.h"
-#include "wallet/core/wallet.h"
+#include "wallet/core/common/common_utils.h"
+#include "wallet/core/common/strings_resources.h"
+#include "wallet/core/wallet/wallet.h"
 
 #include <boost/format.hpp>
 #include <boost/serialization/nvp.hpp>

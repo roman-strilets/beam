@@ -16,7 +16,7 @@
 
 #include "wallet/client/extensions/notifications/notification_observer.h"
 #include "wallet/client/extensions/news_channels/interface.h"
-#include "wallet/core/wallet_db.h"
+#include "wallet/core/db/wallet_db.h"
 
 #include "utility/std_extension.h"
 

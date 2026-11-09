@@ -19,8 +19,8 @@
 
 #include "core/consensus/chain_types.h"   // BbsChannel
 #include "core/net/fly_client.h"    // INetwork
-#include "wallet/core/wallet.h" // IWalletMessageEndpoint
-#include "wallet/core/wallet_network.h"
+#include "wallet/core/wallet/wallet.h" // IWalletMessageEndpoint
+#include "wallet/core/net/wallet_network.h"
 
 #include "interface.h"
 

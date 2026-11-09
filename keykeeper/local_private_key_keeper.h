@@ -14,8 +14,8 @@
 
 #pragma once
 
-#include "wallet/core/private_key_keeper.h"
-#include "wallet/core/variables_db.h"
+#include "wallet/core/keys/private_key_keeper.h"
+#include "wallet/core/db/variables_db.h"
 #include <utility>
 
 namespace beam::wallet

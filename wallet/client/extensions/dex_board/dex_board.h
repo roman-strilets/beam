@@ -15,7 +15,7 @@
 
 #include "dex_order.h"
 #include "wallet/client/extensions/broadcast_gateway/interface.h"
-#include "wallet/core/wallet.h"
+#include "wallet/core/wallet/wallet.h"
 #include "wallet/client/wallet_model_async.h"
 
 namespace beam::wallet {

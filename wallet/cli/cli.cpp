@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "wallet/core/common.h"
-#include "wallet/core/wallet_network.h"
+#include "wallet/core/common/common.h"
+#include "wallet/core/net/wallet_network.h"
 #include "core/base/common.h"
-#include "wallet/core/common_utils.h"
-#include "wallet/core/wallet.h"
-#include "wallet/core/wallet_db.h"
-#include "wallet/core/wallet_network.h"
-#include "wallet/core/simple_transaction.h"
-#include "wallet/core/slatepack_endpoint.h"
-#include "wallet/core/secstring.h"
-#include "wallet/core/strings_resources.h"
+#include "wallet/core/common/common_utils.h"
+#include "wallet/core/wallet/wallet.h"
+#include "wallet/core/db/wallet_db.h"
+#include "wallet/core/net/wallet_network.h"
+#include "wallet/core/tx/simple_transaction.h"
+#include "wallet/core/slatepack/slatepack_endpoint.h"
+#include "wallet/core/keys/secstring.h"
+#include "wallet/core/common/strings_resources.h"
 #include "wallet/core/contracts/shaders_manager.h"
 
 #include "wallet/transactions/assets/assets_reg_creators.h"
@@ -44,7 +44,7 @@
 #include "utility/cli/options.h"
 #include "utility/log_rotation.h"
 #include "utility/helpers.h"
-#include "wallet/core/assets_utils.h"
+#include "wallet/core/assets/assets_utils.h"
 
 #ifdef BEAM_LASER_SUPPORT
 #include "laser.h"

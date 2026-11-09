@@ -14,8 +14,8 @@
 
 #include "ainfo_transaction.h"
 #include "utility/logger.h"
-#include "wallet/core/strings_resources.h"
-#include "wallet/core/wallet.h"
+#include "wallet/core/common/strings_resources.h"
+#include "wallet/core/wallet/wallet.h"
 
 namespace beam::wallet
 {

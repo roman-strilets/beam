@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "wallet_test_node.h"
-#include "wallet/core/wallet_db.h"
+#include "wallet/core/db/wallet_db.h"
 #include <boost/filesystem.hpp>
 
 namespace beam::wallet

@@ -20,7 +20,7 @@
 #include <nlohmann/json.hpp>
 #include "utility/logger.h"
 #include "wallet/core/contracts/i_shaders_manager.h"
-#include "wallet/core/node_network.h"
+#include "wallet/core/net/node_network.h"
 #include "base/api_errors.h"
 #include "sync_mode.h"
 

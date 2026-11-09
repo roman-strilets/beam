@@ -1,0 +1,225 @@
+// Copyright 2018 The Beam Team
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#pragma once
+
+#include "utility/logger.h"
+#include "core/net/proto.h"
+#include "utility/io/timer.h"
+#include <boost/intrusive/set.hpp>
+#include <boost/intrusive/list.hpp>
+#include "wallet_request_bbs_msg.h"
+#include "wallet/core/wallet/wallet.h"
+
+namespace beam::wallet
+{
+    namespace bi = boost::intrusive;
+
+    class BaseMessageEndpoint
+        : public IWalletMessageEndpoint
+    {
+        struct Addr
+        {
+            struct Wid :public boost::intrusive::set_base_hook<> {
+                WalletID m_Value;
+                IHandler* m_pHandler;
+
+                bool operator < (const Wid& x) const
+                {
+                    if (m_pHandler < x.m_pHandler)
+                        return true;
+                    if (m_pHandler > x.m_pHandler)
+                        return false;
+                    return m_Value < x.m_Value;
+                }
+
+                IMPLEMENT_GET_PARENT_OBJ(Addr, m_Wid)
+            } m_Wid;
+
+            struct Channel :public boost::intrusive::set_base_hook<> {
+                BbsChannel m_Value;
+                bool operator < (const Channel& x) const { return m_Value < x.m_Value; }
+                IMPLEMENT_GET_PARENT_OBJ(Addr, m_Channel)
+            } m_Channel;
+
+            bool IsExpired() const
+            {
+                return getTimestamp() > m_ExpirationTime;
+            }
+
+            ECC::Scalar::Native m_sk; // private addr
+            Timestamp m_ExpirationTime = 0;
+            uint32_t m_Refs = 0;
+            static const uint32_t s_InternalRef = 0x10000000;
+
+        };
+    public:
+        BaseMessageEndpoint(IWalletMessageConsumer&, const IWalletDB::Ptr&);
+        virtual ~BaseMessageEndpoint();
+        void AddOwnAddress(const WalletAddress& address);
+        void DeleteOwnAddress(const WalletID&);
+    public:
+        // Outcome of trying to consume an inbound BBS message with our subscribed addresses.
+        enum struct MsgResult
+        {
+            NotForUs,     // nothing we are subscribed to could decrypt it
+            Delivered,    // handed to the wallet (or to a raw handler)
+            Decrypted,    // decrypted only, because deliver == false
+            Handler,      // matched a raw-handler address; nothing was delivered (deliver == false)
+            ReadOnly,     // no SBBS key: we cannot decrypt at all
+        };
+    protected:
+        // Consume an inbound BBS message. pDecrypted/pMyAddr (if set) receive the decrypted
+        // message and the own address it targeted. deliver=false decrypts WITHOUT handing
+        // anything to the wallet or to a raw handler — used to preview a Slatepack import
+        // before the user confirms it.
+        MsgResult ProcessMessage(const proto::BbsMsg& msg, SetTxParameter* pDecrypted = nullptr,
+                                 WalletID* pMyAddr = nullptr, bool deliver = true);
+
+        // False on a read-only wallet, which holds no SBBS key and can neither send nor decrypt.
+        bool CanDecrypt() const { return !!m_pKdfSbbs; }
+        void Listen(const WalletID&, const ECC::Scalar::Native&, IHandler*) override;
+        void Unlisten(const WalletID&, IHandler*) override;
+        void Subscribe();
+        void Unsubscribe();
+        virtual void OnChannelAdded(BbsChannel channel) {};
+        virtual void OnChannelDeleted(BbsChannel channel) {};
+        virtual void OnIncomingMessage() {};
+
+        // Return false to skip a tx's messages. Base skips ManualTransport txs (Slatepack, not
+        // SBBS); SlatepackEndpoint overrides to the inverse. Pure predicate — no side effects.
+        virtual bool AcceptsMessage(const TxID& txID);
+
+        // Protected so SlatepackEndpoint can wrap it (e.g. drop failure/cancel notifications).
+        void Send(const WalletID& peerID, const SetTxParameter& msg) override;
+
+        // The transaction whose negotiation message is being sent right now, or nullptr when
+        // SendRawMessage was reached some other way (Wallet::ProcessStoredMessages replays raw
+        // buffers straight into every endpoint). Set only for the duration of the Send() below,
+        // so a subclass can label the message it is handed without re-deriving the txID.
+        const TxID* GetSendingTxID() const { return m_pSendingTxID; }
+    private:
+        Addr* FindAddr(const WalletID&, IHandler*);
+        void DeleteAddr(const Addr&);
+        void ReleaseAddr(Addr&, bool bInternalRef);
+        bool IsSingleChannelUser(const Addr::Channel&);
+        Addr* CreateAddr(const WalletID&, IHandler* );
+
+        // RAII for m_pSendingTxID; see GetSendingTxID().
+        struct SendingTxScope
+        {
+            BaseMessageEndpoint& m_Ep;
+            SendingTxScope(BaseMessageEndpoint& ep, const TxID& txID) : m_Ep(ep) { ep.m_pSendingTxID = &txID; }
+            ~SendingTxScope() { m_Ep.m_pSendingTxID = nullptr; }
+        };
+        const TxID* m_pSendingTxID = nullptr;
+
+        // IWalletMessageEndpoint
+        void Send(const WalletID& peerID, const Blob&) override;
+        void OnAddressTimer();
+        
+    private:
+        typedef bi::multiset<Addr::Wid> WidSet;
+        WidSet m_Addresses;
+
+        typedef  bi::multiset<Addr::Channel> ChannelSet;
+        ChannelSet m_Channels;
+
+        IWalletMessageConsumer& m_Wallet;
+        IWalletDB::Ptr m_WalletDB;
+        Key::IKdf::Ptr m_pKdfSbbs;
+        io::Timer::Ptr m_AddressExpirationTimer;
+    };
+    struct ITimestampHolder
+    {
+        using Ptr = std::shared_ptr<ITimestampHolder>;
+        virtual ~ITimestampHolder() = default;
+        virtual Timestamp GetTimestamp(BbsChannel channel) = 0;
+        virtual void UpdateTimestamp(const proto::BbsMsg& msg) = 0;
+    };
+
+    class TimestampHolder : public ITimestampHolder
+    {
+    public:
+        TimestampHolder(IWalletDB::Ptr walletDB, const char* timestampsKey);
+        virtual ~TimestampHolder();
+
+        Timestamp GetTimestamp(BbsChannel channel);
+        void UpdateTimestamp(const proto::BbsMsg& msg);
+    private:
+        void SaveBbsTimestamps();
+        void OnTimerBbsTmSave();
+    private:
+        IWalletDB::Ptr m_WalletDB;
+        std::unordered_map<BbsChannel, Timestamp> m_BbsTimestamps;
+        io::Timer::Ptr m_pTimerBbsTmSave;
+        std::string_view m_TimestampsKey;
+    };
+
+    class BbsProcessor
+    {
+    public:
+        BbsProcessor(proto::FlyClient::INetwork::Ptr nodeEndpoint, ITimestampHolder::Ptr);
+        virtual ~BbsProcessor();
+        void Send(const WalletID& peerID, ByteBuffer&& msg, uint64_t messageID);
+
+        void SubscribeChannel(BbsChannel channel);
+        void UnsubscribeChannel(BbsChannel channel);
+
+        virtual void OnMessageSent(uint64_t messageID) {}
+        virtual void OnMsg(const proto::BbsMsg&) {};
+    private:
+        proto::FlyClient::IBbsReceiver* get_BbsReceiver();
+        void OnTimerBbsTmSave();
+        void SaveBbsTimestamps();
+        void OnMsgImpl(const proto::BbsMsg&);
+        void DeleteReq(WalletRequestBbsMsg& r);
+    private:
+        proto::FlyClient::INetwork::Ptr m_NodeEndpoint;
+        BbsMsgList m_PendingBbsMsgs;
+
+        struct BbsSentEvt
+            :public proto::FlyClient::Request::IHandler
+            , public proto::FlyClient::IBbsReceiver
+        {
+            void OnComplete(proto::FlyClient::Request&) override;
+            void OnMsg(proto::BbsMsg&&) override;
+
+            IMPLEMENT_GET_PARENT_OBJ(BbsProcessor, m_BbsSentEvt)
+        } m_BbsSentEvt;
+
+        ITimestampHolder::Ptr m_TimestampHolder;
+    };
+
+    class WalletNetworkViaBbs
+        : public BaseMessageEndpoint
+        , private IWalletDbObserver
+        , public BbsProcessor
+    {
+        IWalletDB::Ptr m_WalletDB;
+    public:
+        WalletNetworkViaBbs(IWalletMessageConsumer&, proto::FlyClient::INetwork::Ptr, const IWalletDB::Ptr&);
+        virtual ~WalletNetworkViaBbs();
+    private:
+        // BaseMessageEndpoint
+        void ProcessStoredIncoming();
+        void OnChannelAdded(BbsChannel channel) override;
+        void OnChannelDeleted(BbsChannel channel) override;
+        void OnMessageSent(uint64_t messageID) override;
+        void OnMsg(const proto::BbsMsg&) override;
+        // IWalletMessageEndpoint
+        void SendRawMessage(const WalletID& peerID, ByteBuffer&&) override;
+        void onAddressChanged(ChangeAction action, const std::vector<WalletAddress>& items) override;
+    };
+}

@@ -15,7 +15,7 @@
 #include "tx_history_to_csv.h"
 #include "bvm/invoke_data.h"
 #include "core/consensus/block_crypt.h"
-#include "wallet/core/common.h"
+#include "wallet/core/common/common.h"
 #include <boost/serialization/nvp.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 

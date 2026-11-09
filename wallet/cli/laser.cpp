@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "laser.h"
-#include "wallet/core/strings_resources.h"
+#include "wallet/core/common/strings_resources.h"
 
 #include <boost/format.hpp>
 #include <iomanip>

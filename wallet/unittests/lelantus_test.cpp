@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "wallet/core/common.h"
-#include "wallet/core/common_utils.h"
-#include "wallet/core/wallet_network.h"
-#include "wallet/core/wallet.h"
+#include "wallet/core/common/common.h"
+#include "wallet/core/common/common_utils.h"
+#include "wallet/core/net/wallet_network.h"
+#include "wallet/core/wallet/wallet.h"
 #include "wallet/transactions/lelantus/push_transaction.h"
 #include "wallet/transactions/lelantus/pull_transaction.h"
 #include "keykeeper/local_private_key_keeper.h"
-#include "wallet/core/simple_transaction.h"
+#include "wallet/core/tx/simple_transaction.h"
 #include "core/unittest/mini_blockchain.h"
 #include "utility/test_helpers.h"
 

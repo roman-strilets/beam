@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #pragma once
-#include "wallet/core/common.h"
+#include "wallet/core/common/common.h"
 
 namespace beam::wallet
 {

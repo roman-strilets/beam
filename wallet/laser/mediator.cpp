@@ -16,7 +16,7 @@
 
 #include "core/channels/negotiator.h"
 #include "core/channels/lightning_codes.h"
-#include "wallet/core/common_utils.h"
+#include "wallet/core/common/common_utils.h"
 #include "wallet/laser/connection.h"
 #include "utility/helpers.h"
 #include "utility/logger.h"

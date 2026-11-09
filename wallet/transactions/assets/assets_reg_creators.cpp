@@ -16,7 +16,7 @@
 #include "aunregister_transaction.h"
 #include "aissue_transaction.h"
 #include "ainfo_transaction.h"
-#include "wallet/core/base_transaction.h"
+#include "wallet/core/tx/base_transaction.h"
 
 namespace beam::wallet
 {

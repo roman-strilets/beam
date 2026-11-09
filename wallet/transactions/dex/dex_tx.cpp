@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "dex_tx.h"
-#include "wallet/core/wallet.h"
+#include "wallet/core/wallet/wallet.h"
 #include "dex_tx_builder.h"
 
 namespace beam::wallet

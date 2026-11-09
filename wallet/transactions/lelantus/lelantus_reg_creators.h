@@ -13,7 +13,7 @@
 // limitations under the License.
 #pragma once
 
-#include "wallet/core/wallet.h"
+#include "wallet/core/wallet/wallet.h"
 
 namespace beam::wallet::lelantus
 {

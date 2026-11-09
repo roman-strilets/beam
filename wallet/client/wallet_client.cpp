@@ -13,15 +13,15 @@
 // limitations under the License.
 
 #include "wallet_client.h"
-#include "wallet/core/simple_transaction.h"
-#include "wallet/core/slatepack_endpoint.h"
+#include "wallet/core/tx/simple_transaction.h"
+#include "wallet/core/slatepack/slatepack_endpoint.h"
 #ifdef BEAM_ASSET_SWAP_SUPPORT
 #include "wallet/transactions/dex/dex_tx.h"
 #endif  // BEAM_ASSET_SWAP_SUPPORT
 #include "utility/log_rotation.h"
 #include "http/http_client.h"
 #include "core/storage/block_rw.h"
-#include "wallet/core/common_utils.h"
+#include "wallet/core/common/common_utils.h"
 #include "extensions/broadcast_gateway/broadcast_router.h"
 #include "extensions/export/tx_history_to_csv.h"
 #include "extensions/news_channels/wallet_updates_provider.h"

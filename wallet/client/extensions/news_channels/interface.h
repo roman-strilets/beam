@@ -15,7 +15,7 @@
 #pragma once
 
 #include "verification_info.h"
-#include "wallet/core/exchange_rate.h"
+#include "wallet/core/assets/exchange_rate.h"
 #include "version_info.h"
 
 namespace beam::wallet {

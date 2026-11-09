@@ -14,8 +14,8 @@
 #pragma once
 
 #include "wallet/api/base/api_base.h"
-#include "wallet/core/wallet.h"
-#include "wallet/core/wallet_db.h"
+#include "wallet/core/wallet/wallet.h"
+#include "wallet/core/db/wallet_db.h"
 #include "v6_api_defs.h"
 #include "wallet/core/contracts/i_shaders_manager.h"
 

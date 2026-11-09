@@ -11,10 +11,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include "wallet/core/common_utils.h"
-#include "wallet/core/simple_transaction.h"
-#include "wallet/core/strings_resources.h"
-#include "wallet/core/assets_utils.h"
+#include "wallet/core/common/common_utils.h"
+#include "wallet/core/tx/simple_transaction.h"
+#include "wallet/core/common/strings_resources.h"
+#include "wallet/core/assets/assets_utils.h"
 #include "utility/logger.h"
 #include "v6_api.h"
 #include "utility/test_helpers.h"

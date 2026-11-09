@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "verification_provider.h"
-#include "wallet/core/common.h"
+#include "wallet/core/common/common.h"
 #include "utility/logger.h"
 
 namespace beam::wallet

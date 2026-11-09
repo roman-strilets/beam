@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "broadcast_msg_creator.h"
-#include "wallet/core/common.h"
+#include "wallet/core/common/common.h"
 #include "core/net/proto.h"
 
 namespace beam::wallet

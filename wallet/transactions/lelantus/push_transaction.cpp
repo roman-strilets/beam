@@ -15,9 +15,9 @@
 #include "push_transaction.h"
 #include "core/consensus/shielded.h"
 #include "push_tx_builder.h"
-#include "wallet/core/common_utils.h"
-#include "wallet/core/strings_resources.h"
-#include "wallet/core/wallet.h"
+#include "wallet/core/common/common_utils.h"
+#include "wallet/core/common/strings_resources.h"
+#include "wallet/core/wallet/wallet.h"
 
 namespace beam::wallet::lelantus
 {

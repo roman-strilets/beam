@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "wallet/core/wallet_network.h"
+#include "wallet/core/net/wallet_network.h"
 #include "core/base/common.h"
 
 #include "node/net/node.h"

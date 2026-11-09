@@ -22,7 +22,7 @@
 #include "utility/test_helpers.h"
 #include "test_helpers.h"
 #include "wallet_test_node.h"
-#include "wallet/core/slatepack_endpoint.h"
+#include "wallet/core/slatepack/slatepack_endpoint.h"
 #include <boost/filesystem.hpp>
 
 WALLET_TEST_INIT

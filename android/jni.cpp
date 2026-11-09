@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "wallet/core/wallet.h"
-#include "wallet/core/wallet_db.h"
-#include "wallet/core/wallet_network.h"
+#include "wallet/core/wallet/wallet.h"
+#include "wallet/core/db/wallet_db.h"
+#include "wallet/core/net/wallet_network.h"
 #include "wallet/client/wallet_model_async.h"
-#include "wallet/core/default_peers.h"
+#include "wallet/core/net/default_peers.h"
 #include "keykeeper/local_private_key_keeper.h"
 #include "wallet/transactions/lelantus/push_transaction.h"
-#include "wallet/core/simple_transaction.h"
-#include "wallet/core/common_utils.h"
+#include "wallet/core/tx/simple_transaction.h"
+#include "wallet/core/common/common_utils.h"
 #include "wallet/transactions/dex/dex_tx.h"
 
 #include "utility/bridge.h"
@@ -31,7 +31,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <jni.h>
 
-#include "wallet/core/common.h"
+#include "wallet/core/common/common.h"
 
 #include "common.h"
 #include "wallet_model.h"

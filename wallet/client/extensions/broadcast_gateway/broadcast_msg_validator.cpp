@@ -14,7 +14,7 @@
 
 #include "broadcast_msg_validator.h"
 #include "utility/logger.h"
-#include "wallet/core/common.h"
+#include "wallet/core/common/common.h"
 
 namespace beam::wallet
 {

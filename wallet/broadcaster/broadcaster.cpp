@@ -19,11 +19,11 @@
 #include "mnemonic/mnemonic.h"
 #include "core/crypto/ecc.h"
 #include "keykeeper/local_private_key_keeper.h"
-#include "wallet/core/wallet_network.h"
+#include "wallet/core/net/wallet_network.h"
 #include "wallet/client/extensions/broadcast_gateway/broadcast_router.h"
 #include "wallet/client/extensions/broadcast_gateway/broadcast_msg_creator.h"
 #include "wallet/client/extensions/news_channels/interface.h"
-#include "wallet/core/strings_resources.h"
+#include "wallet/core/common/strings_resources.h"
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>

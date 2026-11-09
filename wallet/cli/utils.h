@@ -17,7 +17,7 @@
 
 #include "utility/cli/options.h"
 
-#include "wallet/core/common.h"
+#include "wallet/core/common/common.h"
 
 namespace beam::wallet
 {
