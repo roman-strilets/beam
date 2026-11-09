@@ -154,7 +154,7 @@ namespace
             << (tx->m_status == TxStatus::Failed ? boost::format(kTxDetailsFailReason) % GetFailureMessage(tx->m_failureReason) : boost::format(""))
             << (!token.empty() ? "\nAddress:           " : "") << token;
 
-        if (vm.count(cli::UTXO_LIST))
+        if (vm.contains(cli::UTXO_LIST))
         {
             cout << "\n\n";
             ShowAssetCoins(walletDB, Zero, txId);
@@ -259,7 +259,7 @@ namespace
 
     int ExportMinerKey(const po::variables_map& vm)
     {
-        if (vm.count(cli::KEY_SUBKEY) == 0)
+        if (!vm.contains(cli::KEY_SUBKEY))
         {
             cout << kErrorSubkeyNotSpecified << endl;
             return -1;

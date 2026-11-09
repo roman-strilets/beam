@@ -284,7 +284,7 @@ namespace
             return -1;
         }
 
-        if (!vm.count(cli::LISTEN))
+        if (!vm.contains(cli::LISTEN))
         {
             return 0;
         }

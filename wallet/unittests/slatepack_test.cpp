@@ -38,7 +38,7 @@ namespace
         const ByteBuffer payload = RandomBytes(300);
         const string s = slatepack::Armor(slatepack::PayloadType::TxNegotiation, payload);
         WALLET_CHECK(s.rfind("BEGINSLATEPACK.", 0) == 0);
-        WALLET_CHECK(s.find("ENDSLATEPACK.") != string::npos);
+        WALLET_CHECK(s.contains("ENDSLATEPACK."));
 
         // Survives being pasted inside other text with reflowed whitespace.
         const string wrapped = "hey, here is the tx:\n\n" + s + "\n\nthanks!";

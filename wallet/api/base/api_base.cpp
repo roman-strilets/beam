@@ -141,7 +141,7 @@ namespace beam::wallet
             }
 
             info.method = getMandatoryParam<NonEmptyString>(info.message, "method");
-            if (_methods.find(info.method) == _methods.end())
+            if (!_methods.contains(info.method))
             {
                 throw jsonrpc_exception(ApiError::NotFoundJsonRpc, info.method);
             }

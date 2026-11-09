@@ -264,16 +264,16 @@ int main(int argc, char* argv[])
 
         vm.notify();
 
-        if (vm.count(cli::HELP))
+        if (vm.contains(cli::HELP))
         {
             std::cout << desc << std::endl;
             return 0;
         }
-        if (vm.count(GENERATE))
+        if (vm.contains(GENERATE))
         {
             return GenerateLocalData(options);
         }
-        if (vm.count(PROVER))
+        if (vm.contains(PROVER))
         {
             return RunProver(options);
         }

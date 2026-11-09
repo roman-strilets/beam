@@ -38,7 +38,7 @@ namespace
     // (bare --save -> <wallet_dir>/<txid>.slatepack, --save=<dir>, or --save=<file>).
     void OutputSlatepack(const po::variables_map& vm, const TxID& txID, const std::string& armored)
     {
-        if (vm.count(cli::SLATEPACK_SAVE))
+        if (vm.contains(cli::SLATEPACK_SAVE))
         {
             namespace fs = boost::filesystem;
             const std::string opt = vm[cli::SLATEPACK_SAVE].as<std::string>();
@@ -75,13 +75,13 @@ namespace
         auto laser =
             std::make_unique<laser::Mediator>(walletDB);
 
-        if (vm.count(cli::LASER_LIST))
+        if (vm.contains(cli::LASER_LIST))
         {
             LaserShow(walletDB);
             return 0;
         }
 
-        if (vm.count(cli::LASER_DELETE))
+        if (vm.contains(cli::LASER_DELETE))
         {
             if (LaserDelete(laser, vm))
             {
@@ -133,7 +133,7 @@ namespace
         BEAM_LOG_INFO() << kStartMessage;
         auto walletDB = OpenDataBase(vm);
 
-        bool isServer = vm[cli::COMMAND].as<string>() == cli::LISTEN || vm.count(cli::LISTEN);
+        bool isServer = vm[cli::COMMAND].as<string>() == cli::LISTEN || vm.contains(cli::LISTEN);
 
         boost::optional<TxID> currentTxID;
         auto onTxCompleteAction = [&currentTxID](const TxID& txID)
@@ -144,7 +144,7 @@ namespace
 
         auto txCompletedAction = isServer ? Wallet::TxCompletedAction() : onTxCompleteAction;
 
-        if (vm[cli::COMMAND].as<string>() == cli::ASSET_INFO || vm.count(cli::ASSET_INFO))
+        if (vm[cli::COMMAND].as<string>() == cli::ASSET_INFO || vm.contains(cli::ASSET_INFO))
         {
             txCompletedAction = [&onTxCompleteAction, &walletDB](const TxID& txID) {
                 auto tx = walletDB->getTx(txID);
@@ -186,7 +186,7 @@ namespace
 #endif  // BEAM_ASSET_SWAP_SUPPORT
             }
 #endif  // BEAM_CONFIDENTIAL_ASSETS_SUPPORT
-            if (vm.count(cli::REQUEST_BODIES) && vm[cli::REQUEST_BODIES].as<bool>())
+            if (vm.contains(cli::REQUEST_BODIES) && vm[cli::REQUEST_BODIES].as<bool>())
             {
                 wallet->EnableBodyRequests(true);
             }
@@ -276,7 +276,7 @@ namespace
                     .SetParameter(TxParameterID::AssetID, assetId)
                     .SetParameter(TxParameterID::PreselectedCoins, GetPreselectedCoinIDs(vm));
 
-                if (vm.count(cli::SLATEPACK) && vm[cli::SLATEPACK].template as<bool>())
+                if (vm.contains(cli::SLATEPACK) && vm[cli::SLATEPACK].template as<bool>())
                     params.SetParameter(TxParameterID::ManualTransport, true);
 
                 currentTxID = wallet->StartTransaction(params);
@@ -320,7 +320,7 @@ namespace
                 // --yes lets a script drive this. Without it we prompt - and a prompt that cannot
                 // be answered (stdin already consumed by a pasted pack, or a pipe at EOF) is a
                 // decline, never a silent accept.
-                if (vm.count(cli::SLATEPACK_YES) && vm[cli::SLATEPACK_YES].template as<bool>())
+                if (vm.contains(cli::SLATEPACK_YES) && vm[cli::SLATEPACK_YES].template as<bool>())
                 {
                     std::cout << "Proceeding (--" << cli::SLATEPACK_YES << ")." << std::endl;
                 }

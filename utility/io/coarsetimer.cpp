@@ -47,9 +47,9 @@ static inline uint64_t mono_clock() {
 }
 
 Result CoarseTimer::set_timer(unsigned intervalMsec, ID id) {
-    if (_validIds.count(id)) {
+    if (_validIds.contains(id)) {
         BEAM_LOG_DEBUG() << "coarse timer: existing id " << std::hex << id << std::dec;
-        return make_unexpected(EC_EINVAL);
+        return unexpected(EC_EINVAL);
     }
     if (intervalMsec > 0 && intervalMsec < unsigned(-1) - _resolution) {
         // if 0 then callback will fire on next event loop cycle, otherwise adjust to coarse resolution
@@ -141,7 +141,7 @@ MultipleTimers::MultipleTimers(Reactor& reactor, unsigned resolutionMsec) :
 {}
 
 io::Result MultipleTimers::set_timer(CoarseTimer::ID id, unsigned intervalMsec, Timer::Callback&& callback) {
-    if (!callback) return make_unexpected(io::EC_EINVAL);
+    if (!callback) return unexpected(io::EC_EINVAL);
 
     auto it = _timerCallbacks.find(id);
     if (it != _timerCallbacks.end()) {

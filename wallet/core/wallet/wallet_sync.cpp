@@ -156,7 +156,7 @@ namespace beam::wallet
         for (auto& tx : txs)
         {
             // For all transactions that are not currently in the 'active' tx list
-            if (m_ActiveTransactions.find(tx.m_txId) == m_ActiveTransactions.end())
+            if (!m_ActiveTransactions.contains(tx.m_txId))
             {
                 // Reconstruct tx with reset parameters and add it to the active list
                 auto pTx = ConstructTransaction(tx.m_txId, tx.m_txType);

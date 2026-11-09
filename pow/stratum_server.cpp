@@ -120,7 +120,7 @@ std::string Server::gen_nonceprefix(uint64_t connId) {
 }
 
 bool Server::on_login(uint64_t from, const Login& login) {
-    assert(_connections.count(from) > 0);
+    assert(_connections.contains(from));
 
     auto& conn = _connections[from];
     bool loginSuccess = false;
@@ -275,7 +275,7 @@ void Server::AccessControl::refresh() {
 
 bool Server::AccessControl::check(const std::string& key) {
     if (!_enabled) return true;
-    return _keys.count(key) > 0;
+    return _keys.contains(key);
 }
 
 Server::Connection::Connection(

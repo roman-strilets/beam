@@ -736,7 +736,7 @@ namespace beam
             { cli::LOG_VERBOSE, BEAM_LOG_LEVEL_VERBOSE }
         };
 
-        if (vm.count(dstLog))
+        if (vm.contains(dstLog))
         {
             auto level = vm[dstLog].as<string>();
             if (auto it = logLevels.find(level); it != logLevels.end())
@@ -752,7 +752,7 @@ namespace beam
     {
         vector<string> peers;
 
-        if (vm.count(cli::NODE_PEER))
+        if (vm.contains(cli::NODE_PEER))
         {
             auto tempPeers = vm[cli::NODE_PEER].as<vector<string>>();
 
@@ -830,7 +830,7 @@ namespace beam
     {
         bool read_secret_impl(SecString& pass, const char* prompt, const char* optionName, const po::variables_map& vm)
         {
-            if (vm.count(optionName)) {
+            if (vm.contains(optionName)) {
                 const std::string& s = vm[optionName].as<std::string>();
                 size_t len = s.size();
                 if (len > SecString::MAX_SIZE) len = SecString::MAX_SIZE;
@@ -857,7 +857,7 @@ namespace beam
         out.clear();
         error.clear();
 
-        if (vm.count(cli::SLATEPACK_FILE))
+        if (vm.contains(cli::SLATEPACK_FILE))
         {
             const std::string path = vm[cli::SLATEPACK_FILE].as<std::string>();
             std::ifstream f(path, std::ios::binary);
@@ -886,7 +886,7 @@ namespace beam
                 out += line;
                 out += '\n';
                 // The armor is self-delimiting; stop as soon as the end marker arrives.
-                if (out.find("ENDSLATEPACK.") != std::string::npos)
+                if (out.contains("ENDSLATEPACK."))
                     break;
             }
             if (out.empty())

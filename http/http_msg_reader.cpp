@@ -121,7 +121,7 @@ bool HttpUrl::get_hex_arg(const std::string_view& name, ByteBuffer& buffer) cons
 
 bool HttpUrl::has_arg(const std::string_view& name) const
 {
-    return args.find(name) != args.end();
+    return args.contains(name);
 }
 
 std::string HttpMsgReader::Message::error_str() const {

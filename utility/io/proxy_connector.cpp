@@ -45,7 +45,7 @@ ProxyConnector::OnConnect ProxyConnector::create_connection(
         int timeoutMsec,
         bool isTls) {
 
-    assert(_connectRequests.count(tag) == 0);
+    assert(!_connectRequests.contains(tag));
     
     ProxyConnectRequest* request_ptr = _connectRequestsPool.alloc();
     request_ptr->tag = tag;
@@ -70,7 +70,7 @@ void ProxyConnector::cancel_all() {
 }
 
 void ProxyConnector::cancel_connection(uint64_t tag) {
-    if (_connectRequests.count(tag) != 0) {
+    if (_connectRequests.contains(tag)) {
         release_connection(tag, make_result(EC_OK));
     }
 }
@@ -88,8 +88,8 @@ void ProxyConnector::release_connection(uint64_t tag, Result res) {
 }
 
 void ProxyConnector::on_connect_timeout(uint64_t tag) {
-    if (_connectRequests.count(tag) != 0) {
-        release_connection(tag, make_unexpected(EC_ETIMEDOUT));
+    if (_connectRequests.contains(tag)) {
+        release_connection(tag, unexpected(EC_ETIMEDOUT));
     }
 }
 
@@ -100,11 +100,11 @@ void ProxyConnector::destroy_connect_timer_if_needed() {
 }
 
 void ProxyConnector::on_tcp_connect(uint64_t tag, std::unique_ptr<TcpStream>&& new_stream, ErrorCode errorCode) {
-    if (_connectRequests.count(tag) == 0) {
+    if (!_connectRequests.contains(tag)) {
         return; // ~TcpStream() has to close stream
     }
     if (errorCode != EC_OK) {
-        release_connection(tag, make_unexpected(errorCode));
+        release_connection(tag, unexpected(errorCode));
         return;
     }
     // ProxyConnectRequest owns tcp stream instance during negotiation with proxy server.
@@ -123,7 +123,7 @@ void ProxyConnector::send_auth_methods(uint64_t tag) {
                     BIND_THIS_MEMFN(on_connect_timeout)
                 );
             } catch (const Exception& e) {
-                release_connection(tag, make_unexpected(e.errorCode));
+                release_connection(tag, unexpected(e.errorCode));
                 return;
             }
         }
@@ -154,25 +154,25 @@ void ProxyConnector::send_auth_methods(uint64_t tag) {
 }
 
 bool ProxyConnector::on_auth_method_resp(uint64_t tag, ErrorCode errorCode, void *data, size_t size) {
-    if (_connectRequests.count(tag) == 0) {
+    if (!_connectRequests.contains(tag)) {
         return false;
     }
     if (errorCode != EC_OK) {
-        release_connection(tag, make_unexpected(errorCode));
+        release_connection(tag, unexpected(errorCode));
         return false;
     }
     if (data && size) {
         Socks5_Protocol::AuthMethod method;
         if (!Socks5_Protocol::parseAuthResp(data, method) ||
             method != Socks5_Protocol::AuthMethod::NO_AUTHENTICATION_REQUIRED) {
-            release_connection(tag, make_unexpected(EC_PROXY_AUTH_ERROR));
+            release_connection(tag, unexpected(EC_PROXY_AUTH_ERROR));
             return false;
         }
         // No authentication required
         send_connect_request(tag);        
     }
     else {
-        release_connection(tag, make_unexpected(EC_PROXY_AUTH_ERROR));
+        release_connection(tag, unexpected(EC_PROXY_AUTH_ERROR));
         return false;
     }
     return true;
@@ -194,22 +194,22 @@ void ProxyConnector::send_connect_request(uint64_t tag) {
 }
 
 bool ProxyConnector::on_connect_resp(uint64_t tag, ErrorCode errorCode, void *data, size_t size) {
-    if (_connectRequests.count(tag) == 0) {
+    if (!_connectRequests.contains(tag)) {
         return false;
     }
     if (errorCode != EC_OK) {
-        release_connection(tag, make_unexpected(errorCode));
+        release_connection(tag, unexpected(errorCode));
         return false;
     }
     if (data && size) {
         if (Socks5_Protocol::parseReply(data) != Socks5_Protocol::Reply::OK) {
-            release_connection(tag, make_unexpected(EC_PROXY_REPL_ERROR));
+            release_connection(tag, unexpected(EC_PROXY_REPL_ERROR));
             return false;
         }
         on_connection_established(tag);
         return true;
     }
-    release_connection(tag, make_unexpected(EC_PROXY_REPL_ERROR));
+    release_connection(tag, unexpected(EC_PROXY_REPL_ERROR));
     return false;
 }
 
@@ -270,7 +270,7 @@ std::array<uint8_t,10> Socks5_Protocol::makeRequest(const Address& addr, Command
         ProtoVersion,
         static_cast<uint8_t>(cmd),
         Reserved,
-        static_cast<uint8_t>(AddrType::IP_V4),
+        std::to_underlying(AddrType::IP_V4),
         static_cast<uint8_t>(ip >> 24),
         static_cast<uint8_t>((ip >> 16) & 0xFF),
         static_cast<uint8_t>((ip >> 8) & 0xFF),

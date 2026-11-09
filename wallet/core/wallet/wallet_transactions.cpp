@@ -69,7 +69,7 @@ namespace beam::wallet
 
     void Wallet::ResumeTransaction(const TxDescription& tx)
     {
-        if (tx.canResume() && m_ActiveTransactions.find(tx.m_txId) == m_ActiveTransactions.end())
+        if (tx.canResume() && !m_ActiveTransactions.contains(tx.m_txId))
         {
             auto t = ConstructTransaction(tx.m_txId, tx.m_txType);
             if (t)

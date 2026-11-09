@@ -73,7 +73,7 @@ public:
     }
 
     bool has_key(const std::string& key) const {
-        return _values.count(key) == 1;
+        return _values.contains(key);
     }
 
     template <typename T> T get(const std::string& key, const T& defValue =T ()) const {

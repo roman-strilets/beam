@@ -138,7 +138,7 @@ namespace beam::wallet
         void Totals::Init(IWalletDB& walletDB, bool nzOnly)
         {
             auto getTotalsRef = [this](Asset::ID assetId) -> AssetTotals& {
-                if (allTotals.find(assetId) == allTotals.end()) {
+                if (!allTotals.contains(assetId)) {
                     allTotals[assetId] = AssetTotals();
                     allTotals[assetId].AssetId = assetId;
                 }
@@ -283,7 +283,7 @@ namespace beam::wallet
 
         Totals::AssetTotals Totals::GetTotals(Asset::ID assetId) const
         {
-            if(allTotals.find(assetId) == allTotals.end())
+            if(!allTotals.contains(assetId))
             {
                 AssetTotals result;
                 result.AssetId = assetId;
@@ -304,7 +304,7 @@ namespace beam::wallet
 
         bool Totals::HasTotals(Asset::ID assetId) const
         {
-            return allTotals.find(assetId) != allTotals.end();
+            return allTotals.contains(assetId);
         }
 
         bool IsOngoingTx(const IWalletDB& walletDB, const boost::optional<TxID>& txID)

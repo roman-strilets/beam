@@ -37,7 +37,7 @@ namespace
         jobject jNotificationInfo = env->AllocObject(NotificationClass);
 
         setStringField(env, NotificationClass, jNotificationInfo, "id", to_string(notification.m_ID));
-        setIntField(env, NotificationClass, jNotificationInfo, "state", beam::underlying_cast(notification.m_state));
+        setIntField(env, NotificationClass, jNotificationInfo, "state", std::to_underlying(notification.m_state));
         setLongField(env, NotificationClass, jNotificationInfo, "createTime", notification.m_createTime);
 
         return jNotificationInfo;
@@ -406,7 +406,7 @@ namespace
 
             jobject jVersionInfo = env->AllocObject(VersionInfoClass);
             {
-                setIntField(env, VersionInfoClass, jVersionInfo, "application", beam::underlying_cast(walletVersionInfo.m_application));
+                setIntField(env, VersionInfoClass, jVersionInfo, "application", std::to_underlying(walletVersionInfo.m_application));
                 setLongField(env, VersionInfoClass, jVersionInfo, "versionMajor", walletVersionInfo.m_version.m_major);
                 setLongField(env, VersionInfoClass, jVersionInfo, "versionMinor", walletVersionInfo.m_version.m_minor);
                 setLongField(env, VersionInfoClass, jVersionInfo, "versionRevision", walletVersionInfo.m_UIrevision);
@@ -729,13 +729,13 @@ void WalletModel::onNodeConnectionChanged(bool isNodeConnected)
 
 void WalletModel::onWalletError(ErrorType error)
 {
-    BEAM_LOG_DEBUG() << "onWalletError: error = " << underlying_cast(error);
+    BEAM_LOG_DEBUG() << "onWalletError: error = " << std::to_underlying(error);
 
     JNIEnv* env = Android_JNI_getEnv();
 
     jmethodID callback = env->GetStaticMethodID(WalletListenerClass, "onNodeConnectionFailed", "(I)V");
 
-    env->CallStaticVoidMethod(WalletListenerClass, callback, underlying_cast(error));
+    env->CallStaticVoidMethod(WalletListenerClass, callback, std::to_underlying(error));
 }
 
 void WalletModel::FailedToStartWallet()

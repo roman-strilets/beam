@@ -323,7 +323,7 @@ namespace beam::wallet
                 {"never",   WalletAddress::ExpirationStatus::Never},
             };
 
-            if(Items.count(*expiration) == 0)
+            if(!Items.contains(*expiration))
             {
                 throw jsonrpc_exception(ApiError::InvalidJsonRpc, "Unknown value for the 'expiration' parameter.");
             }

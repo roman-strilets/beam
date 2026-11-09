@@ -49,7 +49,7 @@ namespace
 
     IWalletDB::Ptr OpenDataBase(const po::variables_map& vm, const SecString& pass)
     {
-        BOOST_ASSERT(vm.count(cli::WALLET_STORAGE) > 0);
+        BOOST_ASSERT(vm.contains(cli::WALLET_STORAGE));
         auto walletPath = vm[cli::WALLET_STORAGE].as<string>();
 
         if (!WalletDB::isInitialized(walletPath))
@@ -87,14 +87,14 @@ namespace
             BEAM_LOG_INFO() << kSeedPhraseReadTitle;
             phrase = GeneratePhrase();
         }
-        else if (vm.count(cli::SEED_PHRASE))
+        else if (vm.contains(cli::SEED_PHRASE))
         {
             auto tempPhrase = vm[cli::SEED_PHRASE].as<string>();
             boost::algorithm::trim_if(tempPhrase, [](char ch) { return ch == ';'; });
             phrase = string_helpers::split(tempPhrase, ';');
 
             if (phrase.size() != WORD_COUNT
-                || (vm.count(cli::IGNORE_DICTIONARY) == 0 && !isValidMnemonic(phrase)))
+                || (!vm.contains(cli::IGNORE_DICTIONARY) && !isValidMnemonic(phrase)))
             {
                 BEAM_LOG_ERROR() << boost::format(kErrorSeedPhraseInvalid) % tempPhrase;
                 return false;
@@ -140,7 +140,7 @@ namespace
     CoinIDList GetPreselectedCoinIDs(const po::variables_map& vm)
     {
         CoinIDList coinIDs;
-        if (vm.count(cli::UTXO))
+        if (vm.contains(cli::UTXO))
         {
             auto tempCoins = vm[cli::UTXO].as<vector<string>>();
             for (const auto& s : tempCoins)
@@ -162,7 +162,7 @@ namespace
     proto::FlyClient::NetworkStd::Ptr CreateNetwork(
         proto::FlyClient& fc, const po::variables_map& vm)
     {
-        if (vm.count(cli::NODE_ADDR) == 0)
+        if (!vm.contains(cli::NODE_ADDR))
         {
             BEAM_LOG_ERROR() << kErrorNodeAddrNotSpecified;
             return nullptr;
@@ -193,7 +193,7 @@ namespace
             }
         }
 
-        if (vm.count(cli::MINE_ONLINE))
+        if (vm.contains(cli::MINE_ONLINE))
             nnet->m_Cfg.m_PreferOnlineMining = vm[cli::MINE_ONLINE].as<bool>();
 
         uint32_t responceTime_ms =

@@ -296,20 +296,20 @@ int main(int argc, char* argv[])
 			return 0;
 		}
 
-		if (vm.count(cli::HELP))
+		if (vm.contains(cli::HELP))
 		{
 			printHelp(visibleOptions);
 
 			return 0;
 		}
 
-		if (vm.count(cli::VERSION))
+		if (vm.contains(cli::VERSION))
 		{
 			cout << PROJECT_VERSION << endl;
 			return 0;
 		}
 
-		if (vm.count(cli::GIT_COMMIT_HASH))
+		if (vm.contains(cli::GIT_COMMIT_HASH))
 		{
 			cout << GIT_COMMIT_HASH << endl;
 			return 0;
@@ -431,7 +431,7 @@ int main(int argc, char* argv[])
 							node.m_Keys.m_pOwner = ImportKey_T<HKdfPub>(sKeyOwner, ks);
 					}
 
-					if (vm.count(cli::MULTI_OWNER_KEYS))
+					if (vm.contains(cli::MULTI_OWNER_KEYS))
 					{
 						auto vKeys = vm[cli::MULTI_OWNER_KEYS].as<std::vector<std::string> >();
 						assert(!vKeys.empty());
@@ -440,7 +440,7 @@ int main(int argc, char* argv[])
 						assert(vRes.empty());
 
 						std::vector<std::string> vPasses;
-						if (vm.count(cli::MULTI_PASSES))
+						if (vm.contains(cli::MULTI_PASSES))
 							vPasses = vm[cli::MULTI_PASSES].as<std::vector<std::string> >();
 
 						vPasses.resize(vKeys.size()); // ignore redundant, add empty for missing
@@ -466,7 +466,7 @@ int main(int argc, char* argv[])
 						}
 					}
 
-					if (vm.count(cli::OWNER_KEY_REMOVE_EP))
+					if (vm.contains(cli::OWNER_KEY_REMOVE_EP))
 					{
 						auto vEps = vm[cli::OWNER_KEY_REMOVE_EP].as<std::vector<std::string> >();
 						assert(!vEps.empty());
@@ -477,10 +477,10 @@ int main(int argc, char* argv[])
 
 					node.m_Keys.m_Accounts.m_Del.m_All = vm[cli::OWNER_KEY_REMOVE_ALL].as<bool>();
 
-					if (vm.count(cli::MINER_JOB_LATENCY))
+					if (vm.contains(cli::MINER_JOB_LATENCY))
 						node.m_Cfg.m_Timeout.m_MiningSoftRestart_ms = vm[cli::MINER_JOB_LATENCY].as<uint32_t>();
 
-					if (vm.count(cli::MINE_ONLINE))
+					if (vm.contains(cli::MINE_ONLINE))
 						node.m_Cfg.m_PreferOnlineMining = vm[cli::MINE_ONLINE].as<bool>();
 
 					std::vector<std::string> vPeers = getCfgPeers(vm);
@@ -509,7 +509,7 @@ int main(int argc, char* argv[])
 
 					BEAM_LOG_INFO() << "starting a node on " << node.m_Cfg.m_Listen.port() << " port...";
 
-					if (vm.count(cli::TREASURY_BLOCK))
+					if (vm.contains(cli::TREASURY_BLOCK))
 					{
 						string sPath = vm[cli::TREASURY_BLOCK].as<string>();
 						if (!ReadTreasury(node.m_Cfg.m_Treasury, sPath))
@@ -521,16 +521,16 @@ int main(int argc, char* argv[])
 						}
 					}
 
-					if (vm.count(cli::CHECKDB))
+					if (vm.contains(cli::CHECKDB))
 						node.m_Cfg.m_ProcessorParams.m_CheckIntegrity = vm[cli::CHECKDB].as<bool>();
 
-					if (vm.count(cli::VACUUM))
+					if (vm.contains(cli::VACUUM))
 						node.m_Cfg.m_ProcessorParams.m_Vacuum = vm[cli::VACUUM].as<bool>();
 
-					if (vm.count(cli::RESET_ID))
+					if (vm.contains(cli::RESET_ID))
 						node.m_Cfg.m_ProcessorParams.m_ResetSelfID = vm[cli::RESET_ID].as<bool>();
 
-					if (vm.count(cli::ERASE_ID))
+					if (vm.contains(cli::ERASE_ID))
 						node.m_Cfg.m_ProcessorParams.m_EraseSelfID = vm[cli::ERASE_ID].as<bool>();
 
 					if (!vm[cli::BBS_ENABLE].as<bool>())
@@ -547,7 +547,7 @@ int main(int argc, char* argv[])
 
 					ByteBuffer bufRichParser;
 
-					if (vm.count(cli::CONTRACT_RICH_INFO))
+					if (vm.contains(cli::CONTRACT_RICH_INFO))
 					{
 						uint8_t nFlag = vm[cli::CONTRACT_RICH_INFO].as<bool>() ?
 							NodeProcessor::StartParams::RichInfo::On :
@@ -556,7 +556,7 @@ int main(int argc, char* argv[])
 						node.m_Cfg.m_ProcessorParams.m_RichInfoFlags |= nFlag;
 					}
 
-					if (vm.count(cli::CONTRACT_RICH_PARSER))
+					if (vm.contains(cli::CONTRACT_RICH_PARSER))
 					{
 						auto sPath = vm[cli::CONTRACT_RICH_PARSER].as<std::string>();
 						if (!sPath.empty())
@@ -609,7 +609,7 @@ int main(int argc, char* argv[])
 					if (vm[cli::PRINT_ROLLBACK_STATS].as<bool>())
 						node.PrintRollbackStats();
 
-					if (vm.count(cli::GENERATE_RECOVERY_PATH))
+					if (vm.contains(cli::GENERATE_RECOVERY_PATH))
 					{
 						string sPath = vm[cli::GENERATE_RECOVERY_PATH].as<string>();
 						BEAM_LOG_INFO() << "Writing recovery info...";
@@ -617,7 +617,7 @@ int main(int argc, char* argv[])
 						BEAM_LOG_INFO() << "Recovery info written";
 					}
 
-					if (vm.count(cli::RECOVERY_AUTO_PATH))
+					if (vm.contains(cli::RECOVERY_AUTO_PATH))
 					{
 						node.m_Cfg.m_Recovery.m_sPathOutput = vm[cli::RECOVERY_AUTO_PATH].as<string>();
 						node.m_Cfg.m_Recovery.m_Granularity = vm[cli::RECOVERY_AUTO_PERIOD].as<uint32_t>();
@@ -625,7 +625,7 @@ int main(int argc, char* argv[])
 
 					io::Timer::Ptr pCrashTimer;
 
-					int nCrash = vm.count(cli::CRASH) ? vm[cli::CRASH].as<int>() : 0;
+					int nCrash = vm.contains(cli::CRASH) ? vm[cli::CRASH].as<int>() : 0;
 					if (nCrash)
 					{
 						pCrashTimer = io::Timer::create(*reactor);
@@ -635,7 +635,7 @@ int main(int argc, char* argv[])
 						});
 					}
 
-					if (vm.count(cli::MANUAL_ROLLBACK))
+					if (vm.contains(cli::MANUAL_ROLLBACK))
 					{
 						Block::Number h(vm[cli::MANUAL_ROLLBACK].as<uint64_t>());
 						if (h.v)
@@ -646,7 +646,7 @@ int main(int argc, char* argv[])
 						node.RefreshCongestions();
 					}
 
-					if (vm.count(cli::MANUAL_SELECT))
+					if (vm.contains(cli::MANUAL_SELECT))
 					{
 						node.get_Processor().m_ManualSelection.Reset();
 

@@ -50,7 +50,7 @@ Result TcpStream::enable_read(const TcpStream::Callback& callback) {
     assert(callback);
 
     if (!is_connected()) {
-        return make_unexpected(EC_ENOTCONN);
+        return unexpected(EC_ENOTCONN);
     }
 
     alloc_read_buffer();
@@ -70,7 +70,7 @@ Result TcpStream::enable_read(const TcpStream::Callback& callback) {
     if (errorCode != 0) {
         _callback = Callback();
         free_read_buffer();
-        return make_unexpected(errorCode);
+        return unexpected(errorCode);
     }
 
     _callback = callback;
@@ -89,13 +89,13 @@ void TcpStream::disable_read() {
 }
 
 Result TcpStream::write(const SharedBuffer& buf, bool flush) {
-    if (!is_connected()) return make_unexpected(EC_ENOTCONN);
+    if (!is_connected()) return unexpected(EC_ENOTCONN);
     _writeBuffer.append(buf);
     return do_write(flush);
 }
 
 Result TcpStream::write(const SerializedMsg& fragments, bool flush) {
-    if (!is_connected()) return make_unexpected(EC_ENOTCONN);
+    if (!is_connected()) return unexpected(EC_ENOTCONN);
     if (!fragments.empty()) {
         for (const auto& f : fragments) {
             _writeBuffer.append(f);
@@ -106,7 +106,7 @@ Result TcpStream::write(const SerializedMsg& fragments, bool flush) {
 
 /*
 Result TcpStream::write(const BufferChain& fragments, bool flush) {
-    if (!is_connected()) return make_unexpected(EC_ENOTCONN);
+    if (!is_connected()) return unexpected(EC_ENOTCONN);
     _writeBuffer.append(fragments);
     return do_write(flush);
 }
@@ -133,7 +133,7 @@ Result TcpStream::do_write(bool flush) {
         ErrorCode ec = _reactor->async_write(this, _writeBuffer, _onDataWritten);
         if (ec != EC_OK) {
             BEAM_LOG_DEBUG() << __FUNCTION__ << " " << error_str(ec);
-            return make_unexpected(ec);
+            return unexpected(ec);
         }
         _state.unsent += nBytes;
     }

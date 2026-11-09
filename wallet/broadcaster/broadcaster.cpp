@@ -308,19 +308,19 @@ namespace
     {
         BEAM_LOG_INFO() << "Message transmit requested";
 
-        if (vm.count(cli::NODE_ADDR) == 0)
+        if (!vm.contains(cli::NODE_ADDR))
         {
             BEAM_LOG_ERROR() << "node address should be specified";
             return -1;
         }
 
-        if (vm.count(cli::MESSAGE_TYPE) == 0)
+        if (!vm.contains(cli::MESSAGE_TYPE))
         {
             BEAM_LOG_ERROR() << "message type has to be specified";
             return -1;
         }
 
-        if (vm.count(cli::PRIVATE_KEY) == 0)
+        if (!vm.contains(cli::PRIVATE_KEY))
         {
             BEAM_LOG_ERROR() << "private key has to be specified";
             return -1;
@@ -478,7 +478,7 @@ int main(int argc, char* argv[])
                 .style(po::command_line_style::default_style ^ po::command_line_style::allow_guessing)
                 .run(), vm);
 
-            if (vm.count(cli::HELP))
+            if (vm.contains(cli::HELP))
             {
                 std::cout << desc << std::endl;
                 return 0;
@@ -501,7 +501,7 @@ int main(int argc, char* argv[])
         BEAM_LOG_INFO() << "Broadcasting utility " << PROJECT_VERSION << " (" << BRANCH_NAME << ")";
         BEAM_LOG_INFO() << "Rules signature: " << r.get_SignatureStr();
 
-        if (vm.count(cli::COMMAND) == 0)
+        if (!vm.contains(cli::COMMAND))
         {
             return transmitCommand(vm, options);
         }

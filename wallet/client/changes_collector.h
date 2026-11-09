@@ -107,7 +107,7 @@ namespace beam::wallet
         void AddItem(const T& item)
         {
             // if it was removed do nothing
-            if (m_RemovedItems.find(item) != m_RemovedItems.end())
+            if (m_RemovedItems.contains(item))
             {
                 return;
             }
@@ -117,7 +117,7 @@ namespace beam::wallet
         void UpdateItem(const T& item)
         {
             // if it was removed do nothing
-            if (m_RemovedItems.find(item) != m_RemovedItems.end())
+            if (m_RemovedItems.contains(item))
             {
                 return;
             }

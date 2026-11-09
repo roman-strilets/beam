@@ -31,7 +31,7 @@ namespace beam::wallet
 {
     bool ReadAmount(const po::variables_map& vm, Amount& amount, const Amount& limit, Asset::ID assetId)
     {
-        if (vm.count(cli::AMOUNT) == 0)
+        if (!vm.contains(cli::AMOUNT))
         {
             BEAM_LOG_ERROR() << kErrorAmountMissing;
             return false;
@@ -105,7 +105,7 @@ namespace beam::wallet
 
     bool LoadReceiverParams(const po::variables_map& vm, TxParameters& params)
     {
-        if (vm.find(cli::RECEIVER_ADDR) == vm.end())
+        if (!vm.contains(cli::RECEIVER_ADDR))
         {
             BEAM_LOG_ERROR() << kErrorReceiverAddrMissing;
             return false;
@@ -184,7 +184,7 @@ namespace beam::wallet
             return false;
         }
 
-        if(vm.count(cli::ASSET_ID)) // asset id can be zero if beam only
+        if(vm.contains(cli::ASSET_ID)) // asset id can be zero if beam only
         {
             assetId = vm[cli::ASSET_ID].as<Positive<uint32_t>>().value;
         }

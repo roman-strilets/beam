@@ -158,12 +158,12 @@ namespace
 
     void ShowAssetTxs(const po::variables_map& vm, const IWalletDB::Ptr& walletDB, Asset::ID assetId)
     {
-        const bool show = vm.count(cli::TX_HISTORY);
+        const bool show = vm.contains(cli::TX_HISTORY);
         if (!show) return;
 
         std::vector<TxDescription> txHistory;
 
-        if (vm.count(cli::TX_HISTORY))
+        if (vm.contains(cli::TX_HISTORY))
         {
             auto txReg     = walletDB->getTxHistory(TxType::AssetReg);
             auto txIssue   = walletDB->getTxHistory(TxType::AssetIssue);
@@ -305,7 +305,7 @@ namespace
         }
 
         auto showAssetId = Asset::s_InvalidID;
-        if (vm.count(cli::ASSET_ID))
+        if (vm.contains(cli::ASSET_ID))
         {
             showAssetId = vm[cli::ASSET_ID].as<Positive<uint32_t>>().value;
         }
@@ -318,7 +318,7 @@ namespace
             cout << endl;
             ShowAssetInfo(walletDB, totals);
 
-            if (vm.count(cli::UTXO_LIST))
+            if (vm.contains(cli::UTXO_LIST))
             {
                 ShowAssetCoins(walletDB, totals.AssetId);
             }
@@ -348,7 +348,7 @@ namespace
             // that do not have coins. Also there might be asset transactions
             // that have 0 asset id.
             //
-            if (vm.count(cli::TX_HISTORY))
+            if (vm.contains(cli::TX_HISTORY))
             {
                 std::set<Asset::ID> noCoins;
 
@@ -436,15 +436,15 @@ namespace
              % boost::io::group(left, setfill('.'), setw(kWidth), kWalletSummaryFieldTotalFee) % to_string(PrintableAmount(totals.Fee, false, 0))
              % boost::io::group(left, setfill('.'), setw(kWidth), kWalletSummaryFieldTotalUnspent) % to_string(PrintableAmount(unspent, false, 0));
 
-        if (vm.count(cli::UTXO_LIST))
+        if (vm.contains(cli::UTXO_LIST))
         {
             ShowAssetCoins(walletDB, Zero);
         }
-        else if (vm.count(cli::TX_HISTORY))
+        else if (vm.contains(cli::TX_HISTORY))
         {
             std::vector<TxDescription> txHistory;
 
-            if (vm.count(cli::TX_HISTORY))
+            if (vm.contains(cli::TX_HISTORY))
             {
 #ifdef BEAM_ASSET_SWAP_SUPPORT
                 std::array<TxType, 4> types = { TxType::Simple, TxType::PushTransaction, TxType::Contract, TxType::DexSimpleSwap };
@@ -689,7 +689,7 @@ namespace
         // If asset info is requested we show only it
         // Otherwise we display both BEAM & ASSETS
         //
-        const bool assetsOnly = vm.count(cli::ASSET_ID) != 0;
+        const bool assetsOnly = vm.contains(cli::ASSET_ID);
         IWalletDB::Ptr wdb = OpenDataBase(vm);
 
         if (assetsOnly)

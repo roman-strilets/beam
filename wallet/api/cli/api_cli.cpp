@@ -629,13 +629,13 @@ int main(int argc, char* argv[])
             std::cerr << "EXCEPTION: " << e.what() << std::endl;
         }
 
-        if (vm.count(cli::HELP))
+        if (vm.contains(cli::HELP))
         {
             std::cout << desc << std::endl;
             return 0;
         }
 
-        if (vm.count(cli::VERSION))
+        if (vm.contains(cli::VERSION))
         {
             std::cout << PROJECT_VERSION << std::endl;
             return 0;
@@ -725,7 +725,7 @@ int main(int argc, char* argv[])
                 }
             }
 
-            if (vm.count(cli::NODE_ADDR) == 0)
+            if (!vm.contains(cli::NODE_ADDR))
             {
                 BEAM_LOG_ERROR() << "node address should be specified";
                 return -1;
@@ -791,7 +791,7 @@ int main(int argc, char* argv[])
                           << " hours may cause transaction problems.";
         }
 
-        if (vm.count(cli::MINE_ONLINE))
+        if (vm.contains(cli::MINE_ONLINE))
             nnet->m_Cfg.m_PreferOnlineMining = vm[cli::MINE_ONLINE].as<bool>();
 
         nnet->m_Cfg.m_vNodes.push_back(node_addr);

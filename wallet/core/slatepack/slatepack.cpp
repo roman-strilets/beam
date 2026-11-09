@@ -120,8 +120,8 @@ namespace beam::wallet::slatepack
         }
 
         if (data[0] != kVersion) { error = Error::UnsupportedVersion; return false; }
-        if (data[1] < static_cast<uint8_t>(PayloadType::TxNegotiation) ||
-            data[1] > static_cast<uint8_t>(PayloadType::ProofOfFunds))
+        if (data[1] < std::to_underlying(PayloadType::TxNegotiation) ||
+            data[1] > std::to_underlying(PayloadType::ProofOfFunds))
         {
             error = Error::UnknownType;
             return false;

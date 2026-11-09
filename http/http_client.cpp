@@ -36,13 +36,13 @@ HttpClient::~HttpClient() {
 }
 
 expected<uint64_t, io::ErrorCode> HttpClient::send_request(const HttpClient::Request& request, bool tls) {
-    if (!request.validate()) return make_unexpected(io::EC_EINVAL);
+    if (!request.validate()) return unexpected(io::EC_EINVAL);
     Ctx* ctx = 0;
     uint64_t id = 0;
     bool newConnection = false;
     if (request.id_ != 0) {
         auto it = _connections.find(request.id_);
-        if (it == _connections.end()) return make_unexpected(io::EC_EINVAL);
+        if (it == _connections.end()) return unexpected(io::EC_EINVAL);
         ctx = &it->second;
         id = request.id_;
     } else {
@@ -69,7 +69,7 @@ expected<uint64_t, io::ErrorCode> HttpClient::send_request(const HttpClient::Req
             _reactor.cancel_tcp_connect(uint64_t(ctx));
         }
         _connections.erase(id);
-        return make_unexpected(io::EC_EINVAL);
+        return unexpected(io::EC_EINVAL);
     }
 
     if (bodySize) {
@@ -90,7 +90,7 @@ expected<uint64_t, io::ErrorCode> HttpClient::send_request(const HttpClient::Req
 
     if (!result) {
         _connections.erase(id);
-        return make_unexpected(result.error());
+        return unexpected(result.error());
     }
 
     ctx->callback = request.callback_;
@@ -101,7 +101,7 @@ void HttpClient::cancel_request(uint64_t id) {
     auto it = _connections.find(id);
     if (it != _connections.end()) {
         auto tag = uint64_t(&it->second);
-        if (_pendingConnections.count(tag)) {
+        if (_pendingConnections.contains(tag)) {
             _reactor.cancel_tcp_connect(tag);
             _pendingConnections.erase(tag);
         }

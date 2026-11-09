@@ -368,10 +368,10 @@ namespace beam::wallet
                 throwIfError(ret, _db);
             }
             
-            template<typename EnumType, typename = EnumTypesOnly<EnumType>>
+            template<typename EnumType> requires std::is_enum_v<EnumType>
             void bind(int col, EnumType type)
             {
-                bind(col, underlying_cast(type));
+                bind(col, std::to_underlying(type));
             }
 
             void bind(int col, const TxID& id)
@@ -525,10 +525,10 @@ namespace beam::wallet
                 val = sqlite3_column_int(_stm, col);
             }
 
-            template<typename EnumType, typename = EnumTypesOnly<EnumType>>
+            template<typename EnumType> requires std::is_enum_v<EnumType>
             void get(int col, EnumType& enumValue)
             {
-                UnderlyingType<EnumType> temp;
+                std::underlying_type_t<EnumType> temp;
                 get(col, temp);
                 enumValue = static_cast<EnumType>(temp);
             }

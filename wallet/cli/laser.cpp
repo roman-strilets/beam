@@ -29,11 +29,11 @@ LaserObserver::LaserObserver(const IWalletDB::Ptr& walletDB,
 
 void LaserObserver::OnOpened(const laser::ChannelIDPtr& chID)
 {
-    if (m_vm.count(cli::LASER_OPEN))
+    if (m_vm.contains(cli::LASER_OPEN))
     {
         io::Reactor::get_Current().stop();
     }
-    else if (m_vm.count(cli::LASER_WAIT))
+    else if (m_vm.contains(cli::LASER_WAIT))
     {
         BEAM_LOG_INFO() << boost::format(kLaserMessageChannelServed)
                    % to_hex(chID->m_pData, chID->nBytes);
@@ -61,7 +61,7 @@ void LaserObserver::OnClosed(const laser::ChannelIDPtr& chID)
 
 void LaserObserver::OnCloseFailed(const laser::ChannelIDPtr& chID)
 {
-    if (m_vm.count(cli::LASER_CLOSE_GRACEFUL))
+    if (m_vm.contains(cli::LASER_CLOSE_GRACEFUL))
     {
         io::Reactor::get_Current().stop();
     }
@@ -75,7 +75,7 @@ void LaserObserver::OnUpdateStarted(const laser::ChannelIDPtr& chID)
 
 void LaserObserver::OnUpdateFinished(const laser::ChannelIDPtr& chID)
 {
-    if (m_vm.count(cli::LASER_TRANSFER))
+    if (m_vm.contains(cli::LASER_TRANSFER))
     {
         io::Reactor::get_Current().stop();
     }
@@ -109,7 +109,7 @@ bool LoadLaserParams(const po::variables_map& vm, laser::Mediator& mediator,
 {
     if (!skipReceiverWalletID)
     {
-        if (!vm.count(cli::LASER_TARGET_ADDR))
+        if (!vm.contains(cli::LASER_TARGET_ADDR))
         {
             BEAM_LOG_ERROR() << kErrorReceiverAddrMissing;
             return false;
@@ -117,13 +117,13 @@ bool LoadLaserParams(const po::variables_map& vm, laser::Mediator& mediator,
         receiverWalletID->FromHex(vm[cli::LASER_TARGET_ADDR].as<string>());
     }    
 
-    if (!vm.count(cli::LASER_AMOUNT_MY))
+    if (!vm.contains(cli::LASER_AMOUNT_MY))
     {
         BEAM_LOG_ERROR() << kLaserErrorMyAmountMissing;
         return false;
     }
 
-    if (!vm.count(cli::LASER_AMOUNT_TARGET))
+    if (!vm.contains(cli::LASER_AMOUNT_TARGET))
     {
         BEAM_LOG_ERROR() << kLaserErrorTrgAmountMissing;
         return false;
@@ -148,7 +148,7 @@ bool LoadLaserParams(const po::variables_map& vm, laser::Mediator& mediator,
     auto& fs = Transaction::FeeSettings::get(s.get_Height());
     Amount feeMin = fs.get_DefaultStd();
 
-    if (vm.count(cli::LASER_FEE))
+    if (vm.contains(cli::LASER_FEE))
     {
         *fee = vm[cli::LASER_FEE].as<Nonnegative<Amount>>().value;
         if (*fee < feeMin)
@@ -285,7 +285,7 @@ bool LaserServe(const MediatorPtr& laser,
 bool LaserTransfer(const MediatorPtr& laser,
                    const po::variables_map& vm)
 {
-    if (!vm.count(cli::LASER_CHANNEL_ID))
+    if (!vm.contains(cli::LASER_CHANNEL_ID))
     {
         BEAM_LOG_ERROR() << kLaserErrorChannelIdMissing;
         return false;
@@ -415,27 +415,27 @@ bool ProcessLaser(const MediatorPtr& laser,
                   const IWalletDB::Ptr& walletDB,
                   const po::variables_map& vm)
 {
-    if (vm.count(cli::LASER_OPEN))
+    if (vm.contains(cli::LASER_OPEN))
     {
         return LaserOpen(laser, vm);
     }
-    else if (vm.count(cli::LASER_WAIT))
+    else if (vm.contains(cli::LASER_WAIT))
     {
         return LaserWait(laser, vm);
     }
-    else if (vm.count(cli::LASER_SERVE))
+    else if (vm.contains(cli::LASER_SERVE))
     {
         return LaserServe(laser, walletDB, vm);
     }
-    else if (vm.count(cli::LASER_TRANSFER))
+    else if (vm.contains(cli::LASER_TRANSFER))
     {
         return LaserTransfer(laser, vm);
     }
-    else if (vm.count(cli::LASER_DROP))
+    else if (vm.contains(cli::LASER_DROP))
     {
         return LaserDrop(laser, vm);
     }
-    else if (vm.count(cli::LASER_CLOSE_GRACEFUL))
+    else if (vm.contains(cli::LASER_CLOSE_GRACEFUL))
     {
         return LaserClose(laser, vm);
     }

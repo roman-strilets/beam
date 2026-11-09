@@ -133,7 +133,7 @@ bool parse_cmdline(int argc, char* argv[], Options& o, Rules& r) {
             .style(po::command_line_style::default_style ^ po::command_line_style::allow_guessing)
             .run(), vm);
 
-        if (vm.count(cli::HELP))
+        if (vm.contains(cli::HELP))
         {
             cout << cliOptions << std::endl;
             return false;

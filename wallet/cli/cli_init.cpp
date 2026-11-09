@@ -27,7 +27,7 @@ namespace
 
     int InitDataBase(const po::variables_map& vm, InitKind kind)
     {
-        BOOST_ASSERT(vm.count(cli::WALLET_STORAGE) > 0);
+        BOOST_ASSERT(vm.contains(cli::WALLET_STORAGE));
         auto walletPath = vm[cli::WALLET_STORAGE].as<string>();
 
         if (WalletDB::isInitialized(walletPath))
@@ -54,7 +54,7 @@ namespace
 
         SecString pass = GetPassword(vm);
 
-        if (vm.count(cli::PASS) == 0 && !beam::confirm_wallet_pass(pass))
+        if (!vm.contains(cli::PASS) && !beam::confirm_wallet_pass(pass))
         {
             BEAM_LOG_ERROR() << kErrorWalletPwdNotMatch;
             return -1;

@@ -113,7 +113,7 @@ namespace beam::wallet
 
             inline void appendReceive(beam::Asset::ID id, const beam::AmountBig::Number& val)
             {
-                if (receive.find(id) == receive.end())
+                if (!receive.contains(id))
                 {
                     receive[id] = val;
                 }
@@ -125,7 +125,7 @@ namespace beam::wallet
 
             inline void appendSpend(beam::Asset::ID id, const beam::AmountBig::Number& val)
             {
-                if (spend.find(id) == spend.end())
+                if (!spend.contains(id))
                 {
                     spend[id] = val;
                 }

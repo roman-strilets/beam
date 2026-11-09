@@ -48,7 +48,7 @@ void error_codes_test() {
 #define XX(code, _) \
     str = format_io_error("", "", 0, EC_ ## code); \
     BEAM_LOG_VERBOSE() << str; \
-    assert(str.find(unknown_descr) == string::npos);
+    assert(!str.contains(unknown_descr));
 
     UV_ERRNO_MAP(XX)
 #undef XX

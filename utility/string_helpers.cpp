@@ -37,7 +37,7 @@ namespace string_helpers
 	{
 		std::string str = s;
 
-		if (str.find(",") == std::string::npos) return str;
+		if (!str.contains(',')) return str;
 
 		str.erase(std::remove(str.begin(), str.end(), ','), str.end());
 		return str;

@@ -44,7 +44,7 @@ struct Ok {
 using Result = expected<Ok, ErrorCode>;
 
 /// Result returning helper
-inline Result make_result(ErrorCode errorCode) { return errorCode ? make_unexpected(errorCode) : Result(); }
+inline Result make_result(ErrorCode errorCode) { return errorCode ? unexpected(errorCode) : Result(); }
 
 /// Returns short error string, e.g. "EINVAL"
 const char* error_str(ErrorCode errorCode);

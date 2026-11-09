@@ -55,7 +55,7 @@ CoarseTimer::Ptr ctimer;
 set<uint64_t> usedIds;
 
 void on_coarse_timer(uint64_t id) {
-    assert(usedIds.count(id) == 0);
+    assert(!usedIds.contains(id));
     usedIds.erase(id);
     // will cancel such ids
     assert(id % 3 != 0);

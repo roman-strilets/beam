@@ -89,7 +89,7 @@ namespace beam::wallet {
             if (it == _values.end()) return false;
 
             return std::all_of(it->second.begin(), it->second.end(), [](const char ch) -> bool {
-                return std::isalnum(ch, std::locale::classic()) || std::string(ALLOWED_SYMBOLS).find(ch) != std::string::npos;
+                return std::isalnum(ch, std::locale::classic()) || std::string(ALLOWED_SYMBOLS).contains(ch);
             });
         };
 

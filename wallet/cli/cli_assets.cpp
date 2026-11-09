@@ -22,7 +22,7 @@ namespace
 {
     std::string ReadAssetMeta(const po::variables_map& vm, bool allowOld)
     {
-        if(!vm.count(cli::ASSET_METADATA))
+        if(!vm.contains(cli::ASSET_METADATA))
         {
             throw std::runtime_error(kErrorAssetMetadataRequired);
         }
@@ -54,7 +54,7 @@ namespace
 
     std::string AssetID2Meta(const po::variables_map& vm, IWalletDB::Ptr walletDB)
     {
-        if(!vm.count(cli::ASSET_ID))
+        if(!vm.contains(cli::ASSET_ID))
         {
             throw std::runtime_error(kErrorAssetIDRequired);
         }
@@ -82,11 +82,11 @@ namespace
         CheckAssetsAllowed(vm);
 
         std::string meta;
-        if(vm.count(cli::ASSET_ID))
+        if(vm.contains(cli::ASSET_ID))
         {
             meta = AssetID2Meta(vm, walletDB);
         }
-        else if (vm.count(cli::ASSET_METADATA))
+        else if (vm.contains(cli::ASSET_METADATA))
         {
             meta = ReadAssetMeta(vm, true);
         }
@@ -142,11 +142,11 @@ namespace
         CheckAssetsAllowed(vm);
 
         std::string meta;
-        if(vm.count(cli::ASSET_ID))
+        if(vm.contains(cli::ASSET_ID))
         {
             meta = AssetID2Meta(vm, walletDB);
         }
-        else if (vm.count(cli::ASSET_METADATA))
+        else if (vm.contains(cli::ASSET_METADATA))
         {
             meta = ReadAssetMeta(vm, true);
         }
@@ -174,14 +174,14 @@ namespace
         CheckAssetsAllowed(vm);
 
         auto params = CreateTransactionParameters(TxType::AssetInfo);
-        if (vm.count(cli::ASSET_ID))
+        if (vm.contains(cli::ASSET_ID))
         {
             Asset::ID aid = vm[cli::ASSET_ID].as<Positive<uint32_t>>().value;
             params.SetParameter(TxParameterID::AssetID, aid);
             return wallet.StartTransaction(params);
         }
 
-        if (vm.count(cli::ASSET_METADATA))
+        if (vm.contains(cli::ASSET_METADATA))
         {
             const auto assetMeta = ReadAssetMeta(vm, true);
             params.SetParameter(TxParameterID::AssetMetadata, assetMeta);

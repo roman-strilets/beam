@@ -26,12 +26,12 @@ namespace beam::wallet
 
     bool WalletStatus::HasStatus(Asset::ID assetId) const
     {
-        return all.find(assetId) != all.end();
+        return all.contains(assetId);
     }
 
     WalletStatus::AssetStatus WalletStatus::GetStatus(Asset::ID assetId) const
     {
-        if(all.find(assetId) == all.end())
+        if(!all.contains(assetId))
         {
             AssetStatus result;
             return result;

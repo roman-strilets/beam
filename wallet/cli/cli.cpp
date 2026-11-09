@@ -194,20 +194,20 @@ int main(int argc, char* argv[])
             return 0;
         }
 
-        if (vm.count(cli::HELP))
+        if (vm.contains(cli::HELP))
         {
             printHelp(begin(commands), end(commands), visibleOptions);
 
             return 0;
         }
 
-        if (vm.count(cli::VERSION))
+        if (vm.contains(cli::VERSION))
         {
             cout << PROJECT_VERSION << endl;
             return 0;
         }
 
-        if (vm.count(cli::GIT_COMMIT_HASH))
+        if (vm.contains(cli::GIT_COMMIT_HASH))
         {
             cout << GIT_COMMIT_HASH << endl;
             return 0;
@@ -239,7 +239,7 @@ int main(int argc, char* argv[])
                 io::Reactor::GracefulIntHandler gih(*reactor);
                 LogRotation logRotation(*reactor, LOG_ROTATION_PERIOD_SEC, logCleanupPeriod);
 
-                if (vm.count(cli::COMMAND) == 0)
+                if (!vm.contains(cli::COMMAND))
                 {
                     BEAM_LOG_ERROR() << kErrorCommandNotSpecified;
                     return 0;

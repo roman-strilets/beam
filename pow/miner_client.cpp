@@ -296,7 +296,7 @@ bool parse_cmdline(int argc, char* argv[], Options& o) {
                   .style(po::command_line_style::default_style ^ po::command_line_style::allow_guessing)
                   .run(), vm);
 
-        if (vm.count("help")) {
+        if (vm.contains("help")) {
             std::cout << cliOptions << std::endl;
             return false;
         }

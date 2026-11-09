@@ -287,7 +287,7 @@ Result SSLIO::flush() {
         while (bytesRemaining > 0) {
             int n = (bytesRemaining < _fragmentSize) ? (int)bytesRemaining : (int)_fragmentSize;
             n = SSL_write(_ssl, ptr, n);
-            if (n <= 0) return make_unexpected(EC_SSL_ERROR);
+            if (n <= 0) return unexpected(EC_SSL_ERROR);
             bytesRemaining -= n;
             ptr += n;
             res = send_pending_data(bytesRemaining == 0);
@@ -305,7 +305,7 @@ void SSLIO::shutdown() {
 
 Result SSLIO::send_pending_data(bool flush) {
     int bytes = BIO_pending(_wbio);
-    if (bytes < 0) return make_unexpected(EC_SSL_ERROR);
+    if (bytes < 0) return unexpected(EC_SSL_ERROR);
     if (bytes > 0) {
         //BEAM_LOG_DEBUG() << __FUNCTION__ << TRACE(this) << TRACE(bytes);
         auto p = alloc_heap((size_t) bytes);
@@ -339,7 +339,7 @@ Result SSLIO::on_encrypted_data_from_stream(const void *data, size_t size) {
 
     while (bytesRemaining > 0) {
         r = BIO_write(_rbio, ptr, bytesRemaining);
-        if (r <= 0) return make_unexpected(EC_SSL_ERROR);
+        if (r <= 0) return unexpected(EC_SSL_ERROR);
 
         bytesRemaining -= r;
         ptr += r;
@@ -360,7 +360,7 @@ Result SSLIO::on_encrypted_data_from_stream(const void *data, size_t size) {
             if (r > 0) {
                 if (!_onDecryptedData(buf, (size_t) r)) {
                     // at this time, the object may be deleted
-                    return make_unexpected(EC_ENOTCONN);
+                    return unexpected(EC_ENOTCONN);
                 }
             }
         } while (r > 0);
@@ -372,7 +372,7 @@ Result SSLIO::on_encrypted_data_from_stream(const void *data, size_t size) {
         } else if (r == SSL_ERROR_ZERO_RETURN) {
             break; // EOF will be sent on TCP stream
         } else if (r == SSL_ERROR_SYSCALL || r == SSL_ERROR_SSL) {
-            return make_unexpected(EC_SSL_ERROR);
+            return unexpected(EC_SSL_ERROR);
         }
     }
     return Ok();

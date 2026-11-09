@@ -980,7 +980,7 @@ int main_Guarded(int argc, char* argv[])
 
         std::vector<std::string> vPeers = getCfgPeers(vm);
 
-        if (vm.count(cli::PORT))
+        if (vm.contains(cli::PORT))
         {
             uint16_t nPort = vm[cli::PORT].as<uint16_t>();
             if (nPort)

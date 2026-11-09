@@ -655,7 +655,7 @@ namespace beam::wallet
             return AssetCheckResult::Fail;
         }
 
-        if (m_assetCheckState.find(assetId) == m_assetCheckState.end())
+        if (!m_assetCheckState.contains(assetId))
         {
             m_assetCheckState[assetId] = AssetCheckState::ACInitial;
         }

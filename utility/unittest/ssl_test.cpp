@@ -56,7 +56,7 @@ namespace {
         auto on_encrypted_server = [&client, &nErrors](const io::SharedBuffer& data, bool flush) -> Result {
             if (!client) {
                 ++nErrors;
-                return make_unexpected(EC_EINVAL);
+                return unexpected(EC_EINVAL);
             }
             client->on_encrypted_data_from_stream(data.data, data.size);
             return Ok();
@@ -65,7 +65,7 @@ namespace {
         auto on_encrypted_client = [&server, &nErrors](const io::SharedBuffer& data, bool flush) -> Result {
             if (!server) {
                 ++nErrors;
-                return make_unexpected(EC_EINVAL);
+                return unexpected(EC_EINVAL);
             }
             server->on_encrypted_data_from_stream(data.data, data.size);
             return Ok();

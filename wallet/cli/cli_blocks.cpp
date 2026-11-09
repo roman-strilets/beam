@@ -32,7 +32,7 @@ namespace wallet_cli
             return -1;
         }
 
-        if (vm.count(cli::BLOCK_HEIGHT) != 1)
+        if (vm.contains(cli::BLOCK_HEIGHT) != 1)
         {
             BEAM_LOG_ERROR() << "block_height should be specified";
             return -1;

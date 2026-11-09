@@ -15,6 +15,7 @@
 #pragma once
 #include "errorhandling.h"
 #include "buffer.h"
+#include <functional>
 #include <memory>
 #include <openssl/err.h>
 #include <openssl/dh.h>

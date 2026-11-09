@@ -930,7 +930,7 @@ void Server::IPAccessControl::refresh() {
 bool Server::IPAccessControl::check(io::Address peerAddress) {
     static const uint32_t localhostIP = io::Address::localhost().ip();
     if (!_enabled || peerAddress.ip() == localhostIP) return true;
-    return _ips.count(peerAddress.ip()) > 0;
+    return _ips.contains(peerAddress.ip());
 }
 
 }} //namespaces

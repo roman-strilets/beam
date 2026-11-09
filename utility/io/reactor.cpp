@@ -56,7 +56,7 @@ public:
     }
 
     bool is_tag_free(uint64_t tag) {
-        return _connectRequests.count(tag) == 0;
+        return !_connectRequests.contains(tag);
     }
 
     Result tcp_connect(uv_tcp_t* handle, Address address, uint64_t tag, const Callback& callback, int timeoutMsec, const TlsConfig& tlsCfg) {
@@ -71,7 +71,7 @@ public:
                         BIND_THIS_MEMFN(connect_timeout_callback)
                     );
                 } catch (const Exception& e) {
-                    return make_unexpected(e.errorCode);
+                    return unexpected(e.errorCode);
                 }
             }
             auto result = _connectTimer->set_timer(timeoutMsec, tag);
@@ -114,7 +114,7 @@ public:
             _connectRequestsPool.release(cr);
             if (_connectTimer) _connectTimer->cancel(tag);
             _connectRequests.erase(tag);
-            return make_unexpected(errorCode);
+            return unexpected(errorCode);
         }
 
         return Ok();
@@ -158,7 +158,7 @@ private:
     }
 
     void connect_callback(uint64_t tag, uv_handle_t* h, const ConnectRequest* cr, ErrorCode errorCode) {
-        if (_connectRequests.count(tag) == 0) {
+        if (!_connectRequests.contains(tag)) {
             _reactor.async_close(h);
             return;
         }
@@ -627,14 +627,14 @@ Result Reactor::tcp_connect(
     assert(_tcpConnectors->is_tag_free(tag));
 
     if (!callback || address.empty() || !_tcpConnectors->is_tag_free(tag)) {
-        return make_unexpected(EC_EINVAL);
+        return unexpected(EC_EINVAL);
     }
 
     uv_handle_t* h = _handlePool.alloc();
     ErrorCode errorCode = (ErrorCode)uv_tcp_init(&_loop, (uv_tcp_t*)h);
     if (errorCode != 0) {
         _handlePool.release(h);
-        return make_unexpected(errorCode);
+        return unexpected(errorCode);
     }
 
     if (!bindTo.empty()) {
@@ -644,7 +644,7 @@ Result Reactor::tcp_connect(
         errorCode = (ErrorCode)uv_tcp_bind((uv_tcp_t*)h, (const sockaddr*)&bindAddr, 0);
         if (errorCode != 0) {
             async_close(h);
-            return make_unexpected(errorCode);
+            return unexpected(errorCode);
         }
     }
 
@@ -677,14 +677,14 @@ Result Reactor::tcp_connect_with_proxy(
     assert(_tcpConnectors->is_tag_free(tag));
 
     if (!callback || destAddr.empty() || !_tcpConnectors->is_tag_free(tag)) {
-        return make_unexpected(EC_EINVAL);
+        return unexpected(EC_EINVAL);
     }
 
     uv_handle_t* h = _handlePool.alloc();
     ErrorCode errorCode = (ErrorCode)uv_tcp_init(&_loop, (uv_tcp_t*)h);
     if (errorCode != 0) {
         _handlePool.release(h);
-        return make_unexpected(errorCode);
+        return unexpected(errorCode);
     }
 
     ConnectCallback on_tcp_connect = _proxyConnector->

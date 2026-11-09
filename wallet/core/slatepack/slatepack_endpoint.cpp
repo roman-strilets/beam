@@ -142,7 +142,7 @@ namespace beam::wallet
 
         for (const auto& tx : m_WalletDB->getTxHistory(TxType::Simple))
         {
-            if (!tx.canResume() || m_ListenedTxs.count(tx.m_txId))
+            if (!tx.canResume() || m_ListenedTxs.contains(tx.m_txId))
                 continue;
 
             bool isManual = false;

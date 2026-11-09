@@ -42,7 +42,7 @@ public:
         Result operator()() {
             auto e = _event.lock();
             if (e) return e->post();
-            return make_unexpected(EC_EINVAL);
+            return unexpected(EC_EINVAL);
         }
 
     private:

@@ -2357,7 +2357,7 @@ namespace beam
 					ECC::Scalar::Native sk;
 					m_Wallet.ToCommtiment(utxo, msgOut2.m_Utxo, sk);
 
-					if (m_UtxosBeingSpent.find(msgOut2.m_Utxo) == m_UtxosBeingSpent.end())
+					if (!m_UtxosBeingSpent.contains(msgOut2.m_Utxo))
 					{
 						Send(msgOut2);
 						m_queProofsExpected.push_back(msgOut2.m_Utxo);
