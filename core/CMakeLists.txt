@@ -36,6 +36,9 @@ set(CORE_SRC
     net/proto.cpp
     net/peer_manager.cpp
     net/fly_client.cpp
+    net/fly_client_sync.cpp
+    net/fly_client_requests.cpp
+    net/fly_client_bbs.cpp
     consensus/treasury.cpp
     consensus/shielded.cpp
 # ~etc
