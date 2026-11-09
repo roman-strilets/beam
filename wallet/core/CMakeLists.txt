@@ -18,6 +18,10 @@ target_sources(wallet_core
         wallet_widgets.cpp
         base_transaction.cpp
         base_tx_builder.cpp
+        base_tx_builder_balance.cpp
+        base_tx_builder_inouts.cpp
+        base_tx_builder_mutual.cpp
+        base_tx_builder_simple.cpp
         simple_transaction.cpp
         contract_transaction.cpp
         strings_resources.cpp
