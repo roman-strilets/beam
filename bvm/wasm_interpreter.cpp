@@ -15,6 +15,7 @@
 #define _CRT_SECURE_NO_WARNINGS // sprintf
 #include "wasm_interpreter.h"
 #include "../core/base/uintBig.h"
+#include <bit>
 #include <sstream>
 
 namespace beam {
@@ -1725,8 +1726,8 @@ namespace Wasm {
 		BINOP(shl) { return a << FixShiftCount(b); }
 		BINOP(shr_s) { return Type::SignedFrom(a) >> FixShiftCount(b); }
 		BINOP(shr_u) { return a >> FixShiftCount(b); }
-		BINOP(rotl) { b = FixShiftCount(b); if (!b) return a; return (a << b) | (a >> ((sizeof(a) * 8) - b)); }
-		BINOP(rotr) { b = FixShiftCount(b); if (!b) return a; return (a >> b) | (a << ((sizeof(a) * 8) - b)); }
+		BINOP(rotl) { return std::rotl(a, static_cast<int>(FixShiftCount(b))); }
+		BINOP(rotr) { return std::rotr(a, static_cast<int>(FixShiftCount(b))); }
 
 
 		Word ReadAddr()
