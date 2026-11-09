@@ -33,6 +33,8 @@
 
 #include "pow/external_pow.h"
 
+#include <charconv>
+
 namespace Shaders {
 #	define HOST_BUILD
 #	include "../bvm/Shaders/common.h"
@@ -5012,8 +5014,8 @@ IExternalPOW::BlockFoundResult Node::Miner::OnMinedExternal()
 	assert(get_ParentObj().m_Cfg.m_pExternalPOW);
 	get_ParentObj().m_Cfg.m_pExternalPOW->get_last_found_block(jobID_, h, POW);
 
-	char* szEnd = nullptr;
-	uint64_t jobID = strtoul(jobID_.c_str(), &szEnd, 10);
+	uint64_t jobID = 0;
+	std::from_chars(jobID_.data(), jobID_.data() + jobID_.size(), jobID); // on failure jobID remains 0
 
 	std::scoped_lock<std::mutex> scope(m_Mutex);
 

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "address.h"
+#include <charconv>
 #include <iostream>
 #include <stdlib.h>
 #ifdef WIN32
@@ -61,8 +62,9 @@ bool Address::resolve(const char* str) {
     uint32_t a = 0;
     const char* colon = (const char*)strchr(str, ':');
     if (colon != 0) {
-        p = (uint16_t)strtoul(colon+1, 0, 10);
-        if (p <= 0) return false;
+        const char* szPort = colon + 1;
+        std::from_chars(szPort, szPort + strlen(szPort), p); // on failure or overflow p remains 0
+        if (!p) return false;
         a = resolve_host(std::string(str, colon));
     } else {
         a = resolve_host(str);

@@ -17,6 +17,7 @@
 #include <map>
 #include <vector>
 #include <algorithm>
+#include <charconv>
 #include <string.h>
 #include <assert.h>
 
@@ -98,9 +99,10 @@ int64_t HttpUrl::get_int_arg(const std::string_view& name, int64_t defValue) con
     if (it == args.end()) return defValue;
     const auto& val = it->second;
     if (val.empty()) return defValue;
-    char* e = 0;
-    int64_t ret = strtol(val.data(), &e, 10);
-    if (size_t(e - val.data()) != val.size()) return defValue;
+    int64_t ret = 0;
+    const char* end = val.data() + val.size();
+    auto [ptr, ec] = std::from_chars(val.data(), end, ret);
+    if (ec != std::errc() || ptr != end) return defValue;
     return ret;
 }
 
