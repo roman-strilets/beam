@@ -34,6 +34,12 @@ void NodeDB::Open(const char* szPath)
 	ExecTextOut("PRAGMA locking_mode = EXCLUSIVE");
 	ExecTextOut("PRAGMA journal_size_limit=1048576"); // limit journal file, otherwise it may remain huge even after tx commit, until the app is closed
 	ExecTextOut("PRAGMA cache_size=-524288"); // 512 MiB page cache (negative value is in KiB). The default ~2 MiB makes block import spend most of its time in pread
+	// WAL avoids writing the rollback journal during the transaction and fsync on every commit.
+	// With synchronous=NORMAL a power loss may drop the last transactions, but the DB stays consistent
+	// (the UTXO image is rebuilt if its stamp no longer matches).
+	ExecTextOut("PRAGMA journal_mode=WAL");
+	ExecTextOut("PRAGMA synchronous=NORMAL");
+	ExecTextOut("PRAGMA wal_autocheckpoint=16384"); // checkpoint every 64 MiB of WAL, so hot pages are written back less often
 
 	bool bCreate;
 	{
