@@ -24,6 +24,7 @@ void NodeDB::Open(const char* szPath)
 
 	ExecTextOut("PRAGMA locking_mode = EXCLUSIVE");
 	ExecTextOut("PRAGMA journal_size_limit=1048576"); // limit journal file, otherwise it may remain huge even after tx commit, until the app is closed
+	ExecTextOut("PRAGMA cache_size=-524288"); // 512 MiB page cache (negative value is in KiB). The default ~2 MiB makes block import spend most of its time in pread
 
 	bool bCreate;
 	{
