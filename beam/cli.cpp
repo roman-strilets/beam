@@ -366,6 +366,9 @@ int main(int argc, char* argv[])
 				}
 
 				{
+					// The node DB is not encrypted and holds public chain data only
+					NodeDB::DisableMemorySecurity();
+
 					beam::Node node;
 
 					std::unique_ptr<WebSocketProxy> webSocketProxy;

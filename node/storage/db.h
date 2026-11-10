@@ -255,6 +255,11 @@ public:
 
 	void Close();
 	void Open(const char* szPath);
+
+	// Turns off SQLCipher memory security (mlock/munlock and wiping of every SQLite allocation).
+	// The setting is process-wide and also affects encrypted wallet DBs, so call it only in
+	// processes that hold no secrets in SQLite, such as the standalone node.
+	static void DisableMemorySecurity();
 	bool IsOpen() const
 	{
 		return nullptr != m_pDb;

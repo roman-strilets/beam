@@ -16,6 +16,15 @@
 
 namespace beam {
 
+void NodeDB::DisableMemorySecurity()
+{
+	// The pragma sets a global flag, so a temporary in-memory connection is enough
+	sqlite3* pDb = nullptr;
+	if (SQLITE_OK == sqlite3_open_v2(":memory:", &pDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX, nullptr))
+		sqlite3_exec(pDb, "PRAGMA cipher_memory_security = OFF", nullptr, nullptr, nullptr);
+	sqlite3_close(pDb);
+}
+
 void NodeDB::Open(const char* szPath)
 {
 	TestRet(sqlite3_open_v2(szPath, &m_pDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_CREATE, NULL));
