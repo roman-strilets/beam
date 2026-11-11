@@ -633,6 +633,18 @@ void NodeProcessor::TryGoTo(NodeDB::StateID& sidTrg)
 	if (bKeepBlocks)
 		return;
 
+	if (mbc.m_bMultiPeer)
+	{
+		// The failed range has blocks of several peers. It's deleted as a whole: the blocks of other peers in it may be unverified.
+		// The context-dependent failure is in the last block, its peer is the culprit. Otherwise the culprit is unknown, it will be found
+		// once the blocks are received again: from now on the verification is completed on each peer change.
+		BEAM_LOG_WARNING() << "Blocks of several peers failed, verifying by peer from now on";
+		m_bPeerBarrier = true;
+
+		if (!bContextFail || !m_DB.get_Peer(sidFwd.m_Row, mbc.m_pidLast))
+			mbc.m_pidLast = Zero;
+	}
+
 	if (!(mbc.m_pidLast == Zero))
 	{
 		OnPeerInsane(mbc.m_pidLast);

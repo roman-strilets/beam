@@ -162,6 +162,7 @@ struct NodeProcessor::MultiblockContext
 	TxoID m_id0;
 	Block::NumberRange m_InProgress;
 	PeerID  m_pidLast;
+	bool m_bMultiPeer = false; // m_InProgress has blocks of several peers. If it fails - m_pidLast is not necessarily the culprit
 
 	MultiblockContext(NodeProcessor& np)
 		:m_This(np)
@@ -374,6 +375,7 @@ struct NodeProcessor::MultiblockContext
 		}
 
 		m_InProgress.m_Min.v = m_InProgress.m_Max.v + 1;
+		m_bMultiPeer = false;
 
 		m_Msc.MoveToGlobalCache(m_This.m_ValCache);
 	}
@@ -383,15 +385,25 @@ struct NodeProcessor::MultiblockContext
 		if (m_bFail)
 			return;
 
-		bool bMustFlush =
-			!m_InProgress.IsEmpty() &&
-			(
-				(m_pidLast != pid) || // PeerID changed
-				(m_InProgress.m_Max.v == m_This.m_SyncData.m_TxoLo.v) // range complete up to TxLo
-				);
+		if (!m_InProgress.IsEmpty())
+		{
+			bool bPidChanged = (m_pidLast != pid);
 
-		if (bMustFlush && !Flush())
-			return;
+			bool bMustFlush =
+				(m_InProgress.m_Max.v == m_This.m_SyncData.m_TxoLo.v) || // range complete up to TxLo
+				(bPidChanged && m_This.m_bPeerBarrier); // a range of several peers failed before, find the culprit
+
+			if (bMustFlush)
+			{
+				if (!Flush())
+					return;
+			}
+			else
+			{
+				if (bPidChanged)
+					m_bMultiPeer = true;
+			}
+		}
 
 		m_pidLast = pid;
 	}
@@ -526,6 +538,7 @@ struct NodeProcessor::MultiblockContext
 		m_This.SaveSyncData();
 
 		m_pidLast = Zero; // don't blame the last peer for the failure!
+		m_bMultiPeer = false; // the range is already rolled back and deleted
 	}
 
 	void OnFastSyncFailedOnLo()

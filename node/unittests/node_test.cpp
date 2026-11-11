@@ -1949,6 +1949,141 @@ namespace beam
 		verify_test(np.m_Cursor.m_Full.m_Number.v == blockChain.size());
 	}
 
+	void TestNodeProcessorPeerBarrier(std::vector<BlockPlus::Ptr>& blockChain, bool bCorruptOffset)
+	{
+		// The blocks of several peers are verified together. If they fail - the whole range is deleted, and from then on
+		// the verification is completed on each peer change, so that only the culprit is blamed, and only its blocks are deleted.
+		struct MyProcessor
+			:public NodeProcessor
+		{
+			std::vector<PeerID> m_vInsane;
+
+			void OnPeerInsane(const PeerID& pid) override
+			{
+				m_vInsane.push_back(pid);
+			}
+		};
+
+		MyProcessor np;
+		np.m_Horizon.m_Branching = 35;
+		np.Initialize(g_sz);
+		np.OnTreasury(g_Treasury);
+
+		PeerID pPid[3];
+		for (uint32_t i = 0; i < _countof(pPid); i++)
+		{
+			pPid[i] = Zero;
+			pPid[i].m_pData[0] = static_cast<uint8_t>(i + 1);
+		}
+
+		// blocks 1-10 from the 1st peer, 11-20 from the 2nd, 21-30 from the 3rd. Block 15 is invalid
+		const uint64_t nBad = 15;
+		verify_test(blockChain.size() >= 30);
+
+		ByteBuffer bbBad = blockChain[nBad - 1]->m_Body.m_Perishable;
+		{
+			Block::Body block;
+			Deserializer der;
+			der.reset(bbBad);
+			der & Cast::Down<Block::BodyBase>(block);
+			der & Cast::Down<TxVectors::Perishable>(block);
+
+			if (bCorruptOffset)
+			{
+				// fails the balance check, in the verification threads
+				ECC::Scalar::Native k = block.m_Offset;
+				k += ECC::Scalar::Native(1U);
+				block.m_Offset = k;
+			}
+			else
+			{
+				// fails when it's applied
+				verify_test(!block.m_vOutputs.empty());
+				block.m_vOutputs.pop_back();
+			}
+
+			Serializer ser;
+			ser & Cast::Down<Block::BodyBase>(block);
+			ser & Cast::Down<TxVectors::Perishable>(block);
+			ser.swap_buf(bbBad);
+		}
+
+		auto GetRow = [&](uint64_t num)
+		{
+			Block::SystemState::ID id;
+			blockChain[num - 1]->m_Hdr.get_ID(id);
+
+			uint64_t row = np.get_DB().StateFindSafe(id);
+			verify_test(row);
+			return row;
+		};
+
+		auto HasBody = [&](uint64_t num)
+		{
+			return !!(NodeDB::StateFlags::Functional & np.get_DB().GetStateFlags(GetRow(num)));
+		};
+
+		// feeds the blocks that are missing
+		auto Feed = [&](bool bGood)
+		{
+			for (uint64_t num = 1; num <= 30; num++)
+			{
+				const BlockPlus& bp = *blockChain[num - 1];
+				const PeerID& pid = pPid[(num - 1) / 10];
+
+				Block::SystemState::ID id;
+				bp.m_Hdr.get_ID(id);
+
+				NodeProcessor::DataStatus::Enum eStatus = np.OnState(bp.m_Hdr, pid);
+				verify_test((NodeProcessor::DataStatus::Accepted == eStatus) || (NodeProcessor::DataStatus::Rejected == eStatus));
+
+				if (HasBody(num))
+					continue;
+
+				const ByteBuffer& bbP = ((nBad == num) && !bGood) ? bbBad : bp.m_Body.m_Perishable;
+				verify_test(np.OnBlock(id, bbP, bp.m_Body.m_Eternal, pid) == NodeProcessor::DataStatus::Accepted);
+			}
+		};
+
+		// The range of several peers fails. If the failure is context-dependent - the peer of the failed block is blamed.
+		// All the blocks of the range are deleted, and the consequent blocks of the blamed peer.
+		Feed(false);
+		np.TryGoUp();
+
+		verify_test(np.m_Cursor.m_Full.m_Number.v == 0);
+		verify_test(!HasBody(nBad));
+		verify_test(np.m_vInsane.size() == (bCorruptOffset ? 0 : 1));
+		if (!bCorruptOffset)
+		{
+			verify_test(np.m_vInsane[0] == pPid[1]);
+			for (uint64_t num = 1; num <= 30; num++)
+				verify_test(HasBody(num) == (num > 20));
+		}
+
+		// Received again, with the same invalid block. Now the culprit is found
+		np.m_vInsane.clear();
+		Feed(false);
+		np.TryGoUp();
+
+		verify_test(np.m_Cursor.m_Full.m_Number.v == 10);
+		verify_test(np.m_vInsane.size() == 1);
+		verify_test(!np.m_vInsane.empty() && (np.m_vInsane[0] == pPid[1]));
+		for (uint64_t num = 11; num <= 30; num++)
+		{
+			// If the failure is found by the barrier at block 21 - this block is deleted too (it's being applied)
+			if (21 != num)
+				verify_test(HasBody(num) == (num > 20));
+		}
+
+		// The valid blocks are received
+		np.m_vInsane.clear();
+		Feed(true);
+		np.TryGoUp();
+
+		verify_test(np.m_Cursor.m_Full.m_Number.v == 30);
+		verify_test(np.m_vInsane.empty());
+	}
+
 	const uint16_t g_Port = 25003; // don't use the default port to prevent collisions with running nodes, beacons and etc.
 
 	void TestNodeConversation()
@@ -3833,6 +3968,15 @@ void TestAll()
 			beam::TestNodeProcessorBodyWindows(blockChain);
 			beam::DeleteFile(beam::g_sz);
 			beam::DeleteFile(beam::g_sz2);
+
+			printf("NodeProcessor peer barrier test...\n");
+			fflush(stdout);
+
+			for (uint32_t i = 0; i < 2; i++)
+			{
+				beam::TestNodeProcessorPeerBarrier(blockChain, !!i);
+				beam::DeleteFile(beam::g_sz);
+			}
 		}
 
 		printf("NodeX2 concurrent test...\n");

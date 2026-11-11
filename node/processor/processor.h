@@ -578,6 +578,11 @@ public:
 	void TryGoTo(NodeDB::StateID&);
 	void OnFastSyncOver(MultiblockContext&, bool& bContextFail);
 
+	// Blocks of several peers are verified together, so that the verification doesn't stall each time the peer changes.
+	// If such a range fails the culprit may be unknown: the whole range is deleted, and from then on the verification
+	// is completed on each peer change, so that the culprit is found when the blocks are received again.
+	bool m_bPeerBarrier = false;
+
 	// Lowest Number to which it's possible to rollback.
 	Block::Number get_LowestReturnNumber();
 	Block::Number get_LowestManualReturnNumber();
