@@ -231,6 +231,7 @@ class NodeProcessor
 	} m_CongestionCache;
 
 	CongestionCache::TipCongestion* EnumCongestionsInternal();
+	void RequestBodyWindows(CongestionCache::TipCongestion&, Block::Number numLow);
 
 	struct RecentStates
 	{
@@ -312,6 +313,15 @@ public:
 		Horizon(); // by default all horizons are disabled, i.e. full archieve.
 
 	} m_Horizon;
+
+	// Fast sync: the missing blocks up to the target are requested in windows, so that they can be downloaded in parallel.
+	// Each window ends at a multiple of m_Size. The lowest one starts at the first missing block, up to m_Ahead windows above it
+	// are requested too. m_Size == 0: disabled, a single request from the first missing block.
+	struct BodyWindows
+	{
+		uint32_t m_Size = 0;
+		uint32_t m_Ahead = 0;
+	} m_BodyWindows;
 
 #pragma pack (push, 1)
 	struct StateExtra

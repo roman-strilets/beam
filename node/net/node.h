@@ -73,7 +73,16 @@ struct Node
 			uint32_t m_PeersDbFlush_ms = 1000 * 60; // 1 minute
 		} m_Timeout;
 
-		uint32_t m_MaxConcurrentBlocksRequest = 18;
+		// Body packs in flight: overall, and per peer (0 - no per-peer limit)
+		uint32_t m_MaxConcurrentBodyPacks = 8;
+		uint32_t m_MaxBodyPacksPerPeer = 2;
+		// Fast sync: the missing blocks up to the target are requested in windows of this many blocks, so that they can be downloaded
+		// from several peers in parallel. Each window ends at a multiple of its size, and the lowest one starts at the first missing block.
+		// Up to m_BodyWindowsAhead windows above it are requested, this limits the blocks received but not yet applied.
+		// 0 - disabled, the blocks are requested by a single pack at a time, from the first missing one.
+		// By default the window is the max pack size of the serving node (see m_BandwidthCtl.m_MaxBodyPackCount)
+		uint32_t m_BodyWindow = 3000;
+		uint32_t m_BodyWindowsAhead = 16;
 
 		// Header packs in flight: overall, and per peer (0 - no per-peer limit)
 		uint32_t m_MaxConcurrentHdrPacks = 8;

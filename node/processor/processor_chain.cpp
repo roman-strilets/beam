@@ -299,6 +299,12 @@ void NodeProcessor::EnumCongestions()
 			sid.m_Number.v = x.m_Number.v - (x.m_Rows.size() - 1);
 			sid.m_Row = x.m_Rows.at(x.m_Rows.size() - 1);
 
+			if (IsFastSync() && m_BodyWindows.m_Size && (sid.m_Number.v <= m_SyncData.m_Target.m_Number.v))
+			{
+				RequestBodyWindows(x, sid.m_Number);
+				continue;
+			}
+
 			m_DB.get_StateHash(sid.m_Row, id.m_Hash);
 			id.m_Number = sid.m_Number;
 
@@ -316,6 +322,73 @@ void NodeProcessor::EnumCongestions()
 
 			RequestDataInternal(id, rowid, false, sidTrg);
 		}
+	}
+}
+
+void NodeProcessor::RequestBodyWindows(CongestionCache::TipCongestion& x, Block::Number numLow)
+{
+	// numLow is the first missing block of the branch, its parent is reachable. The branch contains the target.
+	const uint64_t nSize = m_BodyWindows.m_Size;
+	const uint64_t numTrg = m_SyncData.m_Target.m_Number.v;
+	assert(nSize && (numLow.v <= numTrg) && (x.m_Number.v >= numTrg));
+	assert(x.m_Number.v - numLow.v + 1 == x.m_Rows.size());
+
+	auto RowAt = [&x](uint64_t num) {
+		return x.m_Rows.at(x.m_Number.v - num);
+	};
+
+	auto IsReceived = [this, &RowAt](uint64_t num) {
+		return !!(NodeDB::StateFlags::Functional & m_DB.GetStateFlags(RowAt(num)));
+	};
+
+	uint64_t num0 = numLow.v;
+	for (uint32_t i = 0; ; i++)
+	{
+		uint64_t num1 = ((num0 - 1) / nSize + 1) * nSize; // the window end
+		beam::setmin(num1, numTrg);
+
+		bool bRequest = true;
+		if (i)
+		{
+			// Each window is requested from its first missing block, so the received blocks of a window are its prefix
+			if (IsReceived(num1))
+				bRequest = false; // received, but not reachable yet
+			else
+			{
+				if (IsReceived(num0))
+				{
+					// the first missing one is in (num0, num1]
+					uint64_t a = num0, b = num1;
+					while (b - a > 1)
+					{
+						uint64_t c = a + (b - a) / 2;
+						if (IsReceived(c))
+							a = c;
+						else
+							b = c;
+					}
+					num0 = b;
+				}
+			}
+		}
+
+		if (bRequest)
+		{
+			Block::SystemState::ID id;
+			id.m_Number.v = num0;
+			m_DB.get_StateHash(RowAt(num0), id.m_Hash);
+
+			NodeDB::StateID sidTrg;
+			sidTrg.m_Number.v = num1;
+			sidTrg.m_Row = RowAt(num1);
+
+			RequestDataInternal(id, RowAt(num0), true, sidTrg);
+		}
+
+		if ((num1 >= numTrg) || (i >= m_BodyWindows.m_Ahead))
+			break;
+
+		num0 = num1 + 1;
 	}
 }
 

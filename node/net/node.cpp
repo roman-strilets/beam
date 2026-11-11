@@ -315,6 +315,10 @@ void Node::UpdateSyncStatusRaw()
 	const Task* pSkeletonBranch = nullptr;
 	bool bHdrsInProgress = false;
 
+	// The lowest requested block. In fast sync the blocks are requested in windows (see NodeProcessor::BodyWindows), all the blocks
+	// below the lowest one are received, the higher windows can still have gaps below them.
+	uint64_t numBlocksLow = 0;
+
 	for (TaskSet::iterator it = m_setTasks.begin(); m_setTasks.end() != it; ++it)
 	{
 		const Task& t = *it;
@@ -334,10 +338,14 @@ void Node::UpdateSyncStatusRaw()
 		if (bBlock)
 		{
 			assert(t.m_Key.first.m_Number.v);
-			// all the blocks up to this had been dloaded
 			beam::setmax(hTotal, t.m_sidTrg.m_Number.v);
 			beam::setmax(hDoneHdrs, t.m_sidTrg.m_Number.v);
-			beam::setmax(hDoneBlocks, t.m_Key.first.m_Number.v - 1);
+
+			if (m_Processor.IsFastSync() && (t.m_Key.first.m_Number.v <= m_Processor.m_SyncData.m_Target.m_Number.v))
+				beam::setmax(hDoneHdrs, m_Processor.m_SyncData.m_Target.m_Number.v); // a window may end below the target, but the headers up to it are known
+
+			if (!numBlocksLow || (numBlocksLow > t.m_Key.first.m_Number.v))
+				numBlocksLow = t.m_Key.first.m_Number.v;
 		}
 		else
 		{
@@ -357,6 +365,9 @@ void Node::UpdateSyncStatusRaw()
 	// Otherwise it may be a fake tip that nobody can serve.
 	if (pSkeletonBranch && bHdrsInProgress)
 		AccountHdrs(*pSkeletonBranch);
+
+	if (numBlocksLow)
+		beam::setmax(hDoneBlocks, numBlocksLow - 1); // all the blocks below had been dloaded
 
 	// account for treasury
 	hTotal++;
@@ -595,42 +606,54 @@ bool Node::TryAssignTask(Task& t, Peer& p)
 	// assign
 	if (t.m_Key.second)
 	{
-		if (m_nTasksPackBody >= m_Cfg.m_MaxConcurrentBlocksRequest)
+		if (m_nTasksPackBody >= m_Cfg.m_MaxConcurrentBodyPacks)
 		{
-			BEAM_LOG_VERBOSE() << "too many blocks requested";
-			return false; // too many blocks requested
+			BEAM_LOG_VERBOSE() << "too many body packs requested";
+			return false;
 		}
 
-		uint64_t hCountExtra = t.m_sidTrg.m_Number.v - t.m_Key.first.m_Number.v;
+		if (m_Cfg.m_MaxBodyPacksPerPeer && (nBlocks >= m_Cfg.m_MaxBodyPacksPerPeer))
+		{
+			BEAM_LOG_VERBOSE() << "too many body packs requested from peer";
+			return false;
+		}
+
+		const NodeProcessor::SyncData& sd = m_Processor.m_SyncData; // alias
+		bool bDiluted = (t.m_Key.first.m_Number.v <= sd.m_Target.m_Number.v);
+
+		// The top of the requested range. The peer anchors it in its active chain, and sends the blocks from the bottom up, but not above it.
+		// Diluted blocks are requested up to the target, or up to the end of the window (see NodeProcessor::BodyWindows)
+		NodeDB::StateID sidTop = t.m_sidTrg;
+		if (bDiluted && (sidTop.m_Number.v > sd.m_Target.m_Number.v))
+			sidTop = sd.m_Target;
+
+		if (p.m_Tip.m_Full.m_Number.v < sidTop.m_Number.v)
+		{
+			BEAM_LOG_VERBOSE() << "behind the requested range";
+			return false; // it's not in the peer's active chain
+		}
 
 		proto::GetBodyPack msg;
+		msg.m_Top.m_Number = sidTop.m_Number;
+		msg.m_CountExtra.v = sidTop.m_Number.v - t.m_Key.first.m_Number.v;
 
-		if (t.m_Key.first.m_Number.v <= m_Processor.m_SyncData.m_Target.m_Number.v)
+		if (!bDiluted || m_Processor.IsFastSync())
+			m_Processor.get_DB().get_StateHash(sidTop.m_Row, msg.m_Top.m_Hash);
+		else
+			msg.m_Top.m_Hash = Zero; // treasury
+
+		if (bDiluted)
 		{
 			// fast-sync mode, diluted blocks request.
-			msg.m_Top.m_Number = m_Processor.m_SyncData.m_Target.m_Number;
-			if (m_Processor.IsFastSync())
-				m_Processor.get_DB().get_StateHash(m_Processor.m_SyncData.m_Target.m_Row, msg.m_Top.m_Hash);
-			else
-				msg.m_Top.m_Hash = Zero; // treasury
-
-			msg.m_CountExtra.v = m_Processor.m_SyncData.m_Target.m_Number.v - t.m_Key.first.m_Number.v;
-			msg.m_Block0 = m_Processor.m_SyncData.m_n0;
-			msg.m_HorizonLo1 = m_Processor.m_SyncData.m_TxoLo;
-			msg.m_HorizonHi1 = m_Processor.m_SyncData.m_Target.m_Number;
-		}
-		else
-		{
-			// std blocks request
-			msg.m_Top.m_Number = t.m_sidTrg.m_Number;
-			m_Processor.get_DB().get_StateHash(t.m_sidTrg.m_Row, msg.m_Top.m_Hash);
-			msg.m_CountExtra.v = hCountExtra;
+			msg.m_Block0 = sd.m_n0;
+			msg.m_HorizonLo1 = sd.m_TxoLo;
+			msg.m_HorizonHi1 = sd.m_Target.m_Number;
 		}
 
 		p.Send(msg);
 
-		t.m_nCount = std::min(static_cast<uint32_t>(msg.m_CountExtra.v), m_Cfg.m_BandwidthCtl.m_MaxBodyPackCount) + 1; // just an estimate, the actual num of blocks can be smaller
-		m_nTasksPackBody += t.m_nCount;
+		t.m_nCount = 1; // body packs are counted, not blocks
+		m_nTasksPackBody++;
 
 		t.m_n0 = m_Processor.m_SyncData.m_n0;
 		t.m_nTxoLo = m_Processor.m_SyncData.m_TxoLo;
@@ -739,7 +762,14 @@ void Node::Peer::SetTimerWrtFirstTask()
 	{
 		// TODO - timer w.r.t. rating, i.e. should not exceed much the best avail peer rating
 
-		uint32_t timeout_ms = m_lstTasks.front().m_Key.second ?
+		Task& t = m_lstTasks.front();
+
+		// The peer replies in order, so the reply to this task starts only now. Measure the bandwidth from this moment
+		// (see ModifyRatingWrtData), otherwise the tasks queued behind others would make the peer look slow.
+		PeerManager::TimePoint tp;
+		t.m_TimeAssigned_ms = tp.get();
+
+		uint32_t timeout_ms = t.m_Key.second ?
 			m_This.m_Cfg.m_Timeout.m_GetBlock_ms :
 			m_This.m_Cfg.m_Timeout.m_GetState_ms;
 
@@ -798,6 +828,8 @@ void Node::Initialize()
 	m_Processor.m_ExecutorMT.set_Threads(std::max<uint32_t>(m_Cfg.m_VerificationThreads, 1U));
 
 	m_Processor.m_Horizon = m_Cfg.m_Horizon;
+	m_Processor.m_BodyWindows.m_Size = m_Cfg.m_BodyWindow;
+	m_Processor.m_BodyWindows.m_Ahead = m_Cfg.m_BodyWindowsAhead;
 	m_Processor.Initialize(m_Cfg.m_sPathLocal.c_str(), m_Cfg.m_ProcessorParams, m_Cfg.m_Observer ? m_Cfg.m_Observer->GetLongActionHandler() : nullptr);
 
 	if (m_Cfg.m_ProcessorParams.m_EraseSelfID)

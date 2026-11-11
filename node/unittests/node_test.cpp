@@ -1825,6 +1825,130 @@ namespace beam
 		verify_test(np.m_Cursor.m_Full.m_Number.v == blockChain.size());
 	}
 
+	void TestNodeProcessorBodyWindows(std::vector<BlockPlus::Ptr>& blockChain)
+	{
+		// Fast sync, the blocks are requested in windows and received out of order
+		typedef std::vector<std::pair<uint64_t, uint64_t> > Requests; // first block, top
+
+		struct MyProcessor
+			:public NodeProcessor
+		{
+			Requests m_vReq;
+
+			void RequestData(const Block::SystemState::ID& id, bool bBlock, const NodeDB::StateID& sidTrg) override
+			{
+				if (bBlock)
+					m_vReq.emplace_back(id.m_Number.v, sidTrg.m_Number.v);
+			}
+
+			Requests Enum()
+			{
+				m_vReq.clear();
+				EnumCongestions();
+				return std::move(m_vReq);
+			}
+		};
+
+		MyProcessor np;
+		NodeProcessor npSrc;
+		np.m_Horizon.m_Branching = 5;
+		np.m_Horizon.m_Sync.Hi = 12;
+		np.m_Horizon.m_Sync.Lo = 30;
+		np.m_Horizon.m_Local = np.m_Horizon.m_Sync;
+		np.m_BodyWindows.m_Size = 10;
+		np.m_BodyWindows.m_Ahead = 3;
+		np.Initialize(g_sz);
+		np.OnTreasury(g_Treasury);
+
+		npSrc.Initialize(g_sz2);
+		npSrc.OnTreasury(g_Treasury);
+
+		PeerID pid(Zero);
+
+		for (size_t i = 0; i < blockChain.size(); i++)
+		{
+			const BlockPlus& bp = *blockChain[i];
+			verify_test(np.OnState(bp.m_Hdr, pid) == NodeProcessor::DataStatus::Accepted);
+			verify_test(npSrc.OnState(bp.m_Hdr, pid) == NodeProcessor::DataStatus::Accepted);
+
+			Block::SystemState::ID id;
+			bp.m_Hdr.get_ID(id);
+			verify_test(npSrc.OnBlock(id, bp.m_Body.m_Perishable, bp.m_Body.m_Eternal, pid) == NodeProcessor::DataStatus::Accepted);
+		}
+
+		npSrc.TryGoUp();
+		verify_test(npSrc.m_Cursor.m_Full.m_Number.v == blockChain.size());
+
+		Requests v = np.Enum();
+		verify_test(np.IsFastSync());
+
+		const NodeProcessor::SyncData sd = np.m_SyncData; // reset once fast sync is over
+		const uint64_t numTrg = sd.m_Target.m_Number.v;
+		verify_test(numTrg == blockChain.size() - 12);
+		verify_test((numTrg > 80) && (numTrg < 90)); // the expectations below assume this
+
+		verify_test(v == Requests({ {1, 10}, {11, 20}, {21, 30}, {31, 40} }));
+
+		auto Feed = [&](uint64_t n0, uint64_t n1)
+		{
+			for (Block::Number num(n0); num.v <= n1; num.v++)
+			{
+				NodeDB::StateID sid;
+				sid.m_Row = npSrc.FindActiveAtStrict(num);
+				sid.m_Number = num;
+
+				ByteBuffer bbE, bbP;
+				verify_test(npSrc.GetBlock(sid, &bbE, &bbP, sd.m_n0, sd.m_TxoLo, sd.m_Target.m_Number, true));
+
+				Block::SystemState::ID id;
+				blockChain[num.v - 1]->m_Hdr.get_ID(id);
+				verify_test(np.OnBlock(id, bbP, bbE, pid) == NodeProcessor::DataStatus::Accepted);
+			}
+		};
+
+		// a part of a window: the rest is requested from its first missing block
+		Feed(21, 23);
+		verify_test(np.Enum() == Requests({ {1, 10}, {11, 20}, {24, 30}, {31, 40} }));
+
+		// the whole window: not requested any more, but still counts as ahead, it's not applied
+		Feed(24, 30);
+		verify_test(np.Enum() == Requests({ {1, 10}, {11, 20}, {31, 40} }));
+
+		np.TryGoUp();
+		verify_test(np.m_Cursor.m_Full.m_Number.v == 0); // nothing is reachable
+
+		// the lowest window starts at the first missing block
+		Feed(1, 4);
+		np.TryGoUp();
+		verify_test(np.m_Cursor.m_Full.m_Number.v == 4);
+		verify_test(np.Enum() == Requests({ {5, 10}, {11, 20}, {31, 40} }));
+
+		// the gap is filled, the blocks received before are applied too
+		Feed(5, 20);
+		np.TryGoUp();
+		verify_test(np.m_Cursor.m_Full.m_Number.v == 30);
+		verify_test(np.Enum() == Requests({ {31, 40}, {41, 50}, {51, 60}, {61, 70} }));
+
+		Feed(31, 70);
+		np.TryGoUp();
+		verify_test(np.m_Cursor.m_Full.m_Number.v == 70);
+		verify_test(np.Enum() == Requests({ {71, 80}, {81, numTrg} })); // the last window ends at the target
+
+		// the blocks above the target are requested once fast sync is over, by a regular request up to the tip
+		Feed(71, numTrg);
+		verify_test(np.Enum().empty());
+
+		np.TryGoUp();
+		verify_test(!np.IsFastSync());
+		verify_test(np.m_Cursor.m_Full.m_Number.v == numTrg);
+		verify_test(np.Enum() == Requests({ {numTrg + 1, blockChain.size()} }));
+
+		Feed(numTrg + 1, blockChain.size());
+		np.TryGoUp();
+		verify_test(!np.IsFastSync());
+		verify_test(np.m_Cursor.m_Full.m_Number.v == blockChain.size());
+	}
+
 	const uint16_t g_Port = 25003; // don't use the default port to prevent collisions with running nodes, beacons and etc.
 
 	void TestNodeConversation()
@@ -3700,6 +3824,13 @@ void TestAll()
 			fflush(stdout);
 
 			beam::TestNodeProcessor3(blockChain);
+			beam::DeleteFile(beam::g_sz);
+			beam::DeleteFile(beam::g_sz2);
+
+			printf("NodeProcessor body windows test...\n");
+			fflush(stdout);
+
+			beam::TestNodeProcessorBodyWindows(blockChain);
 			beam::DeleteFile(beam::g_sz);
 			beam::DeleteFile(beam::g_sz2);
 		}
