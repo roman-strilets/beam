@@ -74,7 +74,7 @@ void Node::UpdateHdrSkeleton()
 		if (numNext.v)
 		{
 			BEAM_LOG_INFO() << "Hdr skeleton stopped";
-			numNext.v = 0;
+			StopHdrSkeleton();
 		}
 		return;
 	}
@@ -91,8 +91,7 @@ void Node::UpdateHdrSkeleton()
 		BEAM_LOG_INFO() << "Hdr skeleton from " << numNext.v << ", lowest known header " << sidLow.m_Number.v;
 	}
 
-	// The last pack above the cursor is left to the regular download
-	while ((numNext.v > numCursor + nStep) && (sidLow.m_Number.v - numNext.v <= nWindow))
+	while (IsHdrSkeletonPointExpected(numNext) && (sidLow.m_Number.v - numNext.v <= nWindow))
 	{
 		if (IsHdrSkeletonPointKnown(numNext))
 		{
@@ -105,19 +104,45 @@ void Node::UpdateHdrSkeleton()
 		if (!RequestHdrSkeletonPoint(numNext, sidLow.m_Number))
 		{
 			// No suitable peer at the moment. If the regular download waits for this point (see TryAssignTask) - stop the skeleton, to let it go on.
-			if (numNext.v + 1 == sidLow.m_Number.v)
+			// Once restarted, it skips the points requested already.
+			bool bAwaited = false;
+			for (TaskList::iterator it = m_lstTasksUnassigned.begin(); m_lstTasksUnassigned.end() != it; ++it)
+			{
+				const Task& t = *it;
+				if (!t.m_Key.second && (t.m_Key.first.m_Number.v == numNext.v))
+				{
+					bAwaited = true;
+					break;
+				}
+			}
+
+			if (bAwaited)
 			{
 				BEAM_LOG_INFO() << "Hdr skeleton point " << numNext.v << " can't be requested, skeleton stopped";
-				numNext.v = 0;
-
-				for (TaskList::iterator it = m_lstTasksUnassigned.begin(); m_lstTasksUnassigned.end() != it; )
-					TryAssignTask(*it++);
+				StopHdrSkeleton();
 			}
 			break;
 		}
 
 		numNext.v -= nStep;
 	}
+}
+
+bool Node::IsHdrSkeletonPointExpected(Block::Number num) const
+{
+	return
+		m_HdrSkeleton.m_numNext.v &&
+		(num.v == m_HdrSkeleton.m_numNext.v) &&
+		(num.v > m_Processor.m_Cursor.m_Full.m_Number.v + HdrSkeleton::s_Step); // the last pack above the cursor is left to the regular download
+}
+
+void Node::StopHdrSkeleton()
+{
+	m_HdrSkeleton.m_numNext.v = 0;
+
+	// The packs that waited for the skeleton points, otherwise they'd be assigned only at the next RefreshCongestions()
+	for (TaskList::iterator it = m_lstTasksUnassigned.begin(); m_lstTasksUnassigned.end() != it; )
+		TryAssignTask(*it++);
 }
 
 bool Node::IsHdrSkeletonPointPending(Block::Number num) const
@@ -625,11 +650,11 @@ bool Node::TryAssignTask(Task& t, Peer& p)
 
 		if (m_HdrSkeleton.m_numNext.v)
 		{
-			// If the top of this pack is a skeleton point (awaited, or the next to be requested) - wait for it. Once it arrives, this request
+			// If the top of this pack is a skeleton point (awaited, or to be requested next) - wait for it. Once it arrives, this request
 			// is replaced by the pack below it. Otherwise both packs would be downloaded, overlapping almost completely, and the following
 			// regular download would be shifted w.r.t. the skeleton, duplicating its packs.
 			bool bWait =
-				(t.m_Key.first.m_Number.v == m_HdrSkeleton.m_numNext.v) ||
+				IsHdrSkeletonPointExpected(t.m_Key.first.m_Number) ||
 				IsHdrSkeletonPointPending(t.m_Key.first.m_Number);
 
 			if (bWait)
