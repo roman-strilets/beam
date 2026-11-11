@@ -75,27 +75,41 @@ stepElem::stepElem(const stepElem &a, const stepElem &b, uint32_t remLen) {
 }
 
 void stepElem::applyMix(uint32_t remLen) {
-	std::bitset<512> tempBits(workBits.to_string());
+	// 512 bits as 64-bit words, least significant first
+	const uint32_t numWords = 512 / 64;
+	uint64_t tempBits[numWords] = { 0 };
+
+	{
+		std::bitset<workBitSize> bits = workBits;
+		const std::bitset<workBitSize> lowWord(~0ULL);
+		for (uint32_t i = 0; i < workBitSize / 64; i++) {
+			tempBits[i] = (bits & lowWord).to_ullong();
+			bits >>= 64;
+		}
+	}
 
 	// Add in the bits of the index tree to the end of work bits
 	uint32_t padNum = ((512-remLen) + collisionBitSize) / (collisionBitSize + 1);
 	padNum = std::min(padNum, static_cast<uint32_t>(indexTree.size()));
 
 	for (uint32_t i=0; i<padNum; i++) {
-		std::bitset<512> tmp(indexTree[i]);
-		tmp = tmp << (remLen+i*(collisionBitSize + 1));
-		tempBits |= tmp;
+		// Bits shifted beyond 512 are dropped
+		uint32_t shift = remLen + i*(collisionBitSize + 1);
+		uint32_t word = shift / 64;
+		uint32_t bit = shift % 64;
+		uint64_t val = indexTree[i];
+
+		if (word < numWords)
+			tempBits[word] |= val << bit;
+		if (bit && (word + 1 < numWords))
+			tempBits[word + 1] |= val >> (64 - bit);
 	}
 
 
 	// Applyin the mix from the lined up bits
-	std::bitset<512> mask(0xFFFFFFFFFFFFFFFFUL);
 	uint64_t result = 0;
-	for (uint32_t i=0; i<8; i++) {
-		uint64_t tmp = (tempBits & mask).to_ullong();
-		tempBits = tempBits >> 64;
-
-		result += sipHash::rotl(tmp, (29*(i+1)) & 0x3F);
+	for (uint32_t i=0; i<numWords; i++) {
+		result += sipHash::rotl(tempBits[i], (29*(i+1)) & 0x3F);
 	}
 	result = sipHash::rotl(result, 24);
 
