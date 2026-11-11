@@ -85,7 +85,9 @@ struct Node
 		uint32_t m_BodyWindowsAhead = 16;
 
 		// Header packs in flight: overall, and per peer (0 - no per-peer limit)
-		uint32_t m_MaxConcurrentHdrPacks = 8;
+		// The overall limit should exceed the per-peer one several times: the free slots go to the peers in the order of their rating,
+		// and the peers with no measured rating yet get them only when the rated ones are saturated.
+		uint32_t m_MaxConcurrentHdrPacks = 32;
 		uint32_t m_MaxHdrPacksPerPeer = 4;
 		// When many headers are missing, request this many single "skeleton" headers ahead, one per header pack.
 		// Each one anchors its pack by hash, so that the packs can be downloaded in parallel. 0 - disabled
