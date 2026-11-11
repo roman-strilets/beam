@@ -357,6 +357,8 @@ private:
 	bool IsHdrSkeletonBranch(const Task&) const;
 
 	void UpdateHdrSkeleton();
+	bool IsHdrSkeletonPointPending(Block::Number) const;
+	bool IsHdrSkeletonPointKnown(Block::Number); // pending, or there's a header at this height
 	bool RequestHdrSkeletonPoint(Block::Number, Block::Number numMinTip);
 	void OnHdrSkeletonReleased(Task&);
 

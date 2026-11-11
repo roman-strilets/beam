@@ -94,6 +94,14 @@ void Node::UpdateHdrSkeleton()
 	// The last pack above the cursor is left to the regular download
 	while ((numNext.v > numCursor + nStep) && (sidLow.m_Number.v - numNext.v <= nWindow))
 	{
+		if (IsHdrSkeletonPointKnown(numNext))
+		{
+			// Requested already, or there's a header at this height: received before the skeleton restart (or the node restart),
+			// or downloaded by the regular download. Requesting it again would only bring the header we have.
+			numNext.v -= nStep;
+			continue;
+		}
+
 		if (!RequestHdrSkeletonPoint(numNext, sidLow.m_Number))
 		{
 			// No suitable peer at the moment. If the regular download waits for this point (see TryAssignTask) - stop the skeleton, to let it go on.
@@ -110,6 +118,26 @@ void Node::UpdateHdrSkeleton()
 
 		numNext.v -= nStep;
 	}
+}
+
+bool Node::IsHdrSkeletonPointPending(Block::Number num) const
+{
+	Task tKey;
+	tKey.m_Key.first.m_Number = num;
+	tKey.m_Key.first.m_Hash = Zero;
+	tKey.m_Key.second = false;
+
+	return m_setTasks.end() != m_setTasks.find(tKey);
+}
+
+bool Node::IsHdrSkeletonPointKnown(Block::Number num)
+{
+	if (IsHdrSkeletonPointPending(num))
+		return true;
+
+	NodeDB::WalkerState ws;
+	m_Processor.get_DB().EnumStatesAt(ws, num);
+	return ws.MoveNext();
 }
 
 bool Node::RequestHdrSkeletonPoint(Block::Number num, Block::Number numMinTip)
@@ -600,16 +628,9 @@ bool Node::TryAssignTask(Task& t, Peer& p)
 			// If the top of this pack is a skeleton point (awaited, or the next to be requested) - wait for it. Once it arrives, this request
 			// is replaced by the pack below it. Otherwise both packs would be downloaded, overlapping almost completely, and the following
 			// regular download would be shifted w.r.t. the skeleton, duplicating its packs.
-			bool bWait = (t.m_Key.first.m_Number.v == m_HdrSkeleton.m_numNext.v);
-			if (!bWait)
-			{
-				Task tKey;
-				tKey.m_Key.first.m_Number = t.m_Key.first.m_Number;
-				tKey.m_Key.first.m_Hash = Zero;
-				tKey.m_Key.second = false;
-
-				bWait = (m_setTasks.end() != m_setTasks.find(tKey));
-			}
+			bool bWait =
+				(t.m_Key.first.m_Number.v == m_HdrSkeleton.m_numNext.v) ||
+				IsHdrSkeletonPointPending(t.m_Key.first.m_Number);
 
 			if (bWait)
 			{
