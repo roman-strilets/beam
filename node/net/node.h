@@ -348,7 +348,10 @@ private:
 	{
 		static const uint64_t s_Step = proto::g_HdrPackMaxSize + 1;
 		Block::Number m_numNext{ 0 }; // next point to request, 0 if inactive
+		Block::Number m_numLow{ 0 }; // lowest known header of the branch the skeleton is built for. Valid if active
 	} m_HdrSkeleton;
+
+	bool IsHdrSkeletonBranch(const Task&) const;
 
 	void UpdateHdrSkeleton();
 	bool RequestHdrSkeletonPoint(Block::Number, Block::Number numMinTip);

@@ -75,6 +75,8 @@ void Node::UpdateHdrSkeleton()
 		return;
 	}
 
+	m_HdrSkeleton.m_numLow = sidLow.m_Number;
+
 	const uint64_t nWindow = nStep * m_Cfg.m_HdrSkeletonWindow;
 
 	// Restart if not started yet, or if the lowest known header is out of the skeleton window: either below it
@@ -190,6 +192,15 @@ void Node::OnHdrSkeletonReleased(Task& t)
 		BEAM_LOG_INFO() << "Hdr skeleton point " << num.v << " lost";
 }
 
+bool Node::IsHdrSkeletonBranch(const Task& t) const
+{
+	// The header request for a branch is its lowest known header's parent
+	return
+		m_HdrSkeleton.m_numNext.v &&
+		!t.m_Key.second &&
+		(t.m_Key.first.m_Number.v + 1 == m_HdrSkeleton.m_numLow.v);
+}
+
 void Node::UpdateSyncStatus()
 {
 	if (!m_UpdatedFromPeers)
@@ -227,9 +238,28 @@ void Node::UpdateSyncStatusRaw()
 	if (m_Processor.IsFastSync())
 		hTotal = m_Processor.m_SyncData.m_Target.m_Number.v;
 
+	auto AccountHdrs = [&](const Task& t)
+	{
+		beam::setmax(hTotal, t.m_sidTrg.m_Number.v);
+		if (t.m_sidTrg.m_Number.v > t.m_Key.first.m_Number.v)
+			beam::setmax(hDoneHdrs, m_Processor.m_Cursor.m_Full.m_Number.v + t.m_sidTrg.m_Number.v - t.m_Key.first.m_Number.v);
+	};
+
+	// The branch the hdr skeleton is built for. Its pack request may stay unassigned for a while (awaits a skeleton point,
+	// or the limit of hdr packs in flight is taken by the packs below), whereas the headers are downloaded below it.
+	const Task* pSkeletonBranch = nullptr;
+	bool bHdrsInProgress = false;
+
 	for (TaskSet::iterator it = m_setTasks.begin(); m_setTasks.end() != it; ++it)
 	{
 		const Task& t = *it;
+		if (t.m_bSkeleton)
+		{
+			// not driven by congestions (m_bNeeded is false), always owned
+			bHdrsInProgress = true;
+			continue;
+		}
+
 		if (!t.m_bNeeded)
 			continue;
 		if (m_Processor.m_Cursor.m_Full.m_Number.v >= t.m_sidTrg.m_Number.v)
@@ -247,13 +277,21 @@ void Node::UpdateSyncStatusRaw()
 		else
 		{
 			if (!t.m_pOwner)
+			{
+				if (IsHdrSkeletonBranch(t))
+					pSkeletonBranch = &t;
 				continue; // don't account for unowned
+			}
 
-			beam::setmax(hTotal, t.m_sidTrg.m_Number.v);
-			if (t.m_sidTrg.m_Number.v > t.m_Key.first.m_Number.v)
-				beam::setmax(hDoneHdrs, m_Processor.m_Cursor.m_Full.m_Number.v + t.m_sidTrg.m_Number.v - t.m_Key.first.m_Number.v);
+			bHdrsInProgress = true;
+			AccountHdrs(t);
 		}
 	}
+
+	// Account for the skeleton branch only while some peer actually works on the headers.
+	// Otherwise it may be a fake tip that nobody can serve.
+	if (pSkeletonBranch && bHdrsInProgress)
+		AccountHdrs(*pSkeletonBranch);
 
 	// account for treasury
 	hTotal++;
