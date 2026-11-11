@@ -129,7 +129,9 @@ void Node::Peer::OnMsg(proto::HdrPack&& msg)
 		if (row)
 			m_This.m_HdrSkeleton.m_setPoints.insert(std::make_pair(id.m_Number.v, row));
 
-		ModifyRatingWrtData(sizeof(msg.m_Prefix) + sizeof(msg.m_vElements.front()));
+		// Don't modify the rating. It's the effective bandwidth, whereas the point is tiny, and the time since it was assigned
+		// includes the replies to the previous tasks in the peer's queue. The peer would look very slow.
+		// A timeout is still accounted for (see OnRequestTimeout).
 		OnFirstTaskDone(NodeProcessor::DataStatus::Accepted); // will create the task for the pack below this point
 		return;
 	}
