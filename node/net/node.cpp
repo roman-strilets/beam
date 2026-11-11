@@ -48,6 +48,18 @@ void Node::RefreshCongestions()
 			DeleteUnassignedTask(t);
 	}
 
+	// Header packs are assigned here, top-down. The branches are enumerated bottom-up, so the top one would get a free slot last,
+	// whereas the hdr skeleton window moves only once it links to the branches below.
+	std::vector<Task*> vHdrs;
+	for (TaskList::iterator it = m_lstTasksUnassigned.begin(); m_lstTasksUnassigned.end() != it; ++it)
+		if (!it->m_Key.second)
+			vHdrs.push_back(&*it);
+
+	std::sort(vHdrs.begin(), vHdrs.end(), [](const Task* a, const Task* b) { return a->m_Key.first.m_Number.v > b->m_Key.first.m_Number.v; });
+
+	for (Task* pTask : vHdrs)
+		TryAssignTask(*pTask);
+
 	UpdateHdrSkeleton();
 }
 

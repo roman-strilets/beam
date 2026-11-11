@@ -37,7 +37,8 @@ void Node::Processor::RequestData(const Block::SystemState::ID& id, bool bBlock,
 		get_ParentObj().m_setTasks.insert(*pTask);
 		get_ParentObj().m_lstTasksUnassigned.push_back(*pTask);
 
-		get_ParentObj().TryAssignTask(*pTask);
+		if (bBlock) // headers are assigned after all the requests, see RefreshCongestions()
+			get_ParentObj().TryAssignTask(*pTask);
 
 	}
 	else
@@ -48,7 +49,7 @@ void Node::Processor::RequestData(const Block::SystemState::ID& id, bool bBlock,
 		if (t.m_sidTrg.m_Number.v <= sidTrg.m_Number.v)
 			t.m_sidTrg = sidTrg;
 
-		if (!t.m_pOwner)
+		if (!t.m_pOwner && bBlock)
 			get_ParentObj().TryAssignTask(t);
 	}
 }
