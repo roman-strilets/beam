@@ -71,6 +71,10 @@ void NodeDB::Close()
 
         BEAM_VERIFY(SQLITE_OK == sqlite3_close(m_pDb));
 		m_pDb = NULL;
+
+		m_KrnWnd.Clear();
+		m_KrnWnd.m_dh = 0;
+		m_KrnWnd.m_hLo = 0;
 	}
 }
 
@@ -470,6 +474,7 @@ void NodeDB::Transaction::Rollback()
 	if (m_pDB)
 	{
 		m_pDB->ExecStep(Query::Rollback, "ROLLBACK");
+		m_pDB->OnTxRolledBack();
 		m_pDB = nullptr;
 	}
 }

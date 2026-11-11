@@ -61,6 +61,8 @@ namespace beam {
 #define TblKernels				"Kernels"
 #define TblKernels_Key			"Commitment"
 #define TblKernels_Height		"Height"
+#define IdxKernels				"Idx" TblKernels
+#define IdxKernels_Create		"CREATE INDEX IF NOT EXISTS [" IdxKernels "] ON [" TblKernels "] ([" TblKernels_Key "],[" TblKernels_Height "] DESC);"
 
 #define TblEvents				"Events"
 #define TblEvents_Account		"Account"

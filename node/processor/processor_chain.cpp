@@ -267,7 +267,13 @@ void NodeProcessor::EnumCongestions()
 		}
 
 		if (bFirstTime)
+		{
 			LogSyncData();
+
+			// Drop the kernel index only if most of the kernels are yet to come, otherwise the rebuild costs more
+			if (m_SyncData.m_n0.v * 2 < m_SyncData.m_Target.m_Number.v)
+				SuspendKernelIndex();
+		}
 	}
 
 	// request missing data

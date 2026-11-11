@@ -141,6 +141,14 @@ void NodeProcessor::Initialize(const char* szPath, const StartParams& sp, ILongA
 
 	LogSyncData();
 
+	if (!m_DB.IsKernelIndexed())
+	{
+		if (IsFastSync())
+			SuspendKernelIndex(); // restart in the middle of the fast-sync
+		else
+			m_DB.KernelIndexRestore(); // shouldn't happen, unless the fast-sync state was lost
+	}
+
 	if (r.TreasuryChecksum == Zero)
 		m_Extra.m_TxosTreasury = 1; // artificial gap
 	else
@@ -392,7 +400,21 @@ void NodeProcessor::SaveSyncData()
 		m_DB.ParamSet(NodeDB::ParamID::SyncData, nullptr, &blob);
 	}
 	else
+	{
 		m_DB.ParamSet(NodeDB::ParamID::SyncData, nullptr, nullptr);
+		m_DB.KernelIndexRestore(); // fast-sync is over or aborted. Same tx, so it's atomic with the sync data
+	}
+}
+
+void NodeProcessor::SuspendKernelIndex()
+{
+	// The kernel index gets a random insert per kernel, and most of the pages written during the initial sync
+	// belong to it. Instead it's rebuilt at the end of the fast-sync.
+	// Meanwhile the kernel lookups need only the visibility window (past Fork2).
+	Height dh = Rules::get().MaxKernelValidityDH;
+	Height h = m_Cursor.m_hh.m_Height;
+
+	m_DB.KernelIndexSuspend((h > dh) ? (h - dh) : 0, dh);
 }
 
 Asset::ID NodeProcessor::get_AidMax() const

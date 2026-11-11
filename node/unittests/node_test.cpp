@@ -872,9 +872,78 @@ namespace beam
 		const char* g_sz3 = "/tmp/recovery_info";
 #endif // WIN32
 
+	void TestNodeDBKernelWnd(const char* sz)
+	{
+		NodeDB db;
+		db.Open(sz);
+
+		{
+			NodeDB::Transaction tr(db);
+			verify_test(db.IsKernelIndexed());
+
+			Merkle::Hash hv1, hv2, hv3;
+			hv1 = 1U;
+			hv2 = 2U;
+			hv3 = 3U;
+
+			db.InsertKernel(hv1, 3); // before the suspension
+
+			db.KernelIndexSuspend(2, 10); // window: Height >= 2, follows the top at distance 10
+			verify_test(!db.IsKernelIndexed());
+			verify_test(db.FindKernel(hv1) == 3); // loaded into the window
+
+			db.InsertKernel(hv2, 5);
+			db.InsertKernel(hv2, 5); // duplicate
+			db.InsertKernel(hv2, 8);
+			verify_test(db.FindKernel(hv2, 7) == 8);
+
+			db.InsertKernel(hv3, 15); // window bottom raised to 5, hv1 is no longer in memory
+			verify_test(db.FindKernel(hv1, 5) == 0); // below hMin, not searched
+			verify_test(db.FindKernel(hv1) == 3); // table scan
+
+			db.DeleteKernel(hv2, 8);
+			verify_test(db.FindKernel(hv2, 5) == 5);
+			db.DeleteKernel(hv2, 5);
+			verify_test(db.FindKernel(hv2, 5) == 5); // the duplicate remains
+			db.DeleteKernel(hv2, 5);
+			verify_test(db.FindKernel(hv2, 5) == 0);
+			verify_test(db.FindKernel(hv2) == 0);
+
+			tr.Commit();
+
+			// tx rollback: the window is reloaded
+			NodeDB::Transaction tr2(db);
+			db.InsertKernel(hv2, 16);
+			verify_test(db.FindKernel(hv2, 6) == 16);
+			tr2.Rollback();
+
+			NodeDB::Transaction tr3(db);
+			verify_test(!db.IsKernelIndexed());
+			verify_test(db.FindKernel(hv2, 6) == 0);
+			verify_test(db.FindKernel(hv3, 6) == 15);
+
+			// delete below the window: the index is rebuilt
+			db.DeleteKernel(hv1, 3);
+			verify_test(db.IsKernelIndexed());
+			verify_test(db.FindKernel(hv1) == 0);
+			verify_test(db.FindKernel(hv3) == 15);
+			db.DeleteKernel(hv3, 15);
+			verify_test(db.FindKernel(hv3) == 0);
+
+			// restore is idempotent
+			db.KernelIndexSuspend(0, 10);
+			db.KernelIndexRestore();
+			db.KernelIndexRestore();
+			verify_test(db.IsKernelIndexed());
+
+			tr3.Commit();
+		}
+	}
+
 	void TestNodeDB()
 	{
 		TestNodeDB(g_sz); // will create
+		TestNodeDBKernelWnd(g_sz);
 
 		{
 			NodeDB db;
@@ -1324,6 +1393,7 @@ namespace beam
 		np.EnumCongestions();
 
 		verify_test(np.IsFastSync()); // should go into fast-sync mode
+		verify_test(!np.get_DB().IsKernelIndexed()); // suspended for the initial sync
 		verify_test(np.m_SyncData.m_TxoLo.v); // should be used on the 1st attempt
 
 		// 1st attempt - tamper with txlo. Remove arbitrary input
@@ -1612,6 +1682,7 @@ namespace beam
 
 		np.TryGoUp();
 		verify_test(!np.IsFastSync());
+		verify_test(np.get_DB().IsKernelIndexed()); // rebuilt at the end
 		verify_test(np.m_Cursor.m_Full.m_Number.v == blockChain.size());
 	}
 

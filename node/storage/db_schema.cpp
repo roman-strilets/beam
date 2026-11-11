@@ -227,7 +227,7 @@ void NodeDB::Create()
 		"[" TblKernels_Key		"] BLOB NOT NULL,"
 		"[" TblKernels_Height	"] INTEGER NOT NULL)");
 
-	ExecQuick("CREATE INDEX [Idx" TblKernels "] ON [" TblKernels "] ([" TblKernels_Key "],[" TblKernels_Height "]  DESC);");
+	ExecQuick(IdxKernels_Create);
 
 	ExecQuick("CREATE TABLE [" TblPeer "] ("
 		"[" TblPeer_Key			"] BLOB NOT NULL,"

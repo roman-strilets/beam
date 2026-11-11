@@ -75,16 +75,50 @@ void NodeDB::InsertKernel(const Blob& key, Height h)
 {
 	assert(h);
 
+	bool bWnd = KrnWndEnsure(); // before the insert, the reload (if needed) must not see the new row
+
 	Recordset rs(*this, Query::KernelIns, "INSERT INTO " TblKernels "(" TblKernels_Key "," TblKernels_Height ") VALUES(?,?)");
 	rs.put(0, key);
 	rs.put(1, h);
 	rs.Step();
 	TestChanged1Row();
+
+	if (bWnd)
+	{
+		m_KrnWnd.Add(KrnWndKey(key), h, get_LastInsertRowID());
+		if (h > m_KrnWnd.m_dh)
+			m_KrnWnd.Raise(h - m_KrnWnd.m_dh);
+	}
 }
 
 void NodeDB::DeleteKernel(const Blob& key, Height h)
 {
 	assert(h);
+
+	if (KrnWndEnsure())
+	{
+		auto r = m_KrnWnd.m_mapKey.equal_range(KrnWndKey(key));
+		for (auto it = r.first; r.second != it; ++it)
+		{
+			if (it->second.m_Height != h)
+				continue;
+
+			Recordset rs(*this, Query::KernelDelByRowID, "DELETE FROM " TblKernels " WHERE rowid=?");
+			rs.put(0, it->second.m_RowID);
+			rs.Step();
+			TestChanged1Row();
+
+			m_KrnWnd.Erase(it);
+			return;
+		}
+
+		if (h >= m_KrnWnd.m_hLo)
+			ThrowError("no krn");
+
+		// deep rollback, below the window. Would be a table scan per kernel without the index
+		BEAM_LOG_INFO() << "Kernel deleted below the in-memory window (" << h << " < " << m_KrnWnd.m_hLo << ")";
+		KernelIndexRestore();
+	}
 
 	Recordset rs(*this, Query::KernelDel, "DELETE FROM " TblKernels " WHERE " TblKernels_Key "=? AND " TblKernels_Height "=?");
 	rs.put(0, key);
@@ -100,8 +134,25 @@ void NodeDB::DeleteKernel(const Blob& key, Height h)
 			InsertKernel(key, h);
 }
 
-Height NodeDB::FindKernel(const Blob& key)
+Height NodeDB::FindKernel(const Blob& key, Height hMin /* = 0 */)
 {
+	if (KrnWndEnsure())
+	{
+		Height hRet = 0;
+
+		auto r = m_KrnWnd.m_mapKey.equal_range(KrnWndKey(key));
+		for (auto it = r.first; r.second != it; ++it)
+			setmax(hRet, it->second.m_Height);
+
+		if (hRet)
+			return hRet; // the window has all the kernels above its bottom, so this is the largest one
+
+		if (hMin >= m_KrnWnd.m_hLo)
+			return 0; // older kernels are of no interest
+
+		m_KrnWnd.m_nScans++; // no index, the query below scans the whole table
+	}
+
 	Recordset rs(*this, Query::KernelFind, "SELECT " TblKernels_Height " FROM " TblKernels " WHERE " TblKernels_Key "=? ORDER BY " TblKernels_Height " DESC LIMIT 1");
 	rs.put(0, key);
 	if (!rs.Step())
@@ -112,6 +163,143 @@ Height NodeDB::FindKernel(const Blob& key)
 
 	assert(h);
 	return h;
+}
+
+bool NodeDB::IsKernelIndexed()
+{
+	Recordset rs(*this, Query::KernelIndexExists, "SELECT 1 FROM sqlite_master WHERE type='index' AND name='" IdxKernels "'");
+	return rs.Step();
+}
+
+void NodeDB::KernelIndexSuspend(Height hLo, Height dh)
+{
+	if (IsKernelIndexed())
+	{
+		BEAM_LOG_INFO() << "Dropping kernel index";
+		ExecQuick("DROP INDEX [" IdxKernels "]");
+	}
+
+	m_KrnWnd.Clear();
+	m_KrnWnd.m_hLo = hLo;
+	m_KrnWnd.m_dh = dh;
+	m_KrnWnd.m_nScans = 0;
+
+	KrnWndLoad();
+}
+
+void NodeDB::KernelIndexRestore()
+{
+	m_KrnWnd.Clear();
+
+	if (IsKernelIndexed())
+		return;
+
+	BEAM_LOG_INFO() << "Building kernel index... (lookups without the index: " << m_KrnWnd.m_nScans << ")";
+	auto t0 = std::chrono::steady_clock::now();
+
+	ExecQuick(IdxKernels_Create);
+
+	auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t0);
+	BEAM_LOG_INFO() << "Kernel index built in " << dt.count() << " ms";
+}
+
+void NodeDB::KrnWndLoad()
+{
+	// full table scan, done once on start (or after tx rollback)
+	m_KrnWnd.m_mapKey.clear();
+	m_KrnWnd.m_mapHeight.clear();
+
+	Recordset rs(*this, Query::KernelEnumFrom, "SELECT rowid," TblKernels_Key "," TblKernels_Height " FROM " TblKernels " WHERE " TblKernels_Height ">=?");
+	rs.put(0, m_KrnWnd.m_hLo);
+
+	while (rs.Step())
+	{
+		uint64_t rowid;
+		Merkle::Hash hv;
+		Height h;
+
+		rs.get(0, rowid);
+		rs.get(1, hv);
+		rs.get(2, h);
+
+		m_KrnWnd.Add(hv, h, rowid);
+	}
+
+	m_KrnWnd.m_On = true;
+	m_KrnWnd.m_Stale = false;
+
+	BEAM_LOG_INFO() << "Kernel index suspended, kernels in memory: " << m_KrnWnd.m_mapKey.size() << ", from height " << m_KrnWnd.m_hLo;
+}
+
+bool NodeDB::KrnWndEnsure()
+{
+	if (m_KrnWnd.m_Stale)
+	{
+		m_KrnWnd.m_Stale = false;
+
+		if (IsKernelIndexed())
+			m_KrnWnd.Clear();
+		else
+			KrnWndLoad();
+	}
+
+	return m_KrnWnd.m_On;
+}
+
+void NodeDB::OnTxRolledBack()
+{
+	// the window may contain the rolled-back changes (or the suspend/restore itself may be rolled back)
+	if (m_KrnWnd.m_dh)
+		m_KrnWnd.m_Stale = true;
+}
+
+const Merkle::Hash& NodeDB::KrnWndKey(const Blob& key)
+{
+	if (sizeof(Merkle::Hash) != key.n)
+		ThrowError("krn key size");
+
+	return *reinterpret_cast<const Merkle::Hash*>(key.p);
+}
+
+void NodeDB::KrnWnd::Clear()
+{
+	m_mapHeight.clear();
+	m_mapKey.clear();
+	m_On = false;
+	m_Stale = false;
+}
+
+void NodeDB::KrnWnd::Add(const Merkle::Hash& key, Height h, uint64_t rowid)
+{
+	if (h < m_hLo)
+		return; // the window invariant is only about the kernels at hLo and above
+
+	auto itK = m_mapKey.emplace(key, Item{ h, rowid });
+	m_mapHeight.emplace(std::make_pair(h, rowid), itK);
+}
+
+void NodeDB::KrnWnd::Erase(MapKey::iterator itK)
+{
+	m_mapHeight.erase(std::make_pair(itK->second.m_Height, itK->second.m_RowID));
+	m_mapKey.erase(itK);
+}
+
+void NodeDB::KrnWnd::Raise(Height hLo)
+{
+	if (hLo <= m_hLo)
+		return;
+
+	m_hLo = hLo;
+
+	while (!m_mapHeight.empty())
+	{
+		auto it = m_mapHeight.begin();
+		if (it->first.first >= hLo)
+			break;
+
+		m_mapKey.erase(it->second);
+		m_mapHeight.erase(it);
+	}
 }
 
 void NodeDB::TxoAdd(TxoID id, const Blob& b)

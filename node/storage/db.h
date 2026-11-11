@@ -161,6 +161,9 @@ public:
 			KernelIns,
 			KernelFind,
 			KernelDel,
+			KernelDelByRowID,
+			KernelEnumFrom,
+			KernelIndexExists,
 			TxoAdd,
 			TxoDel,
 			TxoDelFrom,
@@ -581,7 +584,16 @@ public:
 
 	void InsertKernel(const Blob&, Height h);
 	void DeleteKernel(const Blob&, Height h);
-	Height FindKernel(const Blob&); // in case of duplicates - returning the one with the largest Height
+	// in case of duplicates - returning the one with the largest Height.
+	// hMin: the caller ignores kernels below this height, they may be reported as not found
+	Height FindKernel(const Blob&, Height hMin = 0);
+
+	// The kernel index (random inserts by hash) may be dropped during the initial sync, and rebuilt at the end.
+	// Meanwhile the recent kernels are kept in memory: all the kernels with Height >= hLo, where hLo follows the
+	// highest inserted kernel at distance dh. Lookups of older kernels scan the whole table.
+	bool IsKernelIndexed();
+	void KernelIndexSuspend(Height hLo, Height dh); // drops the index if it exists, loads the recent kernels
+	void KernelIndexRestore(); // rebuilds the index if it doesn't exist
 
 	uint64_t FindStateWorkGreater(const Difficulty::Raw&);
 
@@ -908,6 +920,36 @@ private:
 	Asset::ID AssetFindMinFree(Asset::ID nMin);
 
 	void set_CacheState(CacheState&); // auto cleans the cache if necessary
+
+	struct KrnWnd
+	{
+		struct Item {
+			Height m_Height;
+			uint64_t m_RowID;
+		};
+
+		typedef std::multimap<Merkle::Hash, Item> MapKey;
+		typedef std::map<std::pair<Height, uint64_t>, MapKey::iterator> MapHeight; // (Height, RowID)
+
+		MapKey m_mapKey;
+		MapHeight m_mapHeight;
+
+		bool m_On = false; // the index is suspended, and the window is valid
+		bool m_Stale = false; // tx rolled back, reload before use
+		Height m_hLo = 0;
+		Height m_dh = 0;
+		uint64_t m_nScans = 0; // lookups that fell back to the table scan
+
+		void Clear();
+		void Add(const Merkle::Hash&, Height, uint64_t rowid);
+		void Erase(MapKey::iterator);
+		void Raise(Height hLo);
+	} m_KrnWnd;
+
+	static const Merkle::Hash& KrnWndKey(const Blob&);
+	void KrnWndLoad();
+	bool KrnWndEnsure(); // returns true if the window is active (index suspended)
+	void OnTxRolledBack();
 };
 
 

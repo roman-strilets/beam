@@ -412,6 +412,7 @@ public:
 	bool IsFastSync() const { return m_SyncData.m_Target.m_Row != 0; }
 
 	void SaveSyncData();
+	void SuspendKernelIndex();
 	void LogSyncData();
 
 	struct ContractInvokeExtraInfoBase

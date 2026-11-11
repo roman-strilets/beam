@@ -27,13 +27,18 @@ Height NodeProcessor::BlockInterpretCtx::FindVisibleKernel(const Merkle::Hash& i
 			return m_Height;
 	}
 
-	Height h = m_Proc.m_DB.FindKernel(id);
+	const Rules& r = Rules::get();
+	bool bLimited = r.IsPastFork_<2>(m_Height);
+
+	// kernels below hMin are invisible anyway, the DB may skip them
+	Height hMin = (bLimited && (m_Height > r.MaxKernelValidityDH)) ? (m_Height - r.MaxKernelValidityDH) : 0;
+
+	Height h = m_Proc.m_DB.FindKernel(id, hMin);
 	if (h)
 	{
 		assert(h <= m_Height);
 
-		const Rules& r = Rules::get();
-		if (r.IsPastFork_<2>(m_Height) && (m_Height - h > r.MaxKernelValidityDH))
+		if (bLimited && (m_Height - h > r.MaxKernelValidityDH))
 			return 0; // Starting from Fork2 - visibility horizon is limited
 	}
 
