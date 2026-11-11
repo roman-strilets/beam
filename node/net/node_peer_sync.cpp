@@ -132,7 +132,13 @@ void Node::Peer::OnMsg(proto::HdrPack&& msg)
 		// Don't modify the rating. It's the effective bandwidth, whereas the point is tiny, and the time since it was assigned
 		// includes the replies to the previous tasks in the peer's queue. The peer would look very slow.
 		// A timeout is still accounted for (see OnRequestTimeout).
-		OnFirstTaskDone(NodeProcessor::DataStatus::Accepted); // will create the task for the pack below this point
+
+		ReleaseTask(t);
+		SetTimerWrtFirstTask();
+
+		// The pack below this point is requested by the deferred RefreshCongestions() (see OnGoUpTimer). Unlike OnFirstTaskDone(),
+		// don't refresh right away: the points come in a row, and a single refresh for all of them is enough.
+		m_This.m_Processor.TryGoUpAsync();
 		return;
 	}
 
