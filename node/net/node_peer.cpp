@@ -387,6 +387,13 @@ void Node::Peer::ReleaseTask(Task& t)
 	}
 
 	m_lstTasks.erase(TaskList::s_iterator_to(t));
+
+	if (t.m_bSkeleton)
+	{
+		m_This.OnHdrSkeletonReleased(t);
+		return;
+	}
+
 	m_This.m_lstTasksUnassigned.push_back(t);
 
 	if (t.m_bNeeded)

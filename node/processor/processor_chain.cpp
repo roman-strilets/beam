@@ -330,6 +330,25 @@ bool NodeProcessor::get_CachedRows(const NodeDB::StateID& sid, Height nCountExtr
 	return false;
 }
 
+bool NodeProcessor::get_HdrGapLow(NodeDB::StateID& sid)
+{
+	const CongestionCache::TipCongestion* pBest = nullptr;
+
+	for (const auto& x : m_CongestionCache.m_lstTips)
+	{
+		if (x.m_bNeedHdrs && (!pBest || (pBest->m_Number.v < x.m_Number.v)))
+			pBest = &x;
+	}
+
+	if (!pBest)
+		return false;
+
+	assert(!pBest->m_Rows.empty());
+	sid.m_Row = pBest->m_Rows.back();
+	sid.m_Number.v = pBest->m_Number.v - (pBest->m_Rows.size() - 1);
+	return true;
+}
+
 uint32_t NodeProcessor::get_MaxAutoRollback()
 {
 	return Rules::get().MaxRollback;

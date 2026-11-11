@@ -112,6 +112,24 @@ void Node::Peer::OnMsg(proto::HdrPack&& msg)
 {
 	Task& t = get_FirstTask();
 
+	if (t.m_bSkeleton)
+	{
+		std::vector<Block::SystemState::Full> v;
+		if ((msg.m_vElements.size() != 1) || !m_This.DecodeAndCheckHdrs(v, msg) || (v.front().m_Number.v != t.m_Key.first.m_Number.v))
+			ThrowUnexpected();
+
+		Block::SystemState::ID id;
+		if (NodeProcessor::DataStatus::Invalid == m_This.m_Processor.OnStateSilent(v.front(), m_pInfo->m_ID.m_Key, id, true))
+			ThrowUnexpected();
+
+		BEAM_LOG_DEBUG() << "Hdr skeleton point received " << id;
+		t.m_bSkeletonDone = true;
+
+		ModifyRatingWrtData(sizeof(msg.m_Prefix) + sizeof(msg.m_vElements.front()));
+		OnFirstTaskDone(NodeProcessor::DataStatus::Accepted); // will create the task for the pack below this point
+		return;
+	}
+
 	if (t.m_Key.second || !t.m_nCount) {
 		// stupid compiler insists on parentheses here!
 		ThrowUnexpected();

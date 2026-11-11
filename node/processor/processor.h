@@ -557,6 +557,8 @@ public:
 
 	void EnumCongestions();
 	bool get_CachedRows(const NodeDB::StateID&, uint64_t nCountExtra, std::deque<uint64_t>::const_iterator& out); // out valid till next call to this func, or to EnumCongestions()
+	// Valid after EnumCongestions(). Of the branches with missing headers, takes the highest one, and returns its lowest known header (whose parent is missing)
+	bool get_HdrGapLow(NodeDB::StateID&);
 	void TryGoUp();
 	void TryGoTo(NodeDB::StateID&);
 	void OnFastSyncOver(MultiblockContext&, bool& bContextFail);

@@ -47,6 +47,147 @@ void Node::RefreshCongestions()
 		if (!t.m_bNeeded)
 			DeleteUnassignedTask(t);
 	}
+
+	UpdateHdrSkeleton();
+}
+
+void Node::UpdateHdrSkeleton()
+{
+	const uint64_t nStep = HdrSkeleton::s_Step;
+	const uint64_t numCursor = m_Processor.m_Cursor.m_Full.m_Number.v;
+
+	NodeDB::StateID sidLow;
+	bool bActive =
+		m_Cfg.m_HdrSkeletonWindow &&
+		Rules::get().IsConstantSpan() && // EnumHdrs addresses headers by height, which is the number only for constant span
+		m_Processor.get_HdrGapLow(sidLow) &&
+		(sidLow.m_Number.v > numCursor + nStep * 2);
+
+	Block::Number& numNext = m_HdrSkeleton.m_numNext; // alias
+
+	if (!bActive)
+	{
+		if (numNext.v)
+		{
+			BEAM_LOG_INFO() << "Hdr skeleton stopped";
+			numNext.v = 0;
+		}
+		return;
+	}
+
+	const uint64_t nWindow = nStep * m_Cfg.m_HdrSkeletonWindow;
+
+	// Restart if not started yet, or if the lowest known header is out of the skeleton window: either below it
+	// (the skeleton lagged behind), or far above (switched to another branch).
+	if (!numNext.v || (numNext.v >= sidLow.m_Number.v) || (sidLow.m_Number.v - numNext.v > nWindow + nStep))
+	{
+		numNext.v = sidLow.m_Number.v - nStep;
+		BEAM_LOG_INFO() << "Hdr skeleton from " << numNext.v << ", lowest known header " << sidLow.m_Number.v;
+	}
+
+	// The last pack above the cursor is left to the regular download
+	while ((numNext.v > numCursor + nStep) && (sidLow.m_Number.v - numNext.v <= nWindow))
+	{
+		if (!RequestHdrSkeletonPoint(numNext, sidLow.m_Number))
+		{
+			// No suitable peer at the moment. If the regular download waits for this point (see TryAssignTask) - stop the skeleton, to let it go on.
+			if (numNext.v + 1 == sidLow.m_Number.v)
+			{
+				BEAM_LOG_INFO() << "Hdr skeleton point " << numNext.v << " can't be requested, skeleton stopped";
+				numNext.v = 0;
+
+				for (TaskList::iterator it = m_lstTasksUnassigned.begin(); m_lstTasksUnassigned.end() != it; )
+					TryAssignTask(*it++);
+			}
+			break;
+		}
+
+		numNext.v -= nStep;
+	}
+}
+
+bool Node::RequestHdrSkeletonPoint(Block::Number num, Block::Number numMinTip)
+{
+	Task::Key key;
+	key.first.m_Number = num;
+	key.first.m_Hash = Zero;
+	key.second = false;
+
+	// The point is tiny, but the reply is queued after the replies to the peer's previous tasks.
+	// Choose the peer with the shortest queue, prioritize w.r.t. rating among equal ones.
+	Peer* pPeer = nullptr;
+	size_t nQueue = 0;
+
+	for (PeerMan::LiveSet::iterator it = m_PeerMan.m_LiveSet.begin(); m_PeerMan.m_LiveSet.end() != it; ++it)
+	{
+		Peer& p = *it->m_p;
+		if (!p.ShouldAssignTasks())
+			continue;
+
+		if (p.m_Tip.m_Full.m_Number.v < numMinTip.v)
+			continue; // the peer may be on another branch, or behind (also the case for a peer being deleted)
+
+		if (p.m_setRejected.end() != p.m_setRejected.find(std::make_pair(key, uint64_t(0))))
+			continue; // the peer doesn't have it
+
+		size_t n = p.m_lstTasks.size();
+		if (!pPeer || (n < nQueue))
+		{
+			pPeer = &p;
+			nQueue = n;
+		}
+	}
+
+	if (pPeer)
+	{
+		Peer& p = *pPeer;
+
+		proto::EnumHdrs msg;
+		msg.m_Height.m_Min = num.v;
+		msg.m_Height.m_Max = num.v;
+		p.Send(msg);
+
+		Task* pTask = new Task;
+		pTask->m_Key = key;
+		pTask->m_bSkeleton = true;
+		pTask->m_bNeeded = false; // not driven by congestions, see OnHdrSkeletonReleased()
+		pTask->m_nCount = 0;
+		pTask->m_sidTrg.m_Number = numMinTip;
+		pTask->m_sidTrg.m_Row = 0;
+		pTask->m_sidTrgRequested.SetNull();
+		pTask->m_pOwner = &p;
+
+		PeerManager::TimePoint tp;
+		pTask->m_TimeAssigned_ms = tp.get();
+
+		m_setTasks.insert(*pTask);
+
+		bool bEmpty = p.m_lstTasks.empty();
+		p.m_lstTasks.push_back(*pTask);
+		if (bEmpty)
+			p.SetTimerWrtFirstTask();
+
+		BEAM_LOG_DEBUG() << "Peer " << p.m_RemoteAddr << " hdr skeleton point " << num.v;
+		return true;
+	}
+
+	return false;
+}
+
+void Node::OnHdrSkeletonReleased(Task& t)
+{
+	assert(t.m_bSkeleton && !t.m_pOwner && !t.m_nCount);
+
+	Block::Number num = t.m_Key.first.m_Number;
+	Block::Number numMinTip = t.m_sidTrg.m_Number;
+	bool bRetry = !t.m_bSkeletonDone && m_HdrSkeleton.m_numNext.v;
+
+	m_setTasks.erase(TaskSet::s_iterator_to(t));
+	delete &t;
+
+	// The peer disconnected or doesn't have it. Ask another one, otherwise the gap would be filled by the regular (sequential) download.
+	if (bRetry && !RequestHdrSkeletonPoint(num, numMinTip))
+		BEAM_LOG_INFO() << "Hdr skeleton point " << num.v << " lost";
 }
 
 void Node::UpdateSyncStatus()
@@ -338,11 +479,14 @@ bool Node::TryAssignTask(Task& t, Peer& p)
 	}
 
 	// check if the peer currently transfers a block
-	uint32_t nBlocks = 0;
+	uint32_t nBlocks = 0, nHdrPacks = 0;
 	for (TaskList::iterator it = p.m_lstTasks.begin(); p.m_lstTasks.end() != it; ++it)
 	{
 		if (it->m_Key.second)
 			nBlocks++;
+		else
+			if (it->m_nCount)
+				nHdrPacks++;
 	}
 
 	// assign
@@ -390,7 +534,7 @@ bool Node::TryAssignTask(Task& t, Peer& p)
 	}
 	else
 	{
-		const uint32_t nMaxHdrRequests = proto::g_HdrPackMaxSize * 2;
+		const uint32_t nMaxHdrRequests = proto::g_HdrPackMaxSize * std::max(m_Cfg.m_MaxConcurrentHdrPacks, 1u);
 		if (m_nTasksPackHdr >= nMaxHdrRequests)
 		{
 			BEAM_LOG_VERBOSE() << "too many hdrs requested";
@@ -401,6 +545,35 @@ bool Node::TryAssignTask(Task& t, Peer& p)
 		{
 			BEAM_LOG_VERBOSE() << "peer busy";
 			return false; // don't requests headers from the peer that transfers a block
+		}
+
+		if (m_Cfg.m_MaxHdrPacksPerPeer && (nHdrPacks >= m_Cfg.m_MaxHdrPacksPerPeer))
+		{
+			BEAM_LOG_VERBOSE() << "too many hdrs requested from peer";
+			return false;
+		}
+
+		if (m_HdrSkeleton.m_numNext.v)
+		{
+			// If the top of this pack is a skeleton point (awaited, or the next to be requested) - wait for it. Once it arrives, this request
+			// is replaced by the pack below it. Otherwise both packs would be downloaded, overlapping almost completely, and the following
+			// regular download would be shifted w.r.t. the skeleton, duplicating its packs.
+			bool bWait = (t.m_Key.first.m_Number.v == m_HdrSkeleton.m_numNext.v);
+			if (!bWait)
+			{
+				Task tKey;
+				tKey.m_Key.first.m_Number = t.m_Key.first.m_Number;
+				tKey.m_Key.first.m_Hash = Zero;
+				tKey.m_Key.second = false;
+
+				bWait = (m_setTasks.end() != m_setTasks.find(tKey));
+			}
+
+			if (bWait)
+			{
+				BEAM_LOG_VERBOSE() << "awaiting hdr skeleton point";
+				return false;
+			}
 		}
 
 		uint32_t nPackSize = std::min(proto::g_HdrPackMaxSize, nMaxHdrRequests - m_nTasksPackHdr);
@@ -890,6 +1063,8 @@ Node::~Node()
 
 	for (PeerList::iterator it = m_lstPeers.begin(); m_lstPeers.end() != it; ++it)
 		it->m_LoginFlags = 0; // prevent re-assigning of tasks in the next loop
+
+	m_HdrSkeleton.m_numNext.v = 0; // don't re-request skeleton points from the remaining peers
 
 	while (!m_lstPeers.empty())
 		m_lstPeers.front().DeleteSelf(false, proto::NodeConnection::ByeReason::Stopping);

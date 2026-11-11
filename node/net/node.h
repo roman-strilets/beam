@@ -74,6 +74,14 @@ struct Node
 		} m_Timeout;
 
 		uint32_t m_MaxConcurrentBlocksRequest = 18;
+
+		// Header packs in flight: overall, and per peer (0 - no per-peer limit)
+		uint32_t m_MaxConcurrentHdrPacks = 8;
+		uint32_t m_MaxHdrPacksPerPeer = 4;
+		// When many headers are missing, request this many single "skeleton" headers ahead, one per header pack.
+		// Each one anchors its pack by hash, so that the packs can be downloaded in parallel. 0 - disabled
+		uint32_t m_HdrSkeletonWindow = 128;
+
 		uint32_t m_MaxPoolTransactions = 10 * 1000;
 		uint32_t m_MaxDeferredTransactions = 1000;
 		uint32_t m_MiningThreads = 0; // by default disabled
@@ -312,6 +320,8 @@ private:
 		Key m_Key;
 
 		bool m_bNeeded;
+		bool m_bSkeleton = false; // single header requested by height (EnumHdrs), not driven by congestions. m_sidTrg.m_Number is the min peer tip
+		bool m_bSkeletonDone = false; // received. Otherwise it's re-requested from another peer once released
 		uint32_t m_nCount;
 		uint32_t m_TimeAssigned_ms;
 		NodeDB::StateID m_sidTrg;
@@ -331,6 +341,18 @@ private:
 
 	TaskList m_lstTasksUnassigned;
 	TaskSet m_setTasks;
+
+	// Header skeleton: single headers below the lowest known one, spaced by a full header pack.
+	// Each becomes a separate branch, and its missing pack is requested in parallel with the others.
+	struct HdrSkeleton
+	{
+		static const uint64_t s_Step = proto::g_HdrPackMaxSize + 1;
+		Block::Number m_numNext{ 0 }; // next point to request, 0 if inactive
+	} m_HdrSkeleton;
+
+	void UpdateHdrSkeleton();
+	bool RequestHdrSkeletonPoint(Block::Number, Block::Number numMinTip);
+	void OnHdrSkeletonReleased(Task&);
 
 	void UpdateSyncStatus();
 	void UpdateSyncStatusRaw();
