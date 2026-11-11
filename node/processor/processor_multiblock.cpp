@@ -274,10 +274,41 @@ bool NodeProcessor::MultiAssetContext::BatchCtx::IsValid(Height hScheme, ECC::Po
 
 void NodeProcessor::MultiblockContext::MyTask::Exec(Executor::Context&)
 {
-	MultiAssetContext::BatchCtx bcAssets(m_pShared->m_Mbc.m_Mac);
+	assert(m_pGroup && !m_pGroup->empty());
+
+	MultiAssetContext::BatchCtx bcAssets(m_pGroup->front()->m_Mbc.m_Mac);
 	Asset::Proof::BatchContext::Scope scopeAssets(bcAssets);
 
-	m_pShared->Exec(m_iVerifier);
+	for (const auto& pShared : *m_pGroup)
+		pShared->Exec(m_iVerifier);
+}
+
+void NodeProcessor::MultiblockContext::MyTask::SharedContractSigs::Exec(uint32_t iVerifier)
+{
+	std::string sErr;
+
+	try {
+		for (size_t i = iVerifier; i < m_vSigs.size(); i += m_nVerifiers)
+		{
+			if (m_Mbc.m_bFail)
+				return;
+
+			m_vSigs[i].Check();
+		}
+
+		return;
+
+	} catch (const std::exception& e) {
+		sErr = std::string("Contract signature: ") + e.what();
+	}
+
+	std::unique_lock<std::mutex> scope(m_Mbc.m_Mutex);
+
+	if (!m_Mbc.m_bFail)
+	{
+		m_Mbc.m_bFail = true;
+		m_Mbc.m_sErr = std::move(sErr);
+	}
 }
 
 void NodeProcessor::MultiblockContext::MyTask::SharedBlock::Exec(uint32_t iVerifier)

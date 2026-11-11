@@ -15,6 +15,7 @@
 #pragma once
 
 #include "processor_common.h"
+#include "processor_bic.h"
 
 namespace beam {
 
@@ -179,6 +180,7 @@ struct NodeProcessor::MultiblockContext
 
 	~MultiblockContext()
 	{
+		m_pGroup.reset(); // not pushed yet, drop
 		m_This.get_Executor().Flush();
 
 		if (m_bBatchDirty)
@@ -255,9 +257,28 @@ struct NodeProcessor::MultiblockContext
 			void Exec(uint32_t iVerifier) override;
 		};
 
-		Shared::Ptr m_pShared;
+		struct SharedContractSigs
+			:public Shared
+		{
+			std::vector<BlockInterpretCtx::ContractSig> m_vSigs;
+			uint32_t m_nVerifiers;
+
+			using Shared::Shared;
+			virtual ~SharedContractSigs() {} // auto
+
+			void Exec(uint32_t iVerifier) override;
+		};
+
+		// Items pushed together: each verifier runs its part of every item in one task
+		typedef std::vector<Shared::Ptr> Group;
+
+		std::shared_ptr<Group> m_pGroup;
 		uint32_t m_iVerifier;
 	};
+
+	// Items not pushed to the executor yet
+	std::shared_ptr<MyTask::Group> m_pGroup;
+	size_t m_SizeGroup = 0;
 
 	bool Flush()
 	{
@@ -269,6 +290,8 @@ struct NodeProcessor::MultiblockContext
 	{
 		if (m_bFail || m_InProgress.IsEmpty())
 			return;
+
+		PushGroup();
 
 		Executor& ex = m_This.get_Executor();
 		ex.Flush();
@@ -395,6 +418,8 @@ struct NodeProcessor::MultiblockContext
 				}
 			}
 
+			PushGroup(); // the pending size includes the items not pushed yet
+
 			assert(nTasks);
 			nTasks = ex.Flush(nTasks - 1);
 		}
@@ -413,24 +438,68 @@ struct NodeProcessor::MultiblockContext
 
 		m_Msc.Prepare(pShared->m_Body, m_This, pShared->m_Ctx.m_Height.m_Min);
 
-		PushTasks(pShared, pShared->m_Ctx.m_Params);
+		AddToGroup(pShared, pShared->m_Size);
+	}
+
+	void OnContractSigs(std::vector<BlockInterpretCtx::ContractSig>&& vSigs)
+	{
+		if (m_bFail)
+			return;
+
+		auto pShared = std::make_shared<MyTask::SharedContractSigs>(*this);
+		pShared->m_vSigs = std::move(vSigs);
+		pShared->m_nVerifiers = m_This.get_Executor().get_Threads();
+
+		AddToGroup(pShared, 0);
 	}
 
 	void PushTasks(const MyTask::Shared::Ptr& pShared, TxBase::Context::Params& pars)
 	{
 		Executor& ex = m_This.get_Executor();
-		m_bBatchDirty = true;
 
 		pars.m_pAbort = &m_bFail;
 		pars.m_nVerifiers = ex.get_Threads();
 
-		for (uint32_t i = 0; i < pars.m_nVerifiers; i++)
+		AddToGroup(pShared, 0);
+		PushGroup();
+	}
+
+	void AddToGroup(const MyTask::Shared::Ptr& pShared, size_t nSize)
+	{
+		// Pushing a task costs a mutex lock and a thread wake-up per verifier. Small blocks are pushed in groups.
+		const size_t nGroupItemsMax = 32;
+		const size_t nGroupSizeMax = 1024 * 256;
+
+		m_bBatchDirty = true;
+
+		if (!m_pGroup)
+			m_pGroup = std::make_shared<MyTask::Group>();
+
+		m_pGroup->push_back(pShared);
+		m_SizeGroup += nSize;
+
+		if ((m_pGroup->size() >= nGroupItemsMax) || (m_SizeGroup >= nGroupSizeMax))
+			PushGroup();
+	}
+
+	void PushGroup()
+	{
+		if (!m_pGroup)
+			return;
+
+		Executor& ex = m_This.get_Executor();
+		uint32_t nVerifiers = ex.get_Threads();
+
+		for (uint32_t i = 0; i < nVerifiers; i++)
 		{
 			auto pTask = std::make_unique<MyTask>();
-			pTask->m_pShared = pShared;
+			pTask->m_pGroup = m_pGroup;
 			pTask->m_iVerifier = i;
 			ex.Push(std::move(pTask));
 		}
+
+		m_pGroup.reset();
+		m_SizeGroup = 0;
 	}
 
 	void OnFastSyncFailed(bool bDeleteBlocks)

@@ -469,8 +469,6 @@ namespace bvm2 {
 		void get_AssetStrict(AssetVar&, Asset::ID);
 		void SetAssetKey(AssetVar&, Asset::ID);
 
-		void AddSigInternal(std::vector<ECC::Point::Native>&, const ECC::Point&);
-
 		void TestVarSize(uint32_t n)
 		{
 			uint32_t nMax = IsPastFork_<4>() ? Limits::VarSize_4 : Limits::VarSize_0;
@@ -491,6 +489,8 @@ namespace bvm2 {
 		ECC::Hash::Processor* m_pSigValidate = nullptr; // assign it to allow sig validation
 
 		void CheckSigs(const ECC::Point& comm, const ECC::Signature&);
+		// The same check on a saved state. Can run in any thread
+		static void CheckSigsEx(ECC::Hash::Processor&, const std::vector<ECC::Point>& vSigs, const FundsChangeMap&, const ECC::Point& comm, const ECC::Signature&);
 
 		void AddRemoveShader(const ContractID&, const Blob*, bool bFireEvent);
 		void AddRemoveShader(const ContractID&, const Blob*);

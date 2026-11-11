@@ -387,41 +387,38 @@ namespace bvm2 {
 
 	/////////////////////////////////////////////
 	// Signature
-	void ProcessorContract::AddSigInternal(std::vector<ECC::Point::Native>& vec, const ECC::Point& pk)
-	{
-		assert(m_pSigValidate);
-		(*m_pSigValidate) << pk;
-
-		auto& ret = vec.emplace_back();
-		Exc::Test(ret.ImportNnz(pk));
-	}
-
 	void ProcessorContract::CheckSigs(const ECC::Point& pt, const ECC::Signature& sig)
 	{
 		if (!m_pSigValidate || !m_pFundsIO)
 			return;
 
+		CheckSigsEx(*m_pSigValidate, m_vSigs, *m_pFundsIO, pt, sig);
+	}
+
+	void ProcessorContract::CheckSigsEx(ECC::Hash::Processor& hp, const std::vector<ECC::Point>& vSigs, const FundsChangeMap& fundsIO, const ECC::Point& pt, const ECC::Signature& sig)
+	{
 		struct MyCheckpoint :public Exc::Checkpoint
 		{
-			const ProcessorContract& m_This;
-			MyCheckpoint(const ProcessorContract& x) :m_This(x) {}
+			const std::vector<ECC::Point>& m_vSigs;
+			const FundsChangeMap& m_FundsIO;
+			MyCheckpoint(const std::vector<ECC::Point>& vSigs, const FundsChangeMap& fundsIO) :m_vSigs(vSigs), m_FundsIO(fundsIO) {}
 
 			void Dump(std::ostream& os) override
 			{
 				os << "CheckSigs";
 
-				if (!m_This.m_vSigs.empty())
+				if (!m_vSigs.empty())
 				{
 					os << ", Keys=[";
-					for (const auto& pk : m_This.m_vSigs)
+					for (const auto& pk : m_vSigs)
 						os << pk << ", ";
 					os << "]";
 				}
 
-				if (!m_This.m_pFundsIO->m_Map.empty())
+				if (!m_FundsIO.m_Map.empty())
 				{
 					os << ", Funds=[";
-					for (auto it = m_This.m_pFundsIO->m_Map.begin(); ; )
+					for (auto it = m_FundsIO.m_Map.begin(); ; )
 					{
 						auto val = it->second;
 						bool bSpend = !!val.get_Msb();
@@ -432,7 +429,7 @@ namespace bvm2 {
 						os << it->first << ':';
 						AmountBig::Print(os, val);
 
-						if (m_This.m_pFundsIO->m_Map.end() == ++it)
+						if (m_FundsIO.m_Map.end() == ++it)
 							break;
 
 						os << ", ";
@@ -445,23 +442,31 @@ namespace bvm2 {
 				return ErrorSubType::BadSignature;
 			}
 
-		} cp(*this);
+		} cp(vSigs, fundsIO);
 
 		std::vector<ECC::Point::Native> vPts;
-		vPts.reserve(m_vSigs.size() + 1);
+		vPts.reserve(vSigs.size() + 1);
 
-		for (const auto& pk : m_vSigs)
-			AddSigInternal(vPts, pk);
+		auto fnAddSig = [&hp, &vPts](const ECC::Point& pk)
+		{
+			hp << pk;
 
-		AddSigInternal(vPts, pt);
+			auto& ret = vPts.emplace_back();
+			Exc::Test(ret.ImportNnz(pk));
+		};
+
+		for (const auto& pk : vSigs)
+			fnAddSig(pk);
+
+		fnAddSig(pt);
 
 
 		ECC::Point::Native ptFunds;
-		m_pFundsIO->ToCommitment(ptFunds);
+		fundsIO.ToCommitment(ptFunds);
 		vPts.back() += ptFunds;
 
 		ECC::Hash::Value hv;
-		(*m_pSigValidate) >> hv;
+		hp >> hv;
 
 		ECC::SignatureBase::Config cfg = ECC::Context::get().m_Sig.m_CfgG1; // copy
 		cfg.m_nKeys = static_cast<uint32_t>(vPts.size());

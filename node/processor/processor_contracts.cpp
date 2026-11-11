@@ -92,6 +92,23 @@ bool NodeProcessor::BlockInterpretCtx::HandleKernelType(const TxKernelContractIn
 	return true;
 }
 
+void NodeProcessor::BlockInterpretCtx::ContractSig::Check()
+{
+	struct MyCheckpoint :public Exc::Checkpoint
+	{
+		const ContractSig& m_This;
+		MyCheckpoint(const ContractSig& x) :m_This(x) {}
+
+		void Dump(std::ostream& os) override {
+			os << "cid=" << m_This.m_Cid << " method=" << m_This.m_iMethod;
+		}
+
+	} cp(*this);
+
+	ECC::Hash::Processor hp = m_Hp; // copy, it's consumed
+	bvm2::ProcessorContract::CheckSigsEx(hp, m_vSigs, m_FundsIO, m_Commitment, m_Signature);
+}
+
 bool NodeProcessor::BlockInterpretCtx::BvmProcessor::EnsureNoVars(const bvm2::ContractID& cid)
 {
 	Blob key(cid);
@@ -165,7 +182,21 @@ bool NodeProcessor::BlockInterpretCtx::BvmProcessor::Invoke(const bvm2::Contract
 		}
 
 		if (!m_Bic.m_AlreadyValidated)
-			CheckSigs(krn.m_Commitment, krn.m_Signature);
+		{
+			if (m_Bic.m_pvContractSigs)
+			{
+				auto& x = m_Bic.m_pvContractSigs->emplace_back();
+				x.m_Hp = hp;
+				x.m_vSigs = m_vSigs;
+				x.m_FundsIO = fundsIO;
+				x.m_Commitment = krn.m_Commitment;
+				x.m_Signature = krn.m_Signature;
+				x.m_Cid = cid;
+				x.m_iMethod = iMethod;
+			}
+			else
+				CheckSigs(krn.m_Commitment, krn.m_Signature);
+		}
 
 		bRes = true;
 

@@ -1262,6 +1262,145 @@ namespace beam
 	}
 
 
+	void TestNodeProcessorContractSigs()
+	{
+		// Contract signatures of a new block are checked in the verification threads, after the block is interpreted.
+		// Block generation checks them during the interpretation, so it can't produce a block with an invalid one.
+
+		// minimal contract: empty Ctor, Dtor and Method_2
+		static const uint8_t pWasm[] = {
+			0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
+			0x01, 0x05, 0x01, 0x60, 0x01, 0x7f, 0x00, // types: (i32) -> ()
+			0x03, 0x04, 0x03, 0x00, 0x00, 0x00, // functions: 3 of type 0
+			0x07, 0x1a, 0x03, // exports
+				0x04, 'C', 't', 'o', 'r', 0x00, 0x00,
+				0x04, 'D', 't', 'o', 'r', 0x00, 0x01,
+				0x08, 'M', 'e', 't', 'h', 'o', 'd', '_', '2', 0x00, 0x02,
+			0x0a, 0x0a, 0x03, 0x02, 0x00, 0x0b, 0x02, 0x00, 0x0b, 0x02, 0x00, 0x0b, // code
+		};
+
+		ByteBuffer bufCode;
+		bvm2::Processor::Compile(bufCode, Blob(pWasm, sizeof(pWasm)), bvm2::Processor::Kind::Contract);
+
+		NodeProcessor np;
+		np.Initialize(g_sz);
+		np.OnTreasury(g_Treasury);
+
+		Key::IKdf::Ptr pKdf;
+		ECC::SetRandom(pKdf);
+
+		// returns true if the block is accepted
+		auto fnMine = [&](const Transaction::Ptr& pTx, bool bTxIncluded)
+		{
+			TxPool::Fluff txPool;
+			if (pTx)
+			{
+				Transaction::Context ctx;
+				ctx.m_Height = np.m_Cursor.m_hh.m_Height + 1;
+				verify_test(pTx->IsValid(ctx));
+
+				Transaction::KeyType key;
+				pTx->get_Key(key);
+
+				TxPool::Stats stats;
+				stats.From(*pTx, ctx, 0, 0);
+
+				txPool.AddValidTx(Transaction::Ptr(pTx), stats, key, TxPool::Fluff::State::Fluffed);
+			}
+
+			Block::Number num0 = np.m_Cursor.m_Full.m_Number;
+
+			NodeProcessor::BlockContext bc(txPool, 0, *pKdf, *pKdf);
+			verify_test(np.GenerateNewBlock(bc));
+			verify_test(bc.m_Block.m_vKernels.size() == (bTxIncluded ? 2u : 1u)); // coinbase kernel + the tx
+
+			np.OnState(bc.m_Hdr, PeerID());
+
+			Block::SystemState::ID id;
+			bc.m_Hdr.get_ID(id);
+
+			np.OnBlock(id, bc.m_Body.m_Perishable, bc.m_Body.m_Eternal, PeerID());
+			np.TryGoUp();
+
+			return np.m_Cursor.m_Full.m_Number.v > num0.v;
+		};
+
+		auto fnMakeTx = [&](uint32_t nArg, bvm2::ContractID& cid, bool bCorrupt)
+		{
+			auto pKrn = std::make_unique<TxKernelContractCreate>();
+			pKrn->m_Data = bufCode;
+			pKrn->m_Args.resize(sizeof(nArg));
+			memcpy(&pKrn->m_Args.front(), &nArg, sizeof(nArg));
+			pKrn->m_Height.m_Min = np.m_Cursor.m_hh.m_Height + 1;
+
+			bvm2::ShaderID sid;
+			bvm2::get_ShaderID(sid, pKrn->m_Data);
+			bvm2::get_CidViaSid(cid, sid, pKrn->m_Args);
+
+			ECC::Scalar::Native sk;
+			ECC::SetRandom(sk);
+
+			ECC::Point::Native ptFunds;
+			ptFunds = Zero;
+			pKrn->Sign(&sk, 1, ptFunds, nullptr);
+
+			if (bCorrupt)
+				pKrn->m_Signature.m_k.m_Value.m_pData[ECC::nBytes - 1] ^= 1;
+
+			auto pTx = std::make_shared<Transaction>();
+			pTx->m_vKernels.push_back(std::move(pKrn));
+
+			sk = -sk;
+			pTx->m_Offset = sk;
+			pTx->Normalize();
+
+			return pTx;
+		};
+
+		auto fnContractExists = [&](const bvm2::ContractID& cid)
+		{
+			Blob blob;
+			NodeDB::Recordset rs;
+			return np.get_DB().ContractDataFind(cid, blob, rs);
+		};
+
+		while (!Rules::get().IsPastFork_<3>(np.m_Cursor.m_hh.m_Height + 1))
+			verify_test(fnMine(nullptr, false));
+
+		bvm2::ContractID cid;
+
+		// valid signature: checked after the interpretation, the contract is created
+		verify_test(fnMine(fnMakeTx(1, cid, false), true));
+		verify_test(fnContractExists(cid));
+
+		// invalid signature: the generator drops the tx
+		verify_test(fnMine(fnMakeTx(2, cid, true), false));
+		verify_test(!fnContractExists(cid));
+
+		verify_test(fnMine(fnMakeTx(3, cid, false), true));
+		verify_test(fnContractExists(cid));
+
+		// the saved check on its own
+		for (int i = 0; i < 2; i++)
+		{
+			bool bCorrupt = !!i;
+			auto pTx = fnMakeTx(4, cid, bCorrupt);
+			const auto& krn = Cast::Up<TxKernelContractCreate>(*pTx->m_vKernels.front());
+
+			ECC::Hash::Processor hp;
+			krn.Prepare(hp, nullptr);
+
+			bool bValid = true;
+			try {
+				bvm2::ProcessorContract::CheckSigsEx(hp, std::vector<ECC::Point>(), FundsChangeMap(), krn.m_Commitment, krn.m_Signature);
+			} catch (const std::exception&) {
+				bValid = false;
+			}
+
+			verify_test(bValid == !bCorrupt);
+		}
+	}
+
 	void TestNodeProcessor2(std::vector<BlockPlus::Ptr>& blockChain)
 	{
 		NodeProcessor::Horizon horz;
@@ -3584,6 +3723,14 @@ void TestAll()
 	r.Shielded.m_ProofMax = { 4, 6 }; // 4K
 	r.Shielded.m_ProofMin = { 4, 5 }; // 1K
     r.Evm.Groth2Wei = 10'000'000'000ull;
+	r.UpdateChecksum();
+
+	printf("NodeProcessor contract signatures test...\n");
+	fflush(stdout);
+
+	beam::TestNodeProcessorContractSigs();
+	beam::DeleteFile(beam::g_sz);
+
 
 	printf("Node <---> Client test (with proofs)...\n");
 	fflush(stdout);

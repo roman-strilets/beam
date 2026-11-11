@@ -48,6 +48,24 @@ struct NodeProcessor::BlockInterpretCtx
 
 	Merkle::Hash m_hvDependentCtx;
 
+	// Contract signature check, saved to run later in the verification threads
+	struct ContractSig
+	{
+		ECC::Hash::Processor m_Hp;
+		std::vector<ECC::Point> m_vSigs;
+		FundsChangeMap m_FundsIO;
+		ECC::Point m_Commitment;
+		ECC::Signature m_Signature;
+		bvm2::ContractID m_Cid;
+		uint32_t m_iMethod;
+
+		void Check(); // throws on failure
+	};
+
+	// If set, the contract signatures are collected here instead of being checked during the interpretation.
+	// The caller must check them before the block is considered valid.
+	std::vector<ContractSig>* m_pvContractSigs = nullptr;
+
 	struct Ser
 		:public Serializer
 	{

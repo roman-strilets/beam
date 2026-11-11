@@ -241,6 +241,11 @@ bool NodeProcessor::HandleBlockInternal(const HeightHash& id, const Block::Syste
 	if (!bFirstTime)
 		bic.m_AlreadyValidated = true;
 
+	// check contract signatures in the verification threads, along with the rest of the block
+	std::vector<BlockInterpretCtx::ContractSig> vContractSigs;
+	if (bFirstTime)
+		bic.m_pvContractSigs = &vContractSigs;
+
 	std::ostringstream osErr;
 	bic.m_pTxErrorInfo = &osErr;
 
@@ -339,6 +344,9 @@ bool NodeProcessor::HandleBlockInternal(const HeightHash& id, const Block::Syste
 				BEAM_LOG_WARNING() << id << " " << e.what();
 				bOk = false;
 			}
+
+		if (bOk && !vContractSigs.empty())
+			mbc.OnContractSigs(std::move(vContractSigs));
 
 		if (!bOk || bTestOnly)
 		{
