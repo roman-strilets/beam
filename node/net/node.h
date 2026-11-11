@@ -320,8 +320,9 @@ private:
 		Key m_Key;
 
 		bool m_bNeeded;
-		bool m_bSkeleton = false; // single header requested by height (EnumHdrs), not driven by congestions. m_sidTrg.m_Number is the min peer tip
+		bool m_bSkeleton = false; // single header requested by height (EnumHdrs), not driven by congestions. Always owned, m_sidTrg is null
 		bool m_bSkeletonDone = false; // received. Otherwise it's re-requested from another peer once released
+		Block::Number m_numSkeletonMinTip{ 0 }; // the point is requested only from the peers whose tip is not lower
 		uint32_t m_nCount;
 		uint32_t m_TimeAssigned_ms;
 		NodeDB::StateID m_sidTrg;
@@ -359,6 +360,7 @@ private:
 	void UpdateHdrSkeleton();
 	bool IsHdrSkeletonPointExpected(Block::Number) const; // the next point to request, and not the one left to the regular download
 	void StopHdrSkeleton();
+	static Task::Key get_HdrSkeletonKey(Block::Number);
 	bool IsHdrSkeletonPointPending(Block::Number) const;
 	bool IsHdrSkeletonPointKnown(Block::Number); // pending, or there's a header at this height
 	bool RequestHdrSkeletonPoint(Block::Number, Block::Number numMinTip);
@@ -369,6 +371,7 @@ private:
 
 	void TryAssignTask(Task&);
 	bool TryAssignTask(Task&, Peer&);
+	void AssignTask(Task&, Peer&); // the request is already sent
 	void DeleteUnassignedTask(Task&);
 
 	void InitKeys();

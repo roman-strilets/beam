@@ -157,12 +157,20 @@ void Node::StopHdrSkeleton()
 		TryAssignTask(*it++);
 }
 
+Node::Task::Key Node::get_HdrSkeletonKey(Block::Number num)
+{
+	// Header request with zero hash: can't collide with the requests driven by congestions
+	Task::Key key;
+	key.first.m_Number = num;
+	key.first.m_Hash = Zero;
+	key.second = false;
+	return key;
+}
+
 bool Node::IsHdrSkeletonPointPending(Block::Number num) const
 {
 	Task tKey;
-	tKey.m_Key.first.m_Number = num;
-	tKey.m_Key.first.m_Hash = Zero;
-	tKey.m_Key.second = false;
+	tKey.m_Key = get_HdrSkeletonKey(num);
 
 	return m_setTasks.end() != m_setTasks.find(tKey);
 }
@@ -179,10 +187,7 @@ bool Node::IsHdrSkeletonPointKnown(Block::Number num)
 
 bool Node::RequestHdrSkeletonPoint(Block::Number num, Block::Number numMinTip)
 {
-	Task::Key key;
-	key.first.m_Number = num;
-	key.first.m_Hash = Zero;
-	key.second = false;
+	const Task::Key key = get_HdrSkeletonKey(num);
 
 	// The point is tiny, but the reply is queued after the replies to the peer's previous tasks.
 	// Choose the peer with the shortest queue, prioritize w.r.t. rating among equal ones.
@@ -221,24 +226,15 @@ bool Node::RequestHdrSkeletonPoint(Block::Number num, Block::Number numMinTip)
 		Task* pTask = new Task;
 		pTask->m_Key = key;
 		pTask->m_bSkeleton = true;
-		pTask->m_bNeeded = false; // not driven by congestions, see OnHdrSkeletonReleased()
+		pTask->m_numSkeletonMinTip = numMinTip;
+		pTask->m_bNeeded = false; // irrelevant, not driven by congestions (see OnHdrSkeletonReleased)
 		pTask->m_nCount = 0;
-		pTask->m_sidTrg.m_Number = numMinTip;
-		pTask->m_sidTrg.m_Row = 0;
-		pTask->m_sidTrgRequested.SetNull();
-		pTask->m_pOwner = &p;
-
-		PeerManager::TimePoint tp;
-		pTask->m_TimeAssigned_ms = tp.get();
+		pTask->m_sidTrg.SetNull();
+		pTask->m_pOwner = nullptr;
 
 		m_setTasks.insert(*pTask);
+		AssignTask(*pTask, p);
 
-		bool bEmpty = p.m_lstTasks.empty();
-		p.m_lstTasks.push_back(*pTask);
-		if (bEmpty)
-			p.SetTimerWrtFirstTask();
-
-		BEAM_LOG_DEBUG() << "Peer " << p.m_RemoteAddr << " hdr skeleton point " << num.v;
 		return true;
 	}
 
@@ -250,7 +246,7 @@ void Node::OnHdrSkeletonReleased(Task& t)
 	assert(t.m_bSkeleton && !t.m_pOwner && !t.m_nCount);
 
 	Block::Number num = t.m_Key.first.m_Number;
-	Block::Number numMinTip = t.m_sidTrg.m_Number;
+	Block::Number numMinTip = t.m_numSkeletonMinTip;
 	bool bRetry = !t.m_bSkeletonDone && m_HdrSkeleton.m_numNext.v;
 
 	m_setTasks.erase(TaskSet::s_iterator_to(t));
@@ -324,7 +320,7 @@ void Node::UpdateSyncStatusRaw()
 		const Task& t = *it;
 		if (t.m_bSkeleton)
 		{
-			// not driven by congestions (m_bNeeded is false), always owned
+			// not driven by congestions (m_bNeeded is irrelevant), always owned
 			bHdrsInProgress = true;
 			continue;
 		}
@@ -696,13 +692,20 @@ bool Node::TryAssignTask(Task& t, Peer& p)
 		m_nTasksPackHdr += nPackSize;
 	}
 
+	m_lstTasksUnassigned.erase(TaskList::s_iterator_to(t));
+	AssignTask(t, p);
+
+	return true;
+}
+
+void Node::AssignTask(Task& t, Peer& p)
+{
 	bool bEmpty = p.m_lstTasks.empty();
 
 	assert(!t.m_pOwner);
 	t.m_pOwner = &p;
 	t.m_sidTrgRequested = t.m_sidTrg;
 
-	m_lstTasksUnassigned.erase(TaskList::s_iterator_to(t));
 	p.m_lstTasks.push_back(t);
 
 	PeerManager::TimePoint tp;
@@ -715,9 +718,14 @@ bool Node::TryAssignTask(Task& t, Peer& p)
 	if (bEmpty)
 		p.SetTimerWrtFirstTask();
 
-	BEAM_LOG_DEBUG() << "Peer " << p.m_RemoteAddr << " assigned task " << t.m_Key.first;
-
-	return true;
+	if (t.m_bSkeleton)
+	{
+		BEAM_LOG_DEBUG() << "Peer " << p.m_RemoteAddr << " hdr skeleton point " << t.m_Key.first.m_Number.v;
+	}
+	else
+	{
+		BEAM_LOG_DEBUG() << "Peer " << p.m_RemoteAddr << " assigned task " << t.m_Key.first;
+	}
 }
 
 void Node::Peer::SetTimerWrtFirstTask()
