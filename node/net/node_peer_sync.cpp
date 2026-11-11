@@ -125,6 +125,10 @@ void Node::Peer::OnMsg(proto::HdrPack&& msg)
 		BEAM_LOG_DEBUG() << "Hdr skeleton point received " << id;
 		t.m_bSkeletonDone = true;
 
+		uint64_t row = m_This.m_Processor.get_DB().StateFindSafe(id);
+		if (row)
+			m_This.m_HdrSkeleton.m_setPoints.insert(std::make_pair(id.m_Number.v, row));
+
 		ModifyRatingWrtData(sizeof(msg.m_Prefix) + sizeof(msg.m_vElements.front()));
 		OnFirstTaskDone(NodeProcessor::DataStatus::Accepted); // will create the task for the pack below this point
 		return;

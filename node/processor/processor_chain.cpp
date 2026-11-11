@@ -181,6 +181,8 @@ NodeProcessor::CongestionCache::TipCongestion* NodeProcessor::EnumCongestionsInt
 		//		claimed ChainWork (in the last header)
 		//		no bigger than twice proven ChainWork 
 
+		pEntry->m_ChainWorkEst = cw;
+
 		if (!pMaxTarget || (cwMaxTarget < cw))
 		{
 			pMaxTarget = pEntry;
@@ -330,17 +332,25 @@ bool NodeProcessor::get_CachedRows(const NodeDB::StateID& sid, Height nCountExtr
 	return false;
 }
 
-bool NodeProcessor::get_HdrGapLow(NodeDB::StateID& sid)
+bool NodeProcessor::get_HdrGapLow(NodeDB::StateID& sid, const StateSet& setSkip)
 {
+	// Select by the estimated ChainWork, same as the sync target (see EnumCongestionsInternal). Neither the claimed ChainWork
+	// nor the number can be trusted for a branch with missing headers: a fake header with an arbitrary number is cheap.
 	const CongestionCache::TipCongestion* pBest = nullptr;
 
 	for (const auto& x : m_CongestionCache.m_lstTips)
 	{
-		if (x.m_bNeedHdrs && (!pBest || (pBest->m_Number.v < x.m_Number.v)))
+		if (x.m_ChainWorkEst == Zero)
+			continue; // no proven work (single header)
+
+		if (setSkip.end() != setSkip.find(std::make_pair(x.m_Number.v, x.m_Rows.at(0))))
+			continue;
+
+		if (!pBest || (pBest->m_ChainWorkEst < x.m_ChainWorkEst))
 			pBest = &x;
 	}
 
-	if (!pBest)
+	if (!pBest || !pBest->m_bNeedHdrs)
 		return false;
 
 	assert(!pBest->m_Rows.empty());

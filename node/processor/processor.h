@@ -15,6 +15,7 @@
 #pragma once
 
 #include <deque>
+#include <set>
 
 #include "core/storage/radixtree.h"
 #include "core/net/proto.h"
@@ -217,6 +218,7 @@ class NodeProcessor
 			Block::Number m_Number;
 			bool m_bNeedHdrs;
 			std::deque<uint64_t> m_Rows;
+			Difficulty::Raw m_ChainWorkEst; // claimed ChainWork. If headers are missing - no bigger than twice the proven one
 
 			bool IsContained(const NodeDB::StateID&);
 		};
@@ -557,8 +559,10 @@ public:
 
 	void EnumCongestions();
 	bool get_CachedRows(const NodeDB::StateID&, uint64_t nCountExtra, std::deque<uint64_t>::const_iterator& out); // out valid till next call to this func, or to EnumCongestions()
-	// Valid after EnumCongestions(). Of the branches with missing headers, takes the highest one, and returns its lowest known header (whose parent is missing)
-	bool get_HdrGapLow(NodeDB::StateID&);
+	typedef std::set<std::pair<uint64_t, uint64_t> > StateSet; // (number, row)
+	// Valid after EnumCongestions(). Takes the branch with the biggest estimated ChainWork, ignoring the ones whose top is in setSkip.
+	// If it misses headers - returns its lowest known header (whose parent is missing)
+	bool get_HdrGapLow(NodeDB::StateID&, const StateSet& setSkip);
 	void TryGoUp();
 	void TryGoTo(NodeDB::StateID&);
 	void OnFastSyncOver(MultiblockContext&, bool& bContextFail);

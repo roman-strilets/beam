@@ -349,6 +349,9 @@ private:
 		static const uint64_t s_Step = proto::g_HdrPackMaxSize + 1;
 		Block::Number m_numNext{ 0 }; // next point to request, 0 if inactive
 		Block::Number m_numLow{ 0 }; // lowest known header of the branch the skeleton is built for. Valid if active
+		// Received points. Each one is the top of a separate branch until the pack above it arrives. Such branches
+		// are the parts of the skeleton's one, and must not be selected instead of it.
+		NodeProcessor::StateSet m_setPoints;
 	} m_HdrSkeleton;
 
 	bool IsHdrSkeletonBranch(const Task&) const;

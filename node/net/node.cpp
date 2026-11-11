@@ -56,11 +56,15 @@ void Node::UpdateHdrSkeleton()
 	const uint64_t nStep = HdrSkeleton::s_Step;
 	const uint64_t numCursor = m_Processor.m_Cursor.m_Full.m_Number.v;
 
+	auto& setPoints = m_HdrSkeleton.m_setPoints; // alias
+	while (!setPoints.empty() && (setPoints.begin()->first <= numCursor))
+		setPoints.erase(setPoints.begin());
+
 	NodeDB::StateID sidLow;
 	bool bActive =
 		m_Cfg.m_HdrSkeletonWindow &&
 		Rules::get().IsConstantSpan() && // EnumHdrs addresses headers by height, which is the number only for constant span
-		m_Processor.get_HdrGapLow(sidLow) &&
+		m_Processor.get_HdrGapLow(sidLow, setPoints) &&
 		(sidLow.m_Number.v > numCursor + nStep * 2);
 
 	Block::Number& numNext = m_HdrSkeleton.m_numNext; // alias
