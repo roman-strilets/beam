@@ -416,7 +416,8 @@ public:
 	void get_StateForApply(uint64_t rowid, Block::SystemState::Full&, StateForApply&);
 	uint32_t get_StateCountNextF(uint64_t rowid);
 
-	// Saves the result of the block interpretation and the eternal part of the body, marks the state Functional, Reachable and Active
+	// Saves the result of the block interpretation and the eternal part of the body, marks the state Functional, Reachable and Active.
+	// Clears the peer, the empty rollback data is NULL (see RaiseHorizons)
 	void set_StateApplied(uint64_t rowid, TxoID, const Blob& extra, const Blob& rb, const Blob& inputs, const Blob& bodyE);
 
 	// Completes the move to the state applied by set_StateApplied(): the previous state (the cursor) is the parent of this one,

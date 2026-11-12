@@ -487,19 +487,23 @@ uint32_t NodeDB::get_StateCountNextF(uint64_t rowid)
 
 void NodeDB::set_StateApplied(uint64_t rowid, TxoID txos, const Blob& extra, const Blob& rb, const Blob& inputs, const Blob& bodyE)
 {
+	// The peer (of the header, set by InsertState) is cleared, and the empty rollback data is NULL. Otherwise the row would be
+	// rewritten once more when the fossil height is raised (see DelStateBlockPPR), and that's every row of the fast sync.
 	Recordset rs(*this, Query::StateSetApplied, "UPDATE " TblStates " SET "
 		TblStates_Flags "=" TblStates_Flags " | ?,"
 		TblStates_Txos "=?,"
 		TblStates_Extra "=?,"
 		TblStates_Rollback "=?,"
 		TblStates_Inputs "=?,"
-		TblStates_BodyE "=?"
+		TblStates_BodyE "=?,"
+		TblStates_Peer "=NULL"
 		" WHERE rowid=?");
 
 	rs.put(0, StateFlags::Functional | StateFlags::Reachable | StateFlags::Active);
 	rs.put(1, txos);
 	rs.put(2, extra);
-	rs.put(3, rb);
+	if (rb.n)
+		rs.put(3, rb); // otherwise NULL
 	if (inputs.n)
 		rs.put(4, inputs);
 	if (bodyE.n)
