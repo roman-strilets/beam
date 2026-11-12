@@ -685,6 +685,30 @@ void NodeDB::EnumStatesAt(WalkerState& x, Block::Number num)
 	x.m_Rs.put(0, num.v);
 }
 
+void NodeDB::EnumActiveStatesInRange(WalkerActiveState& x, Block::Number numMin, Block::Number numMax)
+{
+	x.m_Rs.Reset(*this, Query::EnumActiveInRange, "SELECT " TblStates_Number ",rowid," TblStates_Inputs ","
+		"(" TblStates_BodyP " IS NOT NULL OR " TblStates_Rollback " IS NOT NULL OR " TblStates_Peer " IS NOT NULL)"
+		" FROM " TblStates " WHERE " TblStates_Number ">=? AND " TblStates_Number "<=? AND (" TblStates_Flags " & ?) ORDER BY " TblStates_Number);
+	x.m_Rs.put(0, numMin.v);
+	x.m_Rs.put(1, numMax.v);
+	x.m_Rs.put(2, StateFlags::Active);
+}
+
+bool NodeDB::WalkerActiveState::MoveNext()
+{
+	if (!m_Rs.Step())
+		return false;
+	m_Rs.get(0, m_Sid.m_Number.v);
+	m_Rs.get(1, m_Sid.m_Row);
+	m_Rs.get(2, m_Inputs); // if NULL empty blob will be returned
+
+	uint32_t nPPR = 0;
+	m_Rs.get(3, nPPR);
+	m_bBlockPPR = !!nPPR;
+	return true;
+}
+
 bool NodeDB::WalkerState::MoveNext()
 {
 	if (!m_Rs.Step())

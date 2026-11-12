@@ -79,12 +79,15 @@ bool NodeDB::get_StateInputs(uint64_t rowid, std::vector<StateInput>& v)
 	Blob blob;
 	rs.get(0, blob); // if NULL empty blob will be returned
 
-	v.resize(blob.n / sizeof(StateInput));
-	if (v.empty())
-		return false;
+	get_StateInputs(blob, v);
+	return !v.empty();
+}
 
-	memcpy(&v.front(), blob.p, v.size() * sizeof(StateInput)); // don't use blob size, it may be bigger if blob.n isn't multiple of sizeof(StateInput)
-	return true;
+void NodeDB::get_StateInputs(const Blob& blob, std::vector<StateInput>& v)
+{
+	v.resize(blob.n / sizeof(StateInput));
+	if (!v.empty())
+		memcpy(&v.front(), blob.p, v.size() * sizeof(StateInput)); // don't use blob size, it may be bigger if blob.n isn't multiple of sizeof(StateInput)
 }
 
 void NodeDB::StateInput::Set(TxoID id, const ECC::Point& pt)

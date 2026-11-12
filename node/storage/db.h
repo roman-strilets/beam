@@ -122,6 +122,7 @@ public:
 			EnumTips,
 			EnumFunctionalTips,
 			EnumAtNumber,
+			EnumActiveInRange,
 			StateGetPrev,
 			Unactivate,
 			Activate,
@@ -423,6 +424,20 @@ public:
 	void EnumFunctionalTips(WalkerState&); // chainwork highest to lowest
 
 	void EnumStatesAt(WalkerState&, Block::Number);
+
+	// Active states in [numMin, numMax], Number lowest to highest. Single pass over the rows, instead of a lookup per Number.
+	struct WalkerActiveState
+	{
+		Recordset m_Rs;
+		StateID m_Sid;
+		Blob m_Inputs; // valid till the next MoveNext()
+		bool m_bBlockPPR; // has perishable, peer or rollback, see DelStateBlockPPR()
+
+		bool MoveNext();
+	};
+
+	void EnumActiveStatesInRange(WalkerActiveState&, Block::Number numMin, Block::Number numMax);
+	static void get_StateInputs(const Blob&, std::vector<StateInput>&);
 
 	bool get_Prev(StateID&);
 	bool get_Prev(uint64_t&);

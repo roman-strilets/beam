@@ -68,14 +68,18 @@ Height NodeProcessor::PruneOld()
 		}
 	}
 
+	Block::Number numFossil = m_Extra.m_Fossil, numTxoHi = m_Extra.m_TxoHi, numTxoLo = m_Extra.m_TxoLo; // not raised by default
+
 	if (IsBigger2(m_Cursor.m_Full.m_Number.v, m_Extra.m_Fossil.v, (uint64_t) Rules::get().MaxRollback))
-		hRet += RaiseFossil(Block::Number(m_Cursor.m_Full.m_Number.v - Rules::get().MaxRollback));
+		numFossil.v = m_Cursor.m_Full.m_Number.v - Rules::get().MaxRollback;
 
 	if (IsBigger2(m_Cursor.m_Full.m_Number.v, m_Extra.m_TxoLo.v, m_Horizon.m_Local.Lo))
-		hRet += RaiseTxoLo(Block::Number(m_Cursor.m_Full.m_Number.v - m_Horizon.m_Local.Lo));
+		numTxoLo.v = m_Cursor.m_Full.m_Number.v - m_Horizon.m_Local.Lo;
 
 	if (IsBigger2(m_Cursor.m_Full.m_Number.v, m_Extra.m_TxoHi.v, m_Horizon.m_Local.Hi))
-		hRet += RaiseTxoHi(Block::Number(m_Cursor.m_Full.m_Number.v - m_Horizon.m_Local.Hi));
+		numTxoHi.v = m_Cursor.m_Full.m_Number.v - m_Horizon.m_Local.Hi;
+
+	hRet += RaiseHorizons(numFossil, numTxoHi, numTxoLo);
 
 	return hRet;
 }
@@ -106,126 +110,131 @@ struct LongActionPlus
 	}
 };
 
-Height NodeProcessor::RaiseFossil(Block::Number numTrg)
+uint64_t NodeProcessor::RaiseHorizons(Block::Number numFossil, Block::Number numTxoHi, Block::Number numTxoLo)
 {
-	if (numTrg.v <= m_Extra.m_Fossil.v)
-		return 0;
-
-	LongActionPlus la("Raising Fossil...", m_Extra.m_Fossil.v, numTrg.v, m_pExternalHandler);
-
-	Height hRet = 0;
-
-	while (m_Extra.m_Fossil.v < numTrg.v)
+	// Each horizon is raised over the Numbers in (current, target]
+	struct Range
 	{
-		m_Extra.m_Fossil.v++;
+		Block::Number& m_Cur;
+		Block::Number m_Trg;
 
-		NodeDB::WalkerState ws;
-		for (m_DB.EnumStatesAt(ws, m_Extra.m_Fossil); ws.MoveNext(); )
-		{
-			if (NodeDB::StateFlags::Active & m_DB.GetStateFlags(ws.m_Sid.m_Row))
-				m_DB.DelStateBlockPPR(ws.m_Sid.m_Row);
-			//else
-			//	DeleteBlock(ws.m_Sid.m_Row);
+		bool IsActive() const { return m_Trg.v > m_Cur.v; }
+		bool Contains(Block::Number num) const { return (num.v > m_Cur.v) && (num.v <= m_Trg.v); }
+	};
 
-			// Don't delete non-active blocks! For non-archieve nodes the whole abandoned branch will eventually be deleted.
-			// For archieve node - keep abandoned blocks, to be able to analyze them later.
+	Range rFossil{ m_Extra.m_Fossil, numFossil };
+	Range rTxoHi{ m_Extra.m_TxoHi, numTxoHi };
+	Range rTxoLo{ m_Extra.m_TxoLo, numTxoLo };
+	Range* pR[] = { &rFossil, &rTxoHi, &rTxoLo };
 
-			hRet++;
-		}
-		la.OnProgress(m_Extra.m_Fossil.v, numTrg.v);
-
+	Block::Number num0(MaxHeight), num1(0); // the Numbers to walk through, inclusive
+	for (const Range* p : pR)
+	{
+		if (!p->IsActive())
+			continue;
+		num0.v = std::min(num0.v, p->m_Cur.v + 1);
+		num1.v = std::max(num1.v, p->m_Trg.v);
 	}
 
-	m_DB.ParamIntSet(NodeDB::ParamID::NumberFossil, m_Extra.m_Fossil.v);
-	return hRet;
-}
+	if (num0.v > num1.v)
+		return 0; // nothing to raise
 
-Height NodeProcessor::RaiseTxoLo(Block::Number numTrg)
-{
-	if (numTrg.v <= m_Extra.m_TxoLo.v)
-		return 0;
+	// TxoLo deletes the spent TXOs, TxoHi makes them naked. TxoLo must not be above TxoHi, otherwise TxoHi would look for the deleted TXOs
+	assert(std::max(rTxoLo.m_Cur.v, rTxoLo.m_Trg.v) <= std::max(rTxoHi.m_Cur.v, rTxoHi.m_Trg.v));
 
-	LongActionPlus la("Raising TxoLo...", m_Extra.m_TxoLo.v, numTrg.v, m_pExternalHandler);
+	LongActionPlus la("Raising horizons...", num0.v - 1, num1.v, m_pExternalHandler);
 
-	Height hRet = 0;
+	uint64_t nRet = 0;
 	std::vector<NodeDB::StateInput> v;
+	NodeDB::WalkerTxo wlk;
 
-	while (m_Extra.m_TxoLo.v < numTrg.v)
+	Block::Number numNext = num0;
+
+	NodeDB::WalkerActiveState ws;
+	for (m_DB.EnumActiveStatesInRange(ws, num0, num1); ws.MoveNext(); numNext.v++)
 	{
-		++m_Extra.m_TxoLo.v;
-		uint64_t rowid = FindActiveAtStrict(m_Extra.m_TxoLo);
-		if (!m_DB.get_StateInputs(rowid, v))
-			continue;
+		const Block::Number num = ws.m_Sid.m_Number;
+		if (num.v != numNext.v)
+			OnCorrupted(); // must be exactly 1 active state per Number
 
-		size_t iRes = 0;
-		for (size_t i = 0; i < v.size(); i++)
+		const uint64_t rowid = ws.m_Sid.m_Row;
+		NodeDB::get_StateInputs(ws.m_Inputs, v);
+
+		if (rFossil.Contains(num) && ws.m_bBlockPPR)
 		{
-			const NodeDB::StateInput& inp = v[i];
-			TxoID id = inp.get_ID();
-			if (id >= m_Extra.m_TxosTreasury)
-				m_DB.TxoDel(id);
-			else
+			// Don't touch non-active blocks! For non-archieve nodes the whole abandoned branch will eventually be deleted.
+			// For archieve node - keep abandoned blocks, to be able to analyze them later.
+			// Don't rewrite the row if there's nothing to delete. After fast sync it's the case for most of them.
+			m_DB.DelStateBlockPPR(rowid);
+			nRet++;
+		}
+
+		if (rTxoHi.Contains(num))
+		{
+			for (size_t i = 0; i < v.size(); i++)
 			{
-				if (iRes != i)
-					v[iRes] = inp;
-				iRes++;
+				TxoID id = v[i].get_ID();
+
+				m_DB.TxoGetValue(wlk, id);
+
+				if (TxoIsNaked(wlk.m_Value))
+					continue; //?!
+
+				uint8_t pNaked[s_TxoNakedMax];
+				TxoToNaked(pNaked, wlk.m_Value);
+
+				m_DB.TxoSetValue(id, wlk.m_Value);
+				nRet++;
 			}
 		}
 
-		hRet += (v.size() - iRes);
-
-		m_DB.set_StateInputs(rowid, &v.front(), iRes);
-
-		la.OnProgress(m_Extra.m_TxoLo.v, numTrg.v);
-	}
-
-	m_Extra.m_TxoLo = numTrg;
-	m_DB.ParamIntSet(NodeDB::ParamID::NumberTxoLo, m_Extra.m_TxoLo.v);
-
-	return hRet;
-}
-
-Height NodeProcessor::RaiseTxoHi(Block::Number numTrg)
-{
-	if (numTrg.v <= m_Extra.m_TxoHi.v)
-		return 0;
-
-	LongActionPlus la("Raising TxoHi...", m_Extra.m_TxoHi.v, numTrg.v, m_pExternalHandler);
-
-
-	Height hRet = 0;
-	std::vector<NodeDB::StateInput> v;
-
-	NodeDB::WalkerTxo wlk;
-
-	while (m_Extra.m_TxoHi.v < numTrg.v)
-	{
-		++m_Extra.m_TxoHi.v;
-		uint64_t rowid = FindActiveAtStrict(m_Extra.m_TxoHi);
-		m_DB.get_StateInputs(rowid, v);
-
-		for (size_t i = 0; i < v.size(); i++)
+		if (rTxoLo.Contains(num) && !v.empty())
 		{
-			TxoID id = v[i].get_ID();
+			size_t iRes = 0;
+			for (size_t i = 0; i < v.size(); i++)
+			{
+				const NodeDB::StateInput& inp = v[i];
+				TxoID id = inp.get_ID();
+				if (id >= m_Extra.m_TxosTreasury)
+					m_DB.TxoDel(id);
+				else
+				{
+					if (iRes != i)
+						v[iRes] = inp;
+					iRes++;
+				}
+			}
 
-			m_DB.TxoGetValue(wlk, id);
+			nRet += (v.size() - iRes);
 
-			if (TxoIsNaked(wlk.m_Value))
-				continue; //?!
-
-			uint8_t pNaked[s_TxoNakedMax];
-			TxoToNaked(pNaked, wlk.m_Value);
-
-			m_DB.TxoSetValue(id, wlk.m_Value);
-			hRet++;
+			m_DB.set_StateInputs(rowid, &v.front(), iRes);
 		}
 
-		la.OnProgress(m_Extra.m_TxoHi.v, numTrg.v);
+		la.OnProgress(num.v, num1.v);
 	}
 
-	m_DB.ParamIntSet(NodeDB::ParamID::NumberTxoHi, m_Extra.m_TxoHi.v);
+	if (numNext.v != num1.v + 1)
+		OnCorrupted();
 
-	return hRet;
+	if (rFossil.IsActive())
+	{
+		m_Extra.m_Fossil = numFossil;
+		m_DB.ParamIntSet(NodeDB::ParamID::NumberFossil, m_Extra.m_Fossil.v);
+	}
+
+	if (rTxoHi.IsActive())
+	{
+		m_Extra.m_TxoHi = numTxoHi;
+		m_DB.ParamIntSet(NodeDB::ParamID::NumberTxoHi, m_Extra.m_TxoHi.v);
+	}
+
+	if (rTxoLo.IsActive())
+	{
+		m_Extra.m_TxoLo = numTxoLo;
+		m_DB.ParamIntSet(NodeDB::ParamID::NumberTxoLo, m_Extra.m_TxoLo.v);
+	}
+
+	return nRet;
 }
 
 void NodeProcessor::TxoToNaked(uint8_t* pBuf, Blob& v)

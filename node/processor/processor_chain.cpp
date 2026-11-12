@@ -743,9 +743,7 @@ void NodeProcessor::OnFastSyncOver(MultiblockContext& mbc, bool& bContextFail)
 		BEAM_LOG_INFO() << "Fast-sync succeeded";
 
 		// raise fossil height, hTxoLo, hTxoHi
-		RaiseFossil(m_Cursor.m_Full.m_Number);
-		RaiseTxoHi(m_Cursor.m_Full.m_Number);
-		RaiseTxoLo(m_SyncData.m_TxoLo);
+		RaiseHorizons(m_Cursor.m_Full.m_Number, m_Cursor.m_Full.m_Number, m_SyncData.m_TxoLo);
 
 		ZeroObject(m_SyncData);
 		SaveSyncData();

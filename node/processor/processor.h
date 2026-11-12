@@ -154,9 +154,9 @@ class NodeProcessor
 
 	void RollbackTo(Block::Number);
 	uint64_t PruneOld();
-	uint64_t RaiseFossil(Block::Number);
-	uint64_t RaiseTxoLo(Block::Number);
-	uint64_t RaiseTxoHi(Block::Number);
+	// Raises the Fossil, TxoHi and TxoLo up to the given numbers (the ones that are not above the current are ignored),
+	// in a single pass over the active states.
+	uint64_t RaiseHorizons(Block::Number numFossil, Block::Number numTxoHi, Block::Number numTxoLo);
 	void Vacuum();
 	void RebuildNonStd();
 	void InitializeUtxos();
