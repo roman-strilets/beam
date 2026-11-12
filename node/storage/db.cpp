@@ -66,6 +66,8 @@ void NodeDB::Close()
 {
 	if (m_pDb)
 	{
+		StreamBlobClose();
+
 		for (size_t i = 0; i < _countof(m_pPrep); i++)
 			m_pPrep[i].Close();
 
@@ -266,6 +268,7 @@ void NodeDB::Vacuum()
 
 void NodeDB::ExecQuick(const char* szSql)
 {
+	StreamBlobClose();
 	int n = sqlite3_total_changes(m_pDb);
 	TestRet(sqlite3_exec(m_pDb, szSql, NULL, NULL, NULL));
 
@@ -275,6 +278,7 @@ void NodeDB::ExecQuick(const char* szSql)
 
 std::string NodeDB::ExecTextOut(const char* szSql)
 {
+	StreamBlobClose();
 	int n = sqlite3_total_changes(m_pDb);
 	TestRet(sqlite3_exec(m_pDb, szSql, NULL, NULL, NULL));
 
@@ -332,6 +336,21 @@ bool NodeDB::ExecStep(sqlite3_stmt* pStmt)
 
 bool NodeDB::ExecStep(Query::Enum val, const char* sql)
 {
+	switch (val)
+	{
+	case Query::Begin:
+	case Query::Commit:
+	case Query::Rollback:
+	case Query::SavepointSet:
+	case Query::SavepointRelease:
+	case Query::SavepointRollback:
+		StreamBlobClose(); // see m_StreamBlob
+		break;
+
+	default:
+		break;
+	}
+
 	return ExecStep(get_Statement(val, sql).m_pStmt);
 
 }

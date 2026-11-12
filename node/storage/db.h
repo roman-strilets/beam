@@ -905,6 +905,19 @@ private:
 
 	sqlite3* m_pDb;
 
+	// The last blob of the Streams table, kept open between StreamIO() calls. A blob is 1 MiB, and SQLite reaches an offset in it
+	// by walking its overflow pages. An open handle caches them, so a write of a single MMR element doesn't walk the whole chain.
+	// Closed before the transaction control statements (an open write handle is an active statement) and before the Streams rows
+	// are inserted or deleted.
+	struct StreamBlob
+	{
+		sqlite3_blob* m_pPtr = nullptr;
+		uint64_t m_Key = 0;
+		bool m_bWrite = false;
+	} m_StreamBlob;
+
+	void StreamBlobClose();
+
 	struct Statement
 	{
 		sqlite3_stmt* m_pStmt;

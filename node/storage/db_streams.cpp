@@ -153,6 +153,9 @@ void NodeDB::StreamResize(StreamType::Enum eType, uint64_t n, uint64_t n0)
 	uint64_t nBlobs0 = (n0 + s_StreamBlob - 1) / s_StreamBlob;
 	uint64_t nBlobs1 = (n + s_StreamBlob - 1) / s_StreamBlob;
 
+	if (nBlobs0 < nBlobs1)
+		StreamBlobClose();
+
 	for (; nBlobs0 < nBlobs1; nBlobs0++)
 	{
 		Recordset rs(*this, Query::StreamIns, "INSERT INTO " TblStreams "(" TblStream_ID "," TblStream_Value ") VALUES (?,?)");
@@ -174,6 +177,8 @@ void NodeDB::StreamResize(StreamType::Enum eType, uint64_t n, uint64_t n0)
 
 void NodeDB::StreamShrinkInternal(uint64_t k0, uint64_t k1)
 {
+	StreamBlobClose();
+
 	Recordset rs(*this, Query::StreamDel, "DELETE FROM " TblStreams " WHERE " TblStream_ID ">=? AND " TblStream_ID "<?");
 	rs.put(0, k0);
 	rs.put(1, k1);
@@ -183,6 +188,15 @@ void NodeDB::StreamShrinkInternal(uint64_t k0, uint64_t k1)
 void NodeDB::StreamsDelAll(StreamType::Enum t0, StreamType::Enum t1)
 {
 	StreamShrinkInternal(StreamType::Key(0, t0), StreamType::Key(std::numeric_limits<uint32_t>::max(), t1));
+}
+
+void NodeDB::StreamBlobClose()
+{
+	if (m_StreamBlob.m_pPtr)
+	{
+		sqlite3_blob_close(m_StreamBlob.m_pPtr); // returns the error of the last read/write, if any. Already handled
+		m_StreamBlob.m_pPtr = nullptr;
+	}
 }
 
 void NodeDB::OpenBlob(BlobGuard& blob, const char* szTable, const char* szColumn, uint64_t rowid, bool bRW)
@@ -197,16 +211,25 @@ void NodeDB::StreamIO(StreamType::Enum eType, uint64_t pos, uint8_t* p, uint64_t
 
 	while (nCount)
 	{
-		BlobGuard blob;
-		OpenBlob(blob, TblStreams, TblStream_Value, StreamType::Key(nBlob0, eType), bWrite);
+		uint64_t nKey = StreamType::Key(nBlob0, eType);
+		if (!m_StreamBlob.m_pPtr || (m_StreamBlob.m_Key != nKey) || (bWrite && !m_StreamBlob.m_bWrite))
+		{
+			StreamBlobClose();
+			TestRet(sqlite3_blob_open(m_pDb, "main", TblStreams, TblStream_Value, nKey, bWrite ? 1 : 0, &m_StreamBlob.m_pPtr));
+			m_StreamBlob.m_Key = nKey;
+			m_StreamBlob.m_bWrite = bWrite;
+		}
 
 		uint32_t nPortion = s_StreamBlob - nOffs;
 		if (nPortion > nCount)
 			nPortion = static_cast<uint32_t>(nCount);
 
 		int nRes = bWrite ?
-			sqlite3_blob_write(blob.m_pPtr, p, nPortion, nOffs) :
-			sqlite3_blob_read(blob.m_pPtr, p, nPortion, nOffs);
+			sqlite3_blob_write(m_StreamBlob.m_pPtr, p, nPortion, nOffs) :
+			sqlite3_blob_read(m_StreamBlob.m_pPtr, p, nPortion, nOffs);
+
+		if (SQLITE_OK != nRes)
+			StreamBlobClose(); // e.g. expired, don't reuse it
 
 		TestRet(nRes);
 
