@@ -153,6 +153,8 @@ namespace ECC
 
 		class Processor;
 		class Mac;
+
+		static bool IsHw(); // the SHA-256 instructions of the CPU are used
 	};
 
 	typedef beam::Amount Amount;

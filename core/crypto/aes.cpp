@@ -1,6 +1,11 @@
 #include <assert.h>
 #include "core/crypto/aes.h"
 
+#if defined(__aarch64__) && defined(__ARM_FEATURE_AES)
+#	include <arm_neon.h>
+#	define BEAM_AES_HW_ARM
+#endif
+
 /*
 *  FIPS-197 compliant AES implementation
 *
@@ -190,6 +195,37 @@ void AES::Encoder::Init(const uint8_t* pKey)
 		RK[14] = RK[6] ^ RK[13];
 		RK[15] = RK[7] ^ RK[14];
 	}
+
+	// the round keys are big-endian words
+	for (i = 0; i < (Nr + 1) * 4; i++)
+		PUT_UINT32(m_erk[i], m_pRkBytes, i * 4);
+}
+
+bool AES::Encoder::IsHw()
+{
+#ifdef BEAM_AES_HW_ARM
+	return true;
+#else
+	return false;
+#endif
+}
+
+void AES::Encoder::Proceed(uint8_t* pDst, const uint8_t* pSrc) const
+{
+#ifdef BEAM_AES_HW_ARM
+	// AESE: AddRoundKey, SubBytes, ShiftRows. AESMC: MixColumns. The last round has no MixColumns, and is followed by AddRoundKey
+	uint8x16_t x = vld1q_u8(pSrc);
+
+	for (int iRound = 0; iRound < Nr - 1; iRound++)
+		x = vaesmcq_u8(vaeseq_u8(x, vld1q_u8(m_pRkBytes + iRound * s_BlockSize)));
+
+	x = vaeseq_u8(x, vld1q_u8(m_pRkBytes + (Nr - 1) * s_BlockSize));
+	x = veorq_u8(x, vld1q_u8(m_pRkBytes + Nr * s_BlockSize));
+
+	vst1q_u8(pDst, x);
+#else
+	ProceedSw(pDst, pSrc);
+#endif
 }
 
 void AES::Decoder::Init(const Encoder& enc)
@@ -254,7 +290,7 @@ void AES::Decoder::Init(const Encoder& enc)
 
 /* AES 128-bit block encryption routine */
 
-void AES::Encoder::Proceed(uint8_t* pDst, const uint8_t* pSrc) const
+void AES::Encoder::ProceedSw(uint8_t* pDst, const uint8_t* pSrc) const
 {
 	uint32_t X0, X1, X2, X3, Y0, Y1, Y2, Y3;
 

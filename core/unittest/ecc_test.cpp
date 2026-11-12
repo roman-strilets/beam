@@ -353,6 +353,86 @@ void TestHash()
 		// hash values must change, even if no explicit input was fed.
 		verify_test(!(hv == hv2));
 	}
+
+	printf("SHA-256 instructions of the CPU: %s, AES: %s\n", Hash::IsHw() ? "yes" : "no", AES::Encoder::IsHw() ? "yes" : "no");
+
+	{
+		// FIPS 180-2 test vectors
+		static const uint8_t pAbc[32] = {
+			0xba,0x78,0x16,0xbf,0x8f,0x01,0xcf,0xea,0x41,0x41,0x40,0xde,0x5d,0xae,0x22,0x23,
+			0xb0,0x03,0x61,0xa3,0x96,0x17,0x7a,0x9c,0xb4,0x10,0xff,0x61,0xf2,0x00,0x15,0xad
+		};
+		Hash::Processor hp;
+		hp.Write("abc", 3);
+		hp >> hv;
+		verify_test(!memcmp(hv.m_pData, pAbc, sizeof(pAbc)));
+
+		// 1,000,000 x 'a', written in portions of different sizes
+		static const uint8_t pMillion[32] = {
+			0xcd,0xc7,0x6e,0x5c,0x99,0x14,0xfb,0x92,0x81,0xa1,0xc7,0xe2,0x84,0xd7,0x3e,0x67,
+			0xf1,0x80,0x9a,0x48,0xa4,0x97,0x20,0x0e,0x04,0x6d,0x39,0xcc,0xc7,0x11,0x2c,0xd0
+		};
+		std::vector<uint8_t> v(1000, 'a');
+		Hash::Processor hp2;
+		for (uint32_t nDone = 0, i = 0; nDone < 1000000; i++)
+		{
+			uint32_t n = std::min<uint32_t>(1000000 - nDone, (i * 37) % 1000 + 1);
+			hp2.Write(&v.front(), n);
+			nDone += n;
+		}
+		hp2 >> hv;
+		verify_test(!memcmp(hv.m_pData, pMillion, sizeof(pMillion)));
+	}
+
+	{
+		// RFC 4231, test case 2
+		static const uint8_t pMac[32] = {
+			0x5b,0xdc,0xc1,0x46,0xbf,0x60,0x75,0x4e,0x6a,0x04,0x24,0x26,0x08,0x95,0x75,0xc7,
+			0x5a,0x00,0x3f,0x08,0x9d,0x27,0x39,0x83,0x9d,0xec,0x58,0xb9,0x64,0xec,0x38,0x43
+		};
+		Hash::Mac hm("Jefe", 4);
+		hm.Write("what do ya want for nothing?", 28);
+		hm >> hv;
+		verify_test(!memcmp(hv.m_pData, pMac, sizeof(pMac)));
+	}
+
+	// the same as the reference (secp256k1) implementation, for different sizes and portions, and keys longer than a block
+	std::vector<uint8_t> vData(1000);
+	for (size_t i = 0; i < vData.size(); i++)
+		vData[i] = (uint8_t) (i * 131 + 7);
+
+	for (uint32_t nSize = 0; nSize <= 300; nSize++)
+	{
+		for (uint32_t nPortion = 1; nPortion <= 130; nPortion += 43)
+		{
+			Hash::Processor hp;
+			Hash::Mac hm(&vData.front() + 500, (nSize % 3) ? nSize : 100);
+
+			secp256k1_sha256 ref;
+			secp256k1_sha256_initialize(&ref);
+			secp256k1_hmac_sha256 refMac;
+			secp256k1_hmac_sha256_initialize(&refMac, &vData.front() + 500, (nSize % 3) ? nSize : 100);
+
+			for (uint32_t nDone = 0; nDone < nSize; )
+			{
+				uint32_t n = std::min(nSize - nDone, nPortion);
+				hp.Write(&vData.front() + nDone, n);
+				hm.Write(&vData.front() + nDone, n);
+				secp256k1_sha256_write(&ref, &vData.front() + nDone, n);
+				secp256k1_hmac_sha256_write(&refMac, &vData.front() + nDone, n);
+				nDone += n;
+			}
+
+			Hash::Value hvRef;
+			hp >> hv;
+			secp256k1_sha256_finalize(&ref, hvRef.m_pData);
+			verify_test(hv == hvRef);
+
+			hm >> hv;
+			secp256k1_hmac_sha256_finalize(&refMac, hvRef.m_pData);
+			verify_test(hv == hvRef);
+		}
+	}
 }
 
 void TestScalars()
@@ -1623,6 +1703,22 @@ void TestAES()
 
 	sd.dec.Proceed(pBuf, pBuf); // inplace decode
 	verify_test(!memcmp(pBuf, pPlaintext, sizeof(pPlaintext)));
+
+	// the same as the software implementation, for different keys
+	for (uint32_t iKey = 0; iKey < 50; iKey++)
+	{
+		for (uint32_t i = 0; i < sizeof(pKey); i++)
+			pKey[i] = (uint8_t) (iKey * 97 + i * 13 + 1);
+		se.enc.Init(pKey);
+
+		uint8_t pBuf2[sizeof(pPlaintext)];
+		for (uint32_t i = 0; i < sizeof(pBuf); i++)
+			pBuf[i] = (uint8_t) (iKey * 7 + i * 29);
+
+		se.enc.Proceed(pBuf2, pBuf);
+		se.enc.ProceedSw(pBuf, pBuf);
+		verify_test(!memcmp(pBuf, pBuf2, sizeof(pBuf)));
+	}
 }
 
 void TestKdfPair(Key::IKdf& skdf, Key::IPKdf& pkdf)

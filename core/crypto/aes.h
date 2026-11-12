@@ -11,8 +11,12 @@ struct AES
 	struct Encoder
 	{
 		uint32_t m_erk[64]; // encryption round keys. Actually needed 60, but during init extra space is used
+		uint8_t m_pRkBytes[(Nr + 1) * s_BlockSize]; // the same round keys as bytes, for the AES instructions of the CPU (if used)
 		void Init(const uint8_t* pKey);
-		void Proceed(uint8_t* pDst, const uint8_t* pSrc) const;
+		void Proceed(uint8_t* pDst, const uint8_t* pSrc) const; // uses the AES instructions of the CPU if supported
+		void ProceedSw(uint8_t* pDst, const uint8_t* pSrc) const; // software only
+
+		static bool IsHw(); // the AES instructions are used
 	};
 
 	struct Decoder
