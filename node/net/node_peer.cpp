@@ -396,7 +396,7 @@ void Node::Peer::ReleaseTask(Task& t)
 
 	m_This.m_lstTasksUnassigned.push_back(t);
 
-	if (t.m_bNeeded)
+	if (t.m_bNeeded && !t.m_bHedge) // the hedge isn't reassigned: the original task is
 		m_This.TryAssignTask(t);
 	else
 		m_This.DeleteUnassignedTask(t);

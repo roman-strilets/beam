@@ -85,6 +85,9 @@ struct Node
 		uint32_t m_BodyWindowsAhead = 16;
 		// Fast sync: max time of applying the received blocks at once, so that the download continues meanwhile. 0 - unlimited
 		uint32_t m_GoUpBudget_ms = 250;
+		// Fast sync: if the pack right above the cursor is requested for longer than this, it's requested from another peer as well.
+		// All the blocks above are applied only once it's received, so a slow peer stalls the whole sync. 0 - disabled
+		uint32_t m_BodyHedge_ms = 2000;
 
 		// Header packs in flight: overall, and per peer (0 - no per-peer limit)
 		// The overall limit should exceed the per-peer one several times: the free slots go to the peers in the order of their rating,
@@ -339,6 +342,9 @@ private:
 		Block::Number m_numSkeletonMinTip{ 0 }; // the point is requested only from the peers whose tip is not lower
 		uint32_t m_nCount;
 		uint32_t m_TimeAssigned_ms;
+		uint32_t m_TimeRequested_ms; // unlike m_TimeAssigned_ms, not reset when the task becomes the first one of the peer
+		bool m_bHedge = false; // a duplicate of a body pack task, requested from another peer (see HedgeLowBody)
+		bool m_bHedged = false; // there's (or was) a duplicate of this task. The reply that comes second is not needed
 		NodeDB::StateID m_sidTrg;
 		NodeDB::StateID m_sidTrgRequested;
 		Block::Number m_n0; // those 2 are fast-sync params at the moment of task assignment
@@ -372,6 +378,7 @@ private:
 	bool IsHdrSkeletonBranch(const Task&) const;
 
 	void UpdateHdrSkeleton();
+	void HedgeLowBody();
 	bool IsHdrSkeletonPointExpected(Block::Number) const; // the next point to request, and not the one left to the regular download
 	void StopHdrSkeleton();
 	static Task::Key get_HdrSkeletonKey(Block::Number);

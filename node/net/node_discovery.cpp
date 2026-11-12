@@ -190,7 +190,10 @@ void Node::PeerMan::Initialize()
 
 	// peers
 	m_pTimerUpd = io::Timer::create(io::Reactor::get_Current());
-	m_pTimerUpd->start(cfg.m_Timeout.m_PeersUpdate_ms, true, [this]() { Update(); });
+	m_pTimerUpd->start(cfg.m_Timeout.m_PeersUpdate_ms, true, [this]() {
+		Update();
+		get_ParentObj().HedgeLowBody(); // when nothing is received, RefreshCongestions() isn't called
+	});
 
 	m_pTimerFlush = io::Timer::create(io::Reactor::get_Current());
 	m_pTimerFlush->start(cfg.m_Timeout.m_PeersDbFlush_ms, true, [this]() { OnFlush(); });

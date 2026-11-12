@@ -61,6 +61,66 @@ void Node::RefreshCongestions()
 		TryAssignTask(*pTask);
 
 	UpdateHdrSkeleton();
+	HedgeLowBody();
+}
+
+void Node::HedgeLowBody()
+{
+	if (!m_Cfg.m_BodyHedge_ms || !m_Processor.IsFastSync() || !m_Processor.m_BodyWindows.m_Size)
+		return;
+
+	const uint64_t numNext = m_Processor.m_Cursor.m_Full.m_Number.v + 1;
+
+	// the pack right above the cursor. The tasks are ordered by the key, the number goes first
+	Task* pOrig = nullptr;
+	for (TaskSet::iterator it = m_setTasks.begin(); m_setTasks.end() != it; ++it)
+	{
+		Task& t = *it;
+		if (t.m_Key.first.m_Number.v > numNext)
+			break;
+
+		if (!t.m_Key.second || (t.m_Key.first.m_Number.v != numNext))
+			continue;
+
+		if (t.m_bHedge || t.m_bHedged)
+			return; // already
+		if (t.m_pOwner && t.m_bNeeded)
+			pOrig = &t;
+	}
+
+	if (!pOrig)
+		return;
+
+	PeerManager::TimePoint tp;
+	if (tp.get() - pOrig->m_TimeRequested_ms < m_Cfg.m_BodyHedge_ms)
+		return;
+
+	Task* pTask = new Task;
+	pTask->m_Key = pOrig->m_Key;
+	pTask->m_sidTrg = pOrig->m_sidTrg;
+	pTask->m_bNeeded = true;
+	pTask->m_nCount = 0;
+	pTask->m_pOwner = nullptr;
+	pTask->m_bHedge = true;
+
+	m_setTasks.insert(*pTask);
+	m_lstTasksUnassigned.push_back(*pTask);
+
+	// the best rated peer, other than the one that is slow
+	for (PeerMan::LiveSet::iterator it = m_PeerMan.m_LiveSet.begin(); m_PeerMan.m_LiveSet.end() != it; ++it)
+	{
+		Peer& p = *it->m_p;
+		if ((&p != pOrig->m_pOwner) && TryAssignTask(*pTask, p))
+		{
+			pOrig->m_bHedged = true;
+			pTask->m_bHedged = true;
+			BEAM_LOG_INFO() << "Body pack " << pTask->m_Key.first << " is requested from " << pOrig->m_pOwner->m_RemoteAddr << " for "
+				<< (tp.get() - pOrig->m_TimeRequested_ms) << " ms, requesting it from " << p.m_RemoteAddr << " as well";
+			return;
+		}
+	}
+
+	DeleteUnassignedTask(*pTask);
 }
 
 void Node::UpdateHdrSkeleton()
@@ -626,13 +686,14 @@ bool Node::TryAssignTask(Task& t, Peer& p)
 	// assign
 	if (t.m_Key.second)
 	{
-		if (m_nTasksPackBody >= m_Cfg.m_MaxConcurrentBodyPacks)
+		// The hedge (see HedgeLowBody) may exceed the limits by one: they're usually taken by the packs above it
+		if (!t.m_bHedge && (m_nTasksPackBody >= m_Cfg.m_MaxConcurrentBodyPacks))
 		{
 			BEAM_LOG_VERBOSE() << "too many body packs requested";
 			return false;
 		}
 
-		if (m_Cfg.m_MaxBodyPacksPerPeer && (nBlocks >= m_Cfg.m_MaxBodyPacksPerPeer))
+		if (m_Cfg.m_MaxBodyPacksPerPeer && (nBlocks >= m_Cfg.m_MaxBodyPacksPerPeer + (t.m_bHedge ? 1 : 0)))
 		{
 			BEAM_LOG_VERBOSE() << "too many body packs requested from peer";
 			return false;
@@ -763,6 +824,7 @@ void Node::AssignTask(Task& t, Peer& p)
 	m_PeerMan.m_LiveSet.insert(Cast::Up<PeerMan::PeerInfoPlus>(p.m_pInfo)->m_Live);
 
 	t.m_TimeAssigned_ms = tp.get();
+	t.m_TimeRequested_ms = t.m_TimeAssigned_ms;
 
 	if (bEmpty)
 		p.SetTimerWrtFirstTask();

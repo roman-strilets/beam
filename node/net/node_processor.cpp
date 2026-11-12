@@ -43,14 +43,19 @@ void Node::Processor::RequestData(const Block::SystemState::ID& id, bool bBlock,
 	}
 	else
 	{
-		Node::Task& t = *it;
-		t.m_bNeeded = true;
+		// there may be a hedge too (see HedgeLowBody)
+		auto range = get_ParentObj().m_setTasks.equal_range(tKey);
+		for (it = range.first; range.second != it; )
+		{
+			Node::Task& t = *(it++);
+			t.m_bNeeded = true;
 
-		if (t.m_sidTrg.m_Number.v <= sidTrg.m_Number.v)
-			t.m_sidTrg = sidTrg;
+			if (t.m_sidTrg.m_Number.v <= sidTrg.m_Number.v)
+				t.m_sidTrg = sidTrg;
 
-		if (!t.m_pOwner && bBlock)
-			get_ParentObj().TryAssignTask(t);
+			if (!t.m_pOwner && bBlock)
+				get_ParentObj().TryAssignTask(t);
+		}
 	}
 }
 

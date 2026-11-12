@@ -480,8 +480,11 @@ void Node::Peer::OnMsg(proto::BodyPack&& msg)
 	}
 	ModifyRatingWrtData(nSize);
 
+	// A hedged task that's no longer needed: the other reply came first (see HedgeLowBody)
+	bool bRedundant = t.m_bHedged && !t.m_bNeeded;
+
 	NodeProcessor::DataStatus::Enum eStatus = NodeProcessor::DataStatus::Rejected;
-	if (!msg.m_Bodies.empty() && ShouldAcceptBodyPack())
+	if (!msg.m_Bodies.empty() && !bRedundant && ShouldAcceptBodyPack())
 	{
 		std::deque<uint64_t>::const_iterator itRows;
 		if (p.get_CachedRows(t.m_sidTrgRequested, hCountExtra, itRows))
