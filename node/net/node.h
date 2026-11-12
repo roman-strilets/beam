@@ -83,6 +83,8 @@ struct Node
 		// By default the window is the max pack size of the serving node (see m_BandwidthCtl.m_MaxBodyPackCount)
 		uint32_t m_BodyWindow = 3000;
 		uint32_t m_BodyWindowsAhead = 16;
+		// Fast sync: max time of applying the received blocks at once, so that the download continues meanwhile. 0 - unlimited
+		uint32_t m_GoUpBudget_ms = 250;
 
 		// Header packs in flight: overall, and per peer (0 - no per-peer limit)
 		// The overall limit should exceed the per-peer one several times: the free slots go to the peers in the order of their rating,
@@ -276,6 +278,7 @@ private:
 		void OnRolledBack() override;
 		void OnModified() override;
 		void OnFastSyncSucceeded() override;
+		void OnGoUpYielded() override;
 		void OnEvent(Height, const proto::Event::Base&) override;
 		void OnDummy(const CoinID&, Height) override;
 		void InitializeUtxosProgress(uint64_t done, uint64_t total) override;
@@ -311,7 +314,7 @@ private:
 
 		bool m_bGoUpPending = false;
 		io::Timer::Ptr m_pGoUpTimer;
-		void TryGoUpAsync();
+		void TryGoUpAsync(uint32_t timeout_ms = 0);
 		void OnGoUpTimer();
 
 		std::deque<PeerID> m_lstInsanePeers;

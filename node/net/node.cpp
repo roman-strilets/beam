@@ -856,6 +856,7 @@ void Node::Initialize()
 	m_Processor.m_Horizon = m_Cfg.m_Horizon;
 	m_Processor.m_BodyWindows.m_Size = m_Cfg.m_BodyWindow;
 	m_Processor.m_BodyWindows.m_Ahead = m_Cfg.m_BodyWindowsAhead;
+	m_Processor.m_GoUpBudget_ms = m_Cfg.m_GoUpBudget_ms;
 	m_Processor.Initialize(m_Cfg.m_sPathLocal.c_str(), m_Cfg.m_ProcessorParams, m_Cfg.m_Observer ? m_Cfg.m_Observer->GetLongActionHandler() : nullptr);
 
 	if (m_Cfg.m_ProcessorParams.m_EraseSelfID)

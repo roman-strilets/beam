@@ -308,17 +308,24 @@ void Node::Processor::OnModified()
 	}
 }
 
-void Node::Processor::TryGoUpAsync()
+void Node::Processor::TryGoUpAsync(uint32_t timeout_ms /* = 0 */)
 {
 	if (!m_bGoUpPending)
 	{
 		if (!m_pGoUpTimer)
 			m_pGoUpTimer = io::Timer::create(io::Reactor::get_Current());
 
-		m_pGoUpTimer->start(0, false, [this]() { OnGoUpTimer(); });
+		m_pGoUpTimer->start(timeout_ms, false, [this]() { OnGoUpTimer(); });
 
 		m_bGoUpPending = true;
 	}
+}
+
+void Node::Processor::OnGoUpYielded()
+{
+	// After the pending network events. A zero-timeout timer started from a timer callback would fire in the same loop iteration,
+	// before the sockets are polled (see uv__run_timers)
+	TryGoUpAsync(1);
 }
 
 void Node::Processor::OnGoUpTimer()

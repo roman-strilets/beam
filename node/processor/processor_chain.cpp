@@ -529,6 +529,9 @@ void NodeProcessor::TryGoUp()
 	bool bDirty = false;
 	uint64_t rowid = m_Cursor.m_Row;
 
+	m_GoUpStart_ms = GetTime_ms();
+	m_bGoUpYield = false;
+
 	bool bAtEmptyBlock =
 		rowid &&
 		(Rules::Consensus::Pbft == Rules::get().m_Consensus) &&
@@ -566,6 +569,9 @@ void NodeProcessor::TryGoUp()
 		}
 
 		bDirty = true;
+
+		if (m_bGoUpYield)
+			break;
 	}
 
 	if (bDirty)
@@ -579,6 +585,9 @@ void NodeProcessor::TryGoUp()
 			OnNewState();
 		}
 	}
+
+	if (m_bGoUpYield)
+		OnGoUpYielded();
 }
 
 void NodeProcessor::TryGoTo(NodeDB::StateID& sidTrg)
@@ -650,6 +659,13 @@ void NodeProcessor::ApplyPath(const std::vector<uint64_t>& vPath, bool bCached)
 	size_t iPos = vPath.size();
 	while (iPos)
 	{
+		if (bCached && m_GoUpBudget_ms && (iPos < vPath.size()) && (GetTime_ms() - m_GoUpStart_ms >= m_GoUpBudget_ms))
+		{
+			// the rest is applied by the next TryGoUp(). The cursor is at the last applied block, as if the path ended there
+			m_bGoUpYield = true;
+			break;
+		}
+
 		sidFwd.m_Number.v = m_Cursor.m_Full.m_Number.v + 1;
 		sidFwd.m_Row = vPath[--iPos];
 

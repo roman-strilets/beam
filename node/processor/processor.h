@@ -347,6 +347,12 @@ public:
 		uint32_t m_Ahead = 0;
 	} m_BodyWindows;
 
+	// Fast sync: the max time of applying the cached blocks (see BodyCache) within a single TryGoUp(), 0 - unlimited.
+	// Once it's over, TryGoUp() stops and calls OnGoUpYielded(), so that the network is served (the bodies are received,
+	// the next windows are requested) while the rest is applied. Otherwise everything received is applied at once, which
+	// may take several seconds, and the download stalls meanwhile.
+	uint32_t m_GoUpBudget_ms = 0;
+
 #pragma pack (push, 1)
 	struct StateExtra
 	{
@@ -610,6 +616,8 @@ public:
 	bool get_HdrGapLow(NodeDB::StateID&, const StateSet& setSkip);
 	void TryGoUp();
 	void TryGoTo(NodeDB::StateID&);
+	uint32_t m_GoUpStart_ms = 0;
+	bool m_bGoUpYield = false;
 	bool TryGoUpCached(); // apply the blocks from m_BodyCache that follow the cursor. Returns false if nothing changed
 	bool IsBlockReceived(const NodeDB::StateID&); // the body is cached, or the state is Functional
 	void ApplyPath(const std::vector<uint64_t>& vPath, bool bCached); // vPath: the rows to apply after the cursor, the last one goes first
@@ -631,6 +639,7 @@ public:
 	virtual void OnModified() {}
 	virtual void InitializeUtxosProgress(uint64_t done, uint64_t total) {}
 	virtual void OnFastSyncSucceeded() {}
+	virtual void OnGoUpYielded() {} // TryGoUp() stopped due to m_GoUpBudget_ms, and should be called again
 	virtual uint32_t get_MaxAutoRollback();
 	virtual void OnInvalidBlock(const Block::SystemState::Full&, const Block::Body&) {}
 
