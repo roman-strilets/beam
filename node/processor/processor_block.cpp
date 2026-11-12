@@ -120,14 +120,17 @@ bool NodeProcessor::TestBlock(const HeightHash& id, const Block::SystemState::Fu
 {
 	MultiblockContext mbc(*this);
 
-	if (!HandleBlockInternal(id, s, mbc, bufs, true, true, Zero, 0))
+	if (!HandleBlockInternal(id, s, mbc, bufs, true, true, Zero, 0, false))
 		return false;
 
 	return mbc.Flush();
 }
 
-bool NodeProcessor::HandleBlock(const HeightHash& id, uint64_t row, const Block::SystemState::Full& s, MultiblockContext& mbc)
+bool NodeProcessor::HandleBlock(const HeightHash& id, uint64_t row, const Block::SystemState::Full& s, MultiblockContext& mbc, const BodyCache::Entry* pCached)
 {
+	if (pCached)
+		return HandleBlockInternal(id, s, mbc, pCached->m_Body, true, false, pCached->m_Peer, row, true); // never applied before: the state isn't Functional
+
 	proto::BodyBuffers bufs;
 	m_DB.GetStateBlock(row, &bufs.m_Perishable, &bufs.m_Eternal, nullptr);
 
@@ -137,10 +140,10 @@ bool NodeProcessor::HandleBlock(const HeightHash& id, uint64_t row, const Block:
 	if (bFirstTime)
 		m_DB.get_Peer(row, pid);
 
-	return HandleBlockInternal(id, s, mbc, bufs, bFirstTime, false, pid, row);
+	return HandleBlockInternal(id, s, mbc, bufs, bFirstTime, false, pid, row, false);
 }
 
-bool NodeProcessor::HandleBlockInternal(const HeightHash& id, const Block::SystemState::Full& s, MultiblockContext& mbc, const proto::BodyBuffers& bufs, bool bFirstTime, bool bTestOnly, const PeerID& pid, uint64_t row)
+bool NodeProcessor::HandleBlockInternal(const HeightHash& id, const Block::SystemState::Full& s, MultiblockContext& mbc, const proto::BodyBuffers& bufs, bool bFirstTime, bool bTestOnly, const PeerID& pid, uint64_t row, bool bCached)
 {
 	if (s.m_Number.v == m_ManualSelection.m_Sid.m_Number.v)
 	{
@@ -386,7 +389,8 @@ bool NodeProcessor::HandleBlockInternal(const HeightHash& id, const Block::Syste
 			blobExtra.n = sizeof(m_Cursor.m_StateExtra.m_TotalOffset);
 
 		Blob blobRB(bic.m_Rollback);
-		m_DB.set_StateTxosAndExtra(row, &m_Extra.m_Txos, &blobExtra, &blobRB);
+		if (!bCached)
+			m_DB.set_StateTxosAndExtra(row, &m_Extra.m_Txos, &blobExtra, &blobRB);
 
 		std::vector<NodeDB::StateInput> v;
 		v.reserve(block.m_vInputs.size());
@@ -401,8 +405,20 @@ bool NodeProcessor::HandleBlockInternal(const HeightHash& id, const Block::Syste
 			v.emplace_back().Set(txoID, x.m_Commitment);
 		}
 
-		if (!v.empty())
-			m_DB.set_StateInputs(row, &v.front(), v.size());
+		if (bCached)
+		{
+			// single update: the interpretation results, inputs, eternal part of the body, and the flags
+			Blob blobInputs(nullptr, 0);
+			if (!v.empty())
+				blobInputs = Blob(&v.front(), static_cast<uint32_t>(sizeof(v.front()) * v.size()));
+
+			m_DB.set_StateApplied(row, m_Extra.m_Txos, blobExtra, blobRB, blobInputs, bufs.m_Eternal);
+		}
+		else
+		{
+			if (!v.empty())
+				m_DB.set_StateInputs(row, &v.front(), v.size());
+		}
 
 		Serializer ser;
 

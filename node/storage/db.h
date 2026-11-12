@@ -123,6 +123,10 @@ public:
 			EnumFunctionalTips,
 			EnumAtNumber,
 			EnumActiveInRange,
+			StateGetForApply,
+			StateSetApplied,
+			StateGetCountNextF,
+			TipReachableMove,
 			StateGetPrev,
 			Unactivate,
 			Activate,
@@ -233,6 +237,8 @@ public:
 			Dbg2,
 			Dbg3,
 			Dbg4,
+			DbgTest0, // for tests
+			DbgTest1,
 
 			count
 		};
@@ -373,6 +379,26 @@ public:
 
 	void SetStateFunctional(uint64_t rowid);
 	void SetStateNotFunctional(uint64_t rowid);
+
+	// Fast sync: the block body is kept in memory until the block is applied, the state isn't marked Functional before that.
+	// The following functions apply such a block with fewer queries than SetStateBlock() + SetStateFunctional() + MoveFwd().
+
+	struct StateForApply
+	{
+		uint64_t m_RowPrev; // 0 if none
+		uint32_t m_Flags;
+		uint32_t m_CountNextF; // functional states that follow this one
+	};
+
+	void get_StateForApply(uint64_t rowid, Block::SystemState::Full&, StateForApply&);
+	uint32_t get_StateCountNextF(uint64_t rowid);
+
+	// Saves the result of the block interpretation and the eternal part of the body, marks the state Functional, Reachable and Active
+	void set_StateApplied(uint64_t rowid, TxoID, const Blob& extra, const Blob& rb, const Blob& inputs, const Blob& bodyE);
+
+	// Completes the move to the state applied by set_StateApplied(): the previous state (the cursor) is the parent of this one,
+	// it's Functional, Reachable and has nCountNextFPrev functional followers before this one.
+	void MoveFwdApplied(const StateID&, uint64_t rowPrev, uint32_t nCountNextFPrev, const StateForApply&, const Difficulty::Raw& chainWork);
 
 	void set_Peer(uint64_t rowid, const PeerID*);
 	bool get_Peer(uint64_t rowid, PeerID&);
@@ -902,6 +928,7 @@ private:
 	void TipAdd(uint64_t rowid, Block::Number);
 	void TipDel(uint64_t rowid, Block::Number);
 	void TipReachableAdd(uint64_t rowid);
+	void TipReachableAdd(uint64_t rowid, const Difficulty::Raw&);
 	void TipReachableDel(uint64_t rowid);
 	void SetNextCount(uint64_t rowid, uint32_t);
 	void SetNextCountFunctional(uint64_t rowid, uint32_t);

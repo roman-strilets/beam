@@ -338,7 +338,10 @@ void NodeProcessor::RequestBodyWindows(CongestionCache::TipCongestion& x, Block:
 	};
 
 	auto IsReceived = [this, &RowAt](uint64_t num) {
-		return !!(NodeDB::StateFlags::Functional & m_DB.GetStateFlags(RowAt(num)));
+		NodeDB::StateID sid;
+		sid.m_Number.v = num;
+		sid.m_Row = RowAt(num);
+		return IsBlockReceived(sid);
 	};
 
 	uint64_t num0 = numLow.v;
@@ -347,28 +350,26 @@ void NodeProcessor::RequestBodyWindows(CongestionCache::TipCongestion& x, Block:
 		uint64_t num1 = ((num0 - 1) / nSize + 1) * nSize; // the window end
 		beam::setmin(num1, numTrg);
 
+		// Each window is requested from its first missing block, so the received blocks of a window are its prefix.
+		// This is true for the lowest window too: its blocks below numLow are applied, and the cached ones aren't reachable.
 		bool bRequest = true;
-		if (i)
+		if (IsReceived(num1))
+			bRequest = false; // received, but not reachable yet
+		else
 		{
-			// Each window is requested from its first missing block, so the received blocks of a window are its prefix
-			if (IsReceived(num1))
-				bRequest = false; // received, but not reachable yet
-			else
+			if (IsReceived(num0))
 			{
-				if (IsReceived(num0))
+				// the first missing one is in (num0, num1]
+				uint64_t a = num0, b = num1;
+				while (b - a > 1)
 				{
-					// the first missing one is in (num0, num1]
-					uint64_t a = num0, b = num1;
-					while (b - a > 1)
-					{
-						uint64_t c = a + (b - a) / 2;
-						if (IsReceived(c))
-							a = c;
-						else
-							b = c;
-					}
-					num0 = b;
+					uint64_t c = a + (b - a) / 2;
+					if (IsReceived(c))
+						a = c;
+					else
+						b = c;
 				}
+				num0 = b;
 			}
 		}
 
@@ -510,28 +511,34 @@ void NodeProcessor::TryGoUp()
 	while (true)
 	{
 		NodeDB::StateID sidTrg;
+		bool bFound = false;
 
 		{
 			NodeDB::WalkerState ws;
 			m_DB.EnumFunctionalTips(ws);
 
-			if (!ws.MoveNext())
+			if (ws.MoveNext())
 			{
-				assert(!m_Cursor.m_Row);
-				break; // nowhere to go
+				sidTrg = ws.m_Sid;
+
+				Difficulty::Raw wrkTrg;
+				m_DB.get_ChainWork(sidTrg.m_Row, wrkTrg);
+
+				assert(wrkTrg >= m_Cursor.m_Full.m_ChainWork);
+				bFound = (wrkTrg != m_Cursor.m_Full.m_ChainWork); // otherwise already at maximum (though maybe at different tip)
 			}
-
-			sidTrg = ws.m_Sid;
-
-			Difficulty::Raw wrkTrg;
-			m_DB.get_ChainWork(sidTrg.m_Row, wrkTrg);
-
-			assert(wrkTrg >= m_Cursor.m_Full.m_ChainWork);
-			if (wrkTrg == m_Cursor.m_Full.m_ChainWork)
-				break; // already at maximum (though maybe at different tip)
+			else
+				assert(!m_Cursor.m_Row); // nowhere to go
 		}
 
-		TryGoTo(sidTrg);
+		if (bFound)
+			TryGoTo(sidTrg);
+		else
+		{
+			if (!TryGoUpCached())
+				break;
+		}
+
 		bDirty = true;
 	}
 
@@ -568,10 +575,51 @@ void NodeProcessor::TryGoTo(NodeDB::StateID& sidTrg)
 
 	RollbackTo(sidTrg.m_Number);
 
+	ApplyPath(vPath, false);
+}
+
+bool NodeProcessor::TryGoUpCached()
+{
+	auto& m = m_BodyCache.m_Map; // alias
+	if (m.empty())
+		return false;
+
+	if (!IsFastSync())
+	{
+		m.clear(); // should not happen
+		return false;
+	}
+
+	m.erase(m.begin(), m.upper_bound(m_Cursor.m_Full.m_Number.v)); // stale
+
+	std::vector<uint64_t> vPath;
+	for (auto it = m.begin(); (m.end() != it) && (it->first == m_Cursor.m_Full.m_Number.v + vPath.size() + 1); ++it)
+		vPath.push_back(it->second.m_Row);
+
+	if (vPath.empty())
+		return false;
+
+	std::reverse(vPath.begin(), vPath.end());
+
+	NodeDB::StateID sid0 = m_Cursor.get_Sid();
+	size_t nCached0 = m.size();
+
+	ApplyPath(vPath, true);
+
+	NodeDB::StateID sid1 = m_Cursor.get_Sid();
+	return (sid0.m_Row != sid1.m_Row) || (sid0.m_Number.v != sid1.m_Number.v) || (nCached0 != m.size());
+}
+
+void NodeProcessor::ApplyPath(const std::vector<uint64_t>& vPath, bool bCached)
+{
 	MultiblockContext mbc(*this);
 	bool bContextFail = false, bKeepBlocks = false;
 
 	NodeDB::StateID sidFwd = m_Cursor.get_Sid();
+	PeerID pidFwd = Zero; // for cached blocks, the entry is removed from the cache before the block is handled
+
+	// cached blocks: functional followers of the cursor, its parent is reachable
+	uint32_t nCountNextFPrev = (bCached && sidFwd.m_Row) ? m_DB.get_StateCountNextF(sidFwd.m_Row) : 0;
 
 	size_t iPos = vPath.size();
 	while (iPos)
@@ -580,12 +628,43 @@ void NodeProcessor::TryGoTo(NodeDB::StateID& sidTrg)
 		sidFwd.m_Row = vPath[--iPos];
 
 		Block::SystemState::Full s;
-		m_DB.get_State(sidFwd.m_Row, s); // need it for logging anyway
+		NodeDB::StateForApply sfa;
+		BodyCache::Entry ce;
+
+		if (bCached)
+		{
+			auto it = m_BodyCache.m_Map.find(sidFwd.m_Number.v);
+			bool bValid = (m_BodyCache.m_Map.end() != it) && (it->second.m_Row == sidFwd.m_Row);
+			if (bValid)
+			{
+				// take it out of the cache: the cache can be cleared while the block is handled (fast-sync failure)
+				ce = std::move(it->second);
+				m_BodyCache.m_Map.erase(it);
+				pidFwd = ce.m_Peer;
+
+				m_DB.get_StateForApply(sidFwd.m_Row, s, sfa);
+
+				// Not a follower of the cursor, or received in a different way: the cached body is stale, not an error
+				bValid =
+					(sfa.m_RowPrev == m_Cursor.m_Row) &&
+					!(NodeDB::StateFlags::Functional & sfa.m_Flags);
+			}
+
+			if (!bValid)
+			{
+				// as if the path ended at the cursor
+				sidFwd = m_Cursor.get_Sid();
+				iPos++;
+				break;
+			}
+		}
+		else
+			m_DB.get_State(sidFwd.m_Row, s); // need it for logging anyway
 
 		HeightHash hh;
 		s.get_ID(hh);
 
-		if (!HandleBlock(hh, sidFwd.m_Row, s, mbc))
+		if (!HandleBlock(hh, sidFwd.m_Row, s, mbc, bCached ? &ce : nullptr))
 		{
 			bContextFail = mbc.m_bFail = true;
 
@@ -599,12 +678,20 @@ void NodeProcessor::TryGoTo(NodeDB::StateID& sidTrg)
 		if (m_Cursor.m_Full.m_Number.v)
 			m_Mmr.m_States.Append(m_Cursor.m_hh.m_Hash);
 
-		m_DB.MoveFwd(sidFwd);
+		if (bCached)
+		{
+			// the state is already marked by set_StateApplied()
+			m_DB.MoveFwdApplied(sidFwd, m_Cursor.m_Row, nCountNextFPrev, sfa, s.m_ChainWork);
+			nCountNextFPrev = sfa.m_CountNextF;
+		}
+		else
+			m_DB.MoveFwd(sidFwd);
+
 		m_Cursor.m_Full = s;
 		m_Cursor.m_hh = hh;
 		InitCursor(true, sidFwd);
 
-		if (IsFastSync())
+		if (IsFastSync() && !bCached)
 			m_DB.DelStateBlockPP(sidFwd.m_Row); // save space
 
 		if (mbc.m_InProgress.m_Max.v == m_SyncData.m_Target.m_Number.v)
@@ -641,7 +728,16 @@ void NodeProcessor::TryGoTo(NodeDB::StateID& sidTrg)
 		BEAM_LOG_WARNING() << "Blocks of several peers failed, verifying by peer from now on";
 		m_bPeerBarrier = true;
 
-		if (!bContextFail || !m_DB.get_Peer(sidFwd.m_Row, mbc.m_pidLast))
+		bool bPid = bContextFail;
+		if (bPid)
+		{
+			if (bCached)
+				mbc.m_pidLast = pidFwd;
+			else
+				bPid = m_DB.get_Peer(sidFwd.m_Row, mbc.m_pidLast);
+		}
+
+		if (!bPid)
 			mbc.m_pidLast = Zero;
 	}
 
@@ -652,15 +748,18 @@ void NodeProcessor::TryGoTo(NodeDB::StateID& sidTrg)
 		// delete all the consequent blocks from this peer
 		for (; iPos; iPos--)
 		{
+			NodeDB::StateID sidNext;
+			sidNext.m_Row = vPath[iPos - 1];
+			sidNext.m_Number.v = sidFwd.m_Number.v + 1;
+
 			PeerID pid;
-			if (!m_DB.get_Peer(vPath[iPos - 1], pid))
+			if (!get_BlockPeer(sidNext, pid))
 				break;
 
 			if (pid != mbc.m_pidLast)
 				break;
 
-			sidFwd.m_Row = vPath[iPos - 1];
-			sidFwd.m_Number.v++;
+			sidFwd = sidNext;
 		}
 	}
 
@@ -747,6 +846,7 @@ void NodeProcessor::OnFastSyncOver(MultiblockContext& mbc, bool& bContextFail)
 
 		ZeroObject(m_SyncData);
 		SaveSyncData();
+		m_BodyCache.m_Map.clear();
 
 		OnFastSyncSucceeded();
 	}
@@ -921,6 +1021,7 @@ void NodeProcessor::ManualRollbackInternal(Block::Number num)
 
 		ZeroObject(m_SyncData);
 		SaveSyncData();
+		m_BodyCache.m_Map.clear();
 
 		bChanged = true;
 	}
@@ -1072,6 +1173,28 @@ NodeProcessor::DataStatus::Enum NodeProcessor::OnBlock(const NodeDB::StateID& si
 		return DataStatus::Invalid;
 	}
 
+	if (IsBodyCached(sid.m_Number))
+	{
+		// Above the cursor, so it's not applied, and can't be functional unless received before the cache was used (restart).
+		// If it is - the cached body is ignored when applied.
+		auto it = m_BodyCache.m_Map.try_emplace(sid.m_Number.v).first;
+		BodyCache::Entry& e = it->second;
+
+		if (e.m_Row == sid.m_Row)
+		{
+			BEAM_LOG_WARNING() << LogSid(m_DB, sid) << " Block already received";
+			return DataStatus::Rejected;
+		}
+
+		// a new one, or replaces a block of another branch
+		e.m_Row = sid.m_Row;
+		bbP.Export(e.m_Body.m_Perishable);
+		bbE.Export(e.m_Body.m_Eternal);
+		e.m_Peer = peer;
+
+		return DataStatus::Accepted;
+	}
+
 	if (NodeDB::StateFlags::Functional & m_DB.GetStateFlags(sid.m_Row))
 	{
 		BEAM_LOG_WARNING() << LogSid(m_DB, sid) << " Block already received";
@@ -1085,6 +1208,47 @@ NodeProcessor::DataStatus::Enum NodeProcessor::OnBlock(const NodeDB::StateID& si
 	m_DB.SetStateFunctional(sid.m_Row);
 
 	return DataStatus::Accepted;
+}
+
+bool NodeProcessor::IsBodyCached(Block::Number num) const
+{
+	// only with the body windows: they request the missing blocks wrt the cache, and limit the blocks received ahead of the cursor
+	return
+		IsFastSync() &&
+		m_BodyWindows.m_Size &&
+		(num.v > m_Cursor.m_Full.m_Number.v) &&
+		(num.v <= m_SyncData.m_Target.m_Number.v);
+}
+
+const NodeProcessor::BodyCache::Entry* NodeProcessor::BodyCache::Find(const NodeDB::StateID& sid) const
+{
+	auto it = m_Map.find(sid.m_Number.v);
+	if ((m_Map.end() == it) || (it->second.m_Row != sid.m_Row))
+		return nullptr;
+	return &it->second;
+}
+
+void NodeProcessor::BodyCache::DeleteRange(Block::Number numMin, Block::Number numMax)
+{
+	if (numMin.v <= numMax.v)
+		m_Map.erase(m_Map.lower_bound(numMin.v), m_Map.upper_bound(numMax.v));
+}
+
+bool NodeProcessor::IsBlockReceived(const NodeDB::StateID& sid)
+{
+	return m_BodyCache.Find(sid) || (NodeDB::StateFlags::Functional & m_DB.GetStateFlags(sid.m_Row));
+}
+
+bool NodeProcessor::get_BlockPeer(const NodeDB::StateID& sid, PeerID& pid)
+{
+	const BodyCache::Entry* pE = m_BodyCache.Find(sid);
+	if (pE)
+	{
+		pid = pE->m_Peer;
+		return true;
+	}
+
+	return m_DB.get_Peer(sid.m_Row, pid);
 }
 
 NodeProcessor::DataStatus::Enum NodeProcessor::OnTreasury(const Blob& blob)

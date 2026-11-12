@@ -18,6 +18,8 @@ namespace beam {
 
 void NodeProcessor::DeleteBlocksInRange(const NodeDB::StateID& sidTop, Block::Number numStop)
 {
+	m_BodyCache.DeleteRange(Block::Number(numStop.v + 1), sidTop.m_Number);
+
 	for (NodeDB::StateID sid = sidTop; sid.m_Number.v > numStop.v; )
 	{
 		DeleteBlock(sid.m_Row);

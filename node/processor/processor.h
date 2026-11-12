@@ -16,6 +16,7 @@
 
 #include <deque>
 #include <set>
+#include <map>
 
 #include "core/storage/radixtree.h"
 #include "core/net/proto.h"
@@ -172,8 +173,31 @@ class NodeProcessor
 
 	bool get_HdrAt(Block::SystemState::Full&, Height);
 
-	bool HandleBlock(const HeightHash&, uint64_t row, const Block::SystemState::Full&, MultiblockContext&);
-	bool HandleBlockInternal(const HeightHash& id, const Block::SystemState::Full&, MultiblockContext&, const proto::BodyBuffers&, bool bFirstTime, bool bTestOnly, const PeerID&, uint64_t row);
+	// Fast sync: the bodies of the blocks above the cursor up to the target are kept here till they're applied, instead of the States table.
+	// It saves writing the body to the DB, reading it back, and deleting the perishable part once the block is applied.
+	// Such a state isn't marked Functional, it becomes Functional, Reachable and Active at once when the block is applied.
+	// The cache is lost on restart, those blocks are requested again.
+	struct BodyCache
+	{
+		struct Entry
+		{
+			uint64_t m_Row;
+			proto::BodyBuffers m_Body;
+			PeerID m_Peer;
+		};
+
+		std::map<uint64_t, Entry> m_Map; // by Number, at most one state per Number (the branch of the sync target)
+
+		const Entry* Find(const NodeDB::StateID&) const;
+		void DeleteRange(Block::Number numMin, Block::Number numMax); // inclusive
+
+	} m_BodyCache;
+
+	bool IsBodyCached(Block::Number) const; // should the body of the block at this Number go to m_BodyCache
+	bool get_BlockPeer(const NodeDB::StateID&, PeerID&); // peer of a received block that is not applied yet
+
+	bool HandleBlock(const HeightHash&, uint64_t row, const Block::SystemState::Full&, MultiblockContext&, const BodyCache::Entry* pCached);
+	bool HandleBlockInternal(const HeightHash& id, const Block::SystemState::Full&, MultiblockContext&, const proto::BodyBuffers&, bool bFirstTime, bool bTestOnly, const PeerID&, uint64_t row, bool bCached);
 
 	void UndoInput(const Input&, const InputAux&);
 
@@ -576,6 +600,9 @@ public:
 	bool get_HdrGapLow(NodeDB::StateID&, const StateSet& setSkip);
 	void TryGoUp();
 	void TryGoTo(NodeDB::StateID&);
+	bool TryGoUpCached(); // apply the blocks from m_BodyCache that follow the cursor. Returns false if nothing changed
+	bool IsBlockReceived(const NodeDB::StateID&); // the body is cached, or the state is Functional
+	void ApplyPath(const std::vector<uint64_t>& vPath, bool bCached); // vPath: the rows to apply after the cursor, the last one goes first
 	void OnFastSyncOver(MultiblockContext&, bool& bContextFail);
 
 	// Blocks of several peers are verified together, so that the verification doesn't stall each time the peer changes.

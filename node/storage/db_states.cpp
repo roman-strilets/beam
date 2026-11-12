@@ -358,7 +358,11 @@ void NodeDB::TipReachableAdd(uint64_t rowid)
 {
 	Difficulty::Raw wrk;
 	get_ChainWork(rowid, wrk);
+	TipReachableAdd(rowid, wrk);
+}
 
+void NodeDB::TipReachableAdd(uint64_t rowid, const Difficulty::Raw& wrk)
+{
 	Recordset rs(*this, Query::TipReachableAdd, "INSERT INTO " TblTipsReachable " VALUES(?,?)");
 	rs.put(0, rowid);
 	rs.put(1, wrk);
@@ -430,6 +434,106 @@ void NodeDB::SetStateFunctional(uint64_t rowid)
 
 	if (StateFlags::Reachable & nFlags)
 		OnStateReachable(rowid, rowPrev, num, true);
+}
+
+void NodeDB::get_StateForApply(uint64_t rowid, Block::SystemState::Full& out, StateForApply& aux)
+{
+#define THE_MACRO_1(dbname, extname) TblStates_##dbname
+	Recordset rs(*this, Query::StateGetForApply, "SELECT " StateCvt_Fields(THE_MACRO_1, THE_MACRO_COMMA_S) ","
+		TblStates_RowPrev "," TblStates_Flags "," TblStates_CountNextF " FROM " TblStates " WHERE rowid=?");
+#undef THE_MACRO_1
+
+	rs.put(0, rowid);
+	rs.StepStrict();
+
+	int iCol = 0;
+
+#define THE_MACRO_1(dbname, extname) rs.get(iCol++, out.extname);
+	StateCvt_Fields(THE_MACRO_1, THE_MACRO_NOP0)
+#undef THE_MACRO_1
+
+	if (rs.IsNull(iCol))
+		aux.m_RowPrev = 0;
+	else
+		rs.get(iCol, aux.m_RowPrev);
+	iCol++;
+
+	rs.get(iCol++, aux.m_Flags);
+	rs.get(iCol++, aux.m_CountNextF);
+}
+
+uint32_t NodeDB::get_StateCountNextF(uint64_t rowid)
+{
+	Recordset rs(*this, Query::StateGetCountNextF, "SELECT " TblStates_CountNextF " FROM " TblStates " WHERE rowid=?");
+	rs.put(0, rowid);
+	rs.StepStrict();
+
+	uint32_t n;
+	rs.get(0, n);
+	return n;
+}
+
+void NodeDB::set_StateApplied(uint64_t rowid, TxoID txos, const Blob& extra, const Blob& rb, const Blob& inputs, const Blob& bodyE)
+{
+	Recordset rs(*this, Query::StateSetApplied, "UPDATE " TblStates " SET "
+		TblStates_Flags "=" TblStates_Flags " | ?,"
+		TblStates_Txos "=?,"
+		TblStates_Extra "=?,"
+		TblStates_Rollback "=?,"
+		TblStates_Inputs "=?,"
+		TblStates_BodyE "=?"
+		" WHERE rowid=?");
+
+	rs.put(0, StateFlags::Functional | StateFlags::Reachable | StateFlags::Active);
+	rs.put(1, txos);
+	rs.put(2, extra);
+	rs.put(3, rb);
+	if (inputs.n)
+		rs.put(4, inputs);
+	if (bodyE.n)
+		rs.put(5, bodyE);
+	rs.put(6, rowid);
+
+	rs.Step();
+	TestChanged1Row();
+}
+
+void NodeDB::MoveFwdApplied(const StateID& sid, uint64_t rowPrev, uint32_t nCountNextFPrev, const StateForApply& aux, const Difficulty::Raw& chainWork)
+{
+	// Same as SetStateFunctional() for a state whose parent is Reachable, followed by MoveFwd()
+	assert(aux.m_RowPrev == rowPrev);
+
+	if (rowPrev)
+		SetNextCountFunctional(rowPrev, nCountNextFPrev + 1);
+
+	bool bPrevTip = rowPrev && !nCountNextFPrev;
+
+	if (aux.m_CountNextF)
+	{
+		// there are functional states after this one, they become reachable now
+		if (bPrevTip)
+			TipReachableDel(rowPrev);
+
+		OnStateReachable(sid.m_Row, rowPrev, sid.m_Number, true);
+	}
+	else
+	{
+		if (bPrevTip)
+		{
+			// the tip moves to this state
+			Recordset rs(*this, Query::TipReachableMove, "UPDATE " TblTipsReachable " SET " TblTips_State "=?," TblTips_ChainWork "=? WHERE " TblTips_State "=?");
+			rs.put(0, sid.m_Row);
+			rs.put(1, chainWork);
+			rs.put(2, rowPrev);
+
+			rs.Step();
+			TestChanged1Row();
+		}
+		else
+			TipReachableAdd(sid.m_Row, chainWork);
+	}
+
+	put_Cursor(sid);
 }
 
 void NodeDB::SetStateNotFunctional(uint64_t rowid)

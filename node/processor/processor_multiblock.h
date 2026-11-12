@@ -524,6 +524,8 @@ struct NodeProcessor::MultiblockContext
 		if (bDeleteBlocks)
 			m_This.DeleteBlocksInRange(m_This.m_SyncData.m_Target, m_This.m_SyncData.m_n0);
 
+		m_This.m_BodyCache.m_Map.clear(); // received with the TxoLo that is about to change
+
 		m_This.m_SyncData.m_Sigma = Zero;
 
 		if (m_This.m_SyncData.m_TxoLo.v > m_This.m_SyncData.m_n0.v)

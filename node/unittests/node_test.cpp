@@ -1178,6 +1178,51 @@ namespace beam
 		proto::BodyBuffers m_Body;
 	};
 
+	void VerifyStatesConsistent(NodeDB& db)
+	{
+		// The functional/reachable bookkeeping of the states and the reachable tips (NodeDB::assert_valid() is for debug builds only)
+		typedef NodeDB::StateFlags SF;
+
+		NodeDB::Recordset rs(db, NodeDB::Query::DbgTest0, "SELECT "
+			"s.Height,s.Flags,s.CountNextFunctional,p.Flags,"
+			"(SELECT COUNT(*) FROM States c WHERE c.RowPrev=s.rowid AND (c.Flags & ?)),"
+			"(SELECT COUNT(*) FROM TipsReachable t WHERE t.State=s.rowid AND t.ChainWork=s.ChainWork)"
+			" FROM States s LEFT JOIN States p ON s.RowPrev=p.rowid");
+		rs.put(0, SF::Functional);
+
+		uint32_t nTips = 0;
+		while (rs.Step())
+		{
+			uint64_t num;
+			uint32_t nFlags, nCountF, nFlagsPrev = 0, nChildrenF, nTip;
+			rs.get(0, num);
+			rs.get(1, nFlags);
+			rs.get(2, nCountF);
+			bool bPrev = !rs.IsNull(3);
+			if (bPrev)
+				rs.get(3, nFlagsPrev);
+			rs.get(4, nChildrenF);
+			rs.get(5, nTip);
+
+			verify_test(nCountF == nChildrenF);
+
+			bool bReachable = (SF::Functional & nFlags) && (bPrev ? !!(SF::Reachable & nFlagsPrev) : (1 == num));
+			verify_test(!(SF::Reachable & nFlags) == !bReachable);
+
+			if (SF::Active & nFlags)
+				verify_test(bReachable);
+
+			verify_test(nTip == ((bReachable && !nCountF) ? 1u : 0u));
+			nTips += nTip;
+		}
+
+		rs.Reset(db, NodeDB::Query::DbgTest1, "SELECT COUNT(*) FROM TipsReachable");
+		verify_test(rs.Step());
+		uint32_t nTipsTotal;
+		rs.get(0, nTipsTotal);
+		verify_test(nTipsTotal == nTips);
+	}
+
 	void TestNodeProcessor1(std::vector<BlockPlus::Ptr>& blockChain)
 	{
 		MyNodeProcessor1 np;
@@ -1499,13 +1544,19 @@ namespace beam
 
 	}
 
-	void TestNodeProcessor3(std::vector<BlockPlus::Ptr>& blockChain)
+	void TestNodeProcessor3(std::vector<BlockPlus::Ptr>& blockChain, bool bBodyWindows)
 	{
 		NodeProcessor np, npSrc;
 		np.m_Horizon.m_Branching = 5;
 		np.m_Horizon.m_Sync.Hi = 12;
 		np.m_Horizon.m_Sync.Lo = 30;
 		np.m_Horizon.m_Local = np.m_Horizon.m_Sync;
+		if (bBodyWindows)
+		{
+			// the blocks up to the target are kept in memory till applied
+			np.m_BodyWindows.m_Size = 10;
+			np.m_BodyWindows.m_Ahead = 3;
+		}
 		np.Initialize(g_sz);
 		np.OnTreasury(g_Treasury);
 
@@ -1577,6 +1628,7 @@ namespace beam
 		}
 
 		np.TryGoUp();
+		VerifyStatesConsistent(np.get_DB());
 		verify_test(np.m_Cursor.m_Full.m_Number.v == 0); // should fall back to start
 		verify_test(!np.m_SyncData.m_TxoLo.v); // next attempt should be with TxLo disabled
 
@@ -1619,6 +1671,7 @@ namespace beam
 		}
 
 		np.TryGoUp();
+		VerifyStatesConsistent(np.get_DB());
 		verify_test(np.m_Cursor.m_Full.m_Number.v == 0); // should fall back to start
 		verify_test(!np.m_SyncData.m_TxoLo.v); // next attempt should be with TxLo disabled
 
@@ -1669,6 +1722,7 @@ namespace beam
 			verify_test(np.OnBlock(id, bbP, bbE, pid) == NodeProcessor::DataStatus::Accepted);
 
 			np.TryGoUp();
+			VerifyStatesConsistent(np.get_DB());
 
 			if (bTampered)
 			{
@@ -1732,6 +1786,7 @@ namespace beam
 			bool bLast = (h.v == np.m_SyncData.m_Target.m_Number.v);
 
 			np.TryGoUp();
+			VerifyStatesConsistent(np.get_DB());
 
 			if (bLast)
 			{
@@ -1794,6 +1849,7 @@ namespace beam
 			bool bLast = (h.v == np.m_SyncData.m_Target.m_Number.v);
 
 			np.TryGoUp();
+			VerifyStatesConsistent(np.get_DB());
 
 			if (bLast)
 			{
@@ -1820,6 +1876,7 @@ namespace beam
 		}
 
 		np.TryGoUp();
+		VerifyStatesConsistent(np.get_DB());
 		verify_test(!np.IsFastSync());
 		verify_test(np.get_DB().IsKernelIndexed()); // rebuilt at the end
 		verify_test(np.m_Cursor.m_Full.m_Number.v == blockChain.size());
@@ -1915,22 +1972,26 @@ namespace beam
 		verify_test(np.Enum() == Requests({ {1, 10}, {11, 20}, {31, 40} }));
 
 		np.TryGoUp();
+		VerifyStatesConsistent(np.get_DB());
 		verify_test(np.m_Cursor.m_Full.m_Number.v == 0); // nothing is reachable
 
 		// the lowest window starts at the first missing block
 		Feed(1, 4);
 		np.TryGoUp();
+		VerifyStatesConsistent(np.get_DB());
 		verify_test(np.m_Cursor.m_Full.m_Number.v == 4);
 		verify_test(np.Enum() == Requests({ {5, 10}, {11, 20}, {31, 40} }));
 
 		// the gap is filled, the blocks received before are applied too
 		Feed(5, 20);
 		np.TryGoUp();
+		VerifyStatesConsistent(np.get_DB());
 		verify_test(np.m_Cursor.m_Full.m_Number.v == 30);
 		verify_test(np.Enum() == Requests({ {31, 40}, {41, 50}, {51, 60}, {61, 70} }));
 
 		Feed(31, 70);
 		np.TryGoUp();
+		VerifyStatesConsistent(np.get_DB());
 		verify_test(np.m_Cursor.m_Full.m_Number.v == 70);
 		verify_test(np.Enum() == Requests({ {71, 80}, {81, numTrg} })); // the last window ends at the target
 
@@ -1939,17 +2000,19 @@ namespace beam
 		verify_test(np.Enum().empty());
 
 		np.TryGoUp();
+		VerifyStatesConsistent(np.get_DB());
 		verify_test(!np.IsFastSync());
 		verify_test(np.m_Cursor.m_Full.m_Number.v == numTrg);
 		verify_test(np.Enum() == Requests({ {numTrg + 1, blockChain.size()} }));
 
 		Feed(numTrg + 1, blockChain.size());
 		np.TryGoUp();
+		VerifyStatesConsistent(np.get_DB());
 		verify_test(!np.IsFastSync());
 		verify_test(np.m_Cursor.m_Full.m_Number.v == blockChain.size());
 	}
 
-	void TestNodeProcessorPeerBarrier(std::vector<BlockPlus::Ptr>& blockChain, bool bCorruptOffset)
+	void TestNodeProcessorPeerBarrier(std::vector<BlockPlus::Ptr>& blockChain, bool bCorruptOffset, bool bFastSync)
 	{
 		// The blocks of several peers are verified together. If they fail - the whole range is deleted, and from then on
 		// the verification is completed on each peer change, so that only the culprit is blamed, and only its blocks are deleted.
@@ -1966,8 +2029,28 @@ namespace beam
 
 		MyProcessor np;
 		np.m_Horizon.m_Branching = 35;
+		if (bFastSync)
+		{
+			// TxoLo is 0: each block is verified on its own. The blocks up to the target are kept in memory till applied
+			np.m_Horizon.m_Sync.Hi = 12;
+			np.m_Horizon.m_Sync.Lo = 10000;
+			np.m_Horizon.m_Local = np.m_Horizon.m_Sync;
+			np.m_BodyWindows.m_Size = 10;
+			np.m_BodyWindows.m_Ahead = 3;
+		}
 		np.Initialize(g_sz);
 		np.OnTreasury(g_Treasury);
+
+		if (bFastSync)
+		{
+			for (size_t i = 0; i < blockChain.size(); i++)
+				verify_test(np.OnState(blockChain[i]->m_Hdr, Zero) == NodeProcessor::DataStatus::Accepted);
+
+			np.EnumCongestions();
+			verify_test(np.IsFastSync());
+			verify_test(!np.m_SyncData.m_TxoLo.v);
+			verify_test(np.m_SyncData.m_Target.m_Number.v > 30);
+		}
 
 		PeerID pPid[3];
 		for (uint32_t i = 0; i < _countof(pPid); i++)
@@ -2020,7 +2103,10 @@ namespace beam
 
 		auto HasBody = [&](uint64_t num)
 		{
-			return !!(NodeDB::StateFlags::Functional & np.get_DB().GetStateFlags(GetRow(num)));
+			NodeDB::StateID sid;
+			sid.m_Row = GetRow(num);
+			sid.m_Number.v = num;
+			return np.IsBlockReceived(sid);
 		};
 
 		// feeds the blocks that are missing
@@ -2049,6 +2135,7 @@ namespace beam
 		// All the blocks of the range are deleted, and the consequent blocks of the blamed peer.
 		Feed(false);
 		np.TryGoUp();
+		VerifyStatesConsistent(np.get_DB());
 
 		verify_test(np.m_Cursor.m_Full.m_Number.v == 0);
 		verify_test(!HasBody(nBad));
@@ -2064,6 +2151,7 @@ namespace beam
 		np.m_vInsane.clear();
 		Feed(false);
 		np.TryGoUp();
+		VerifyStatesConsistent(np.get_DB());
 
 		verify_test(np.m_Cursor.m_Full.m_Number.v == 10);
 		verify_test(np.m_vInsane.size() == 1);
@@ -2079,6 +2167,7 @@ namespace beam
 		np.m_vInsane.clear();
 		Feed(true);
 		np.TryGoUp();
+		VerifyStatesConsistent(np.get_DB());
 
 		verify_test(np.m_Cursor.m_Full.m_Number.v == 30);
 		verify_test(np.m_vInsane.empty());
@@ -3958,9 +4047,12 @@ void TestAll()
 			printf("NodeProcessor test3...\n");
 			fflush(stdout);
 
-			beam::TestNodeProcessor3(blockChain);
-			beam::DeleteFile(beam::g_sz);
-			beam::DeleteFile(beam::g_sz2);
+			for (uint32_t i = 0; i < 2; i++)
+			{
+				beam::TestNodeProcessor3(blockChain, !!i);
+				beam::DeleteFile(beam::g_sz);
+				beam::DeleteFile(beam::g_sz2);
+			}
 
 			printf("NodeProcessor body windows test...\n");
 			fflush(stdout);
@@ -3972,9 +4064,9 @@ void TestAll()
 			printf("NodeProcessor peer barrier test...\n");
 			fflush(stdout);
 
-			for (uint32_t i = 0; i < 2; i++)
+			for (uint32_t i = 0; i < 4; i++)
 			{
-				beam::TestNodeProcessorPeerBarrier(blockChain, !!i);
+				beam::TestNodeProcessorPeerBarrier(blockChain, !!(i & 1), !!(i & 2));
 				beam::DeleteFile(beam::g_sz);
 			}
 		}
