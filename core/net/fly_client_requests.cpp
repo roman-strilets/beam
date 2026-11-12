@@ -272,19 +272,27 @@ void FlyClient::NetworkStd::Connection::OnRequestData(RequestProofShieldedOutp& 
     }
 }
 
-bool FlyClient::Data::DecodedHdrPack::DecodeAndCheck(const HdrPack& msg)
+void FlyClient::Data::DecodedHdrPack::Decode(std::vector<Block::SystemState::Full>& v, const HdrPack& msg)
 {
-    if (msg.m_vElements.empty())
-        return true; // this is allowed
-
-    // PoW verification is heavy for big packs. Do it in parallel
-    std::vector<Block::SystemState::Full> v;
     v.resize(msg.m_vElements.size());
+    if (v.empty())
+        return;
 
     v.front().SetFirst(msg.m_Prefix, msg.m_vElements.back());
 
     for (size_t i = 1; i < msg.m_vElements.size(); i++)
         v[i].SetNext(v[i - 1], msg.m_vElements[msg.m_vElements.size() - i - 1]);
+}
+
+bool FlyClient::Data::DecodedHdrPack::DecodeAndCheck(const HdrPack& msg)
+{
+    if (msg.m_vElements.empty())
+        return true; // this is allowed
+
+    std::vector<Block::SystemState::Full> v;
+    Decode(v, msg);
+
+    // PoW verification is heavy for big packs. Do it in parallel
 
     struct MyTask
         :public Executor::TaskSync

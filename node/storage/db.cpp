@@ -479,4 +479,34 @@ void NodeDB::Transaction::Rollback()
 	}
 }
 
+NodeDB::Savepoint::Savepoint(NodeDB& db)
+	:m_pDB(nullptr)
+{
+	db.ExecStep(Query::SavepointSet, "SAVEPOINT sp");
+	m_pDB = &db;
+}
+
+NodeDB::Savepoint::~Savepoint()
+{
+	if (!m_pDB)
+		return;
+
+	try {
+		// ROLLBACK TO leaves the savepoint on the stack, it must be released too
+		m_pDB->ExecStep(Query::SavepointRollback, "ROLLBACK TO sp");
+		m_pDB->ExecStep(Query::SavepointRelease, "RELEASE sp");
+		m_pDB->OnTxRolledBack();
+	}
+	catch (...) {
+		// ignore
+	}
+}
+
+void NodeDB::Savepoint::Release()
+{
+	assert(m_pDB);
+	m_pDB->ExecStep(Query::SavepointRelease, "RELEASE sp");
+	m_pDB = nullptr;
+}
+
 } // namespace beam

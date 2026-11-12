@@ -124,6 +124,8 @@ namespace proto {
 			struct DecodedHdrPack {
 				std::vector<Block::SystemState::Full> m_vStates;
 				bool DecodeAndCheck(const HdrPack& msg);
+				// builds the states, links them by hashes. No PoW verification
+				static void Decode(std::vector<Block::SystemState::Full>&, const HdrPack& msg);
 			};
 			struct EnumHdrs :public DecodedHdrPack {
 				proto::EnumHdrs m_Msg;

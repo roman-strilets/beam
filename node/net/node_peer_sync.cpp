@@ -108,6 +108,94 @@ bool Node::DecodeAndCheckHdrs(std::vector<Block::SystemState::Full>& v, const pr
 	return true;
 }
 
+namespace {
+
+// PoW of a header pack, verified by the executor threads while the caller does something else (inserts the pack into the DB).
+// The destructor waits for the verification: the tasks reference the headers.
+struct HdrPoWCheckAsync
+{
+	Executor& m_Exec;
+	std::shared_ptr<std::atomic<bool> > m_pValid;
+	bool m_Pending = false;
+
+	struct MyTask
+		:public Executor::TaskAsync
+	{
+		const Block::SystemState::Full* m_pV;
+		uint32_t m_Count;
+		std::shared_ptr<std::atomic<bool> > m_pValid;
+
+		void Exec(Executor::Context&) override
+		{
+			for (uint32_t i = 0; i < m_Count; i++)
+			{
+				if (!*m_pValid)
+					break; // already failed
+				if (!m_pV[i].IsValidPoW())
+				{
+					*m_pValid = false;
+					break;
+				}
+			}
+		}
+	};
+
+	HdrPoWCheckAsync(Executor& ex)
+		:m_Exec(ex)
+		,m_pValid(std::make_shared<std::atomic<bool> >(true))
+	{
+	}
+
+	~HdrPoWCheckAsync()
+	{
+		try {
+			Wait();
+		}
+		catch (...) {
+			// ignore
+		}
+	}
+
+	void Start(const std::vector<Block::SystemState::Full>& v)
+	{
+		assert(!m_Pending);
+
+		// Several chunks per thread: the cores differ in speed (performance vs efficiency ones), and the pack is done
+		// when the slowest chunk is. Not too small though, each one is a separate task.
+		const uint32_t nMinChunk = 32;
+		uint32_t nTotal = static_cast<uint32_t>(v.size());
+		uint32_t nChunks = std::min(m_Exec.get_Threads() * 4, (nTotal + nMinChunk - 1) / nMinChunk);
+		nChunks = std::max(nChunks, 1U);
+
+		m_Pending = true;
+
+		for (uint32_t iChunk = 0, i0 = 0; iChunk < nChunks; iChunk++)
+		{
+			uint32_t i1 = static_cast<uint32_t>(static_cast<uint64_t>(nTotal) * (iChunk + 1) / nChunks);
+
+			auto pTask = std::make_unique<MyTask>();
+			pTask->m_pV = &v[i0];
+			pTask->m_Count = i1 - i0;
+			pTask->m_pValid = m_pValid;
+			m_Exec.Push(std::move(pTask));
+
+			i0 = i1;
+		}
+	}
+
+	bool Wait()
+	{
+		if (m_Pending)
+		{
+			m_Exec.Flush(0);
+			m_Pending = false;
+		}
+		return *m_pValid;
+	}
+};
+
+} // namespace
+
 void Node::Peer::OnMsg(proto::HdrPack&& msg)
 {
 	Task& t = get_FirstTask();
@@ -147,15 +235,29 @@ void Node::Peer::OnMsg(proto::HdrPack&& msg)
 		ThrowUnexpected();
 	}
 
-	std::vector<Block::SystemState::Full> v;
-	if (!m_This.DecodeAndCheckHdrs(v, msg))
+	if (msg.m_vElements.empty() || (msg.m_vElements.size() > proto::g_HdrPackMaxSize))
 		ThrowUnexpected();
+
+	std::vector<Block::SystemState::Full> v;
+	proto::FlyClient::Data::DecodedHdrPack::Decode(v, msg);
 
 	// just to be pedantic, AND prevent non-stamped hdrs in pbft-w mode
 	Block::SystemState::ID idLast;
 	v.back().get_ID(idLast);
 	if (!(idLast == t.m_Key.first))
 		ThrowUnexpected();
+
+	for (size_t i = 0; i < v.size(); i++)
+		if (!v[i].IsSane())
+			ThrowUnexpected();
+
+	// PoW verification is the heaviest part. It runs in the executor threads while the headers are inserted. The insertion is
+	// rolled back if the PoW is invalid. Declared before the savepoint, so that on exception the savepoint is rolled back first,
+	// and the verification is waited for after that (it references v).
+	HdrPoWCheckAsync pow(m_This.m_Processor.m_ExecutorMT);
+	pow.Start(v);
+
+	NodeDB::Savepoint sp(m_This.m_Processor.get_DB());
 
 	for (size_t i = 0; i < v.size(); i++)
 	{
@@ -174,6 +276,11 @@ void Node::Peer::OnMsg(proto::HdrPack&& msg)
 			break; // suppress warning
 		}
 	}
+
+	if (!pow.Wait())
+		ThrowUnexpected(); // the savepoint rolls back the inserted headers
+
+	sp.Release();
 
 	BEAM_LOG_INFO() << "Hdr pack received " << msg.m_Prefix.m_Number.v << "-" << idLast;
 

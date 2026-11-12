@@ -80,6 +80,9 @@ public:
 			Begin,
 			Commit,
 			Rollback,
+			SavepointSet,
+			SavepointRelease,
+			SavepointRollback,
 			Scheme,
 			AutoincrementID,
 			ParamGet,
@@ -346,6 +349,16 @@ public:
 		void Start(NodeDB&);
 		void Commit();
 		void Rollback();
+	};
+
+	// Nested in the current transaction (if any). Rolls back the changes made since it was set, unless released
+	class Savepoint {
+		NodeDB* m_pDB;
+	public:
+		Savepoint(NodeDB&);
+		~Savepoint();
+
+		void Release(); // keep the changes
 	};
 
 	// Hi-level functions

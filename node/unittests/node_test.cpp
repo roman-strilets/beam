@@ -332,6 +332,25 @@ namespace beam
 		verify_test(CountTips(db, false) == 1);
 		verify_test(CountTips(db, true) == 0);
 
+		{
+			// a savepoint that isn't released rolls back the inserted header, the tips included
+			Block::SystemState::Full s = vStates[hFork0];
+			s.m_Definition.Inc(); // alter
+
+			Block::SystemState::ID id;
+			s.get_ID(id);
+
+			{
+				NodeDB::Savepoint sp(db);
+				verify_test(db.InsertState(s, peer));
+				verify_test(CountTips(db, false) == 2);
+			}
+
+			verify_test(!db.StateFindSafe(id));
+			verify_test(CountTips(db, false) == 1);
+			db.assert_valid();
+		}
+
 		// a subbranch
 		Block::SystemState::Full s = vStates[hFork0];
 		s.m_Definition.Inc(); // alter
