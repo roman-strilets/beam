@@ -207,7 +207,7 @@ void NodeDB::KrnWndLoad()
 {
 	// full table scan, done once on start (or after tx rollback)
 	m_KrnWnd.m_mapKey.clear();
-	m_KrnWnd.m_mapHeight.clear();
+	m_KrnWnd.m_vHeight.clear();
 
 	Recordset rs(*this, Query::KernelEnumFrom, "SELECT rowid," TblKernels_Key "," TblKernels_Height " FROM " TblKernels " WHERE " TblKernels_Height ">=?");
 	rs.put(0, m_KrnWnd.m_hLo);
@@ -222,9 +222,10 @@ void NodeDB::KrnWndLoad()
 		rs.get(1, hv);
 		rs.get(2, h);
 
-		m_KrnWnd.Add(hv, h, rowid);
+		m_KrnWnd.Add(hv, h, rowid, false); // in the order of rowid, not height
 	}
 
+	m_KrnWnd.Sort();
 	m_KrnWnd.m_On = true;
 	m_KrnWnd.m_Stale = false;
 
@@ -263,24 +264,45 @@ const Merkle::Hash& NodeDB::KrnWndKey(const Blob& key)
 
 void NodeDB::KrnWnd::Clear()
 {
-	m_mapHeight.clear();
+	m_vHeight.clear();
 	m_mapKey.clear();
 	m_On = false;
 	m_Stale = false;
 }
 
-void NodeDB::KrnWnd::Add(const Merkle::Hash& key, Height h, uint64_t rowid)
+void NodeDB::KrnWnd::Add(const Merkle::Hash& key, Height h, uint64_t rowid, bool bSorted /* = true */)
 {
 	if (h < m_hLo)
 		return; // the window invariant is only about the kernels at hLo and above
 
-	auto itK = m_mapKey.emplace(key, Item{ h, rowid });
-	m_mapHeight.emplace(std::make_pair(h, rowid), itK);
+	m_mapKey.emplace(key, Item{ h, rowid });
+
+	HeightEntry x;
+	x.m_Height = h;
+	x.m_RowID = rowid;
+	x.m_Key = key;
+
+	if (!bSorted || m_vHeight.empty() || (m_vHeight.back() < x))
+		m_vHeight.push_back(x);
+	else
+		m_vHeight.insert(std::upper_bound(m_vHeight.begin(), m_vHeight.end(), x), x); // a kernel at a lower height after a rollback
+}
+
+void NodeDB::KrnWnd::Sort()
+{
+	std::sort(m_vHeight.begin(), m_vHeight.end());
 }
 
 void NodeDB::KrnWnd::Erase(MapKey::iterator itK)
 {
-	m_mapHeight.erase(std::make_pair(itK->second.m_Height, itK->second.m_RowID));
+	HeightEntry x;
+	x.m_Height = itK->second.m_Height;
+	x.m_RowID = itK->second.m_RowID;
+
+	auto it = std::lower_bound(m_vHeight.begin(), m_vHeight.end(), x);
+	assert((m_vHeight.end() != it) && (it->m_Height == x.m_Height) && (it->m_RowID == x.m_RowID));
+	m_vHeight.erase(it);
+
 	m_mapKey.erase(itK);
 }
 
@@ -291,14 +313,23 @@ void NodeDB::KrnWnd::Raise(Height hLo)
 
 	m_hLo = hLo;
 
-	while (!m_mapHeight.empty())
+	while (!m_vHeight.empty())
 	{
-		auto it = m_mapHeight.begin();
-		if (it->first.first >= hLo)
+		const HeightEntry& x = m_vHeight.front();
+		if (x.m_Height >= hLo)
 			break;
 
-		m_mapKey.erase(it->second);
-		m_mapHeight.erase(it);
+		auto r = m_mapKey.equal_range(x.m_Key);
+		for (auto it = r.first; r.second != it; ++it)
+		{
+			if (it->second.m_RowID == x.m_RowID)
+			{
+				m_mapKey.erase(it);
+				break;
+			}
+		}
+
+		m_vHeight.pop_front();
 	}
 }
 

@@ -17,6 +17,9 @@
 #include "core/base/common.h"
 #include "core/consensus/block_crypt.h"
 #include "sqlite/sqlite3.h"
+#include <unordered_map>
+#include <deque>
+#include <algorithm>
 
 namespace beam {
 
@@ -1001,11 +1004,32 @@ private:
 			uint64_t m_RowID;
 		};
 
-		typedef std::multimap<Merkle::Hash, Item> MapKey;
-		typedef std::map<std::pair<Height, uint64_t>, MapKey::iterator> MapHeight; // (Height, RowID)
+		struct KeyHasher {
+			size_t operator () (const Merkle::Hash& hv) const {
+				size_t n;
+				memcpy(&n, hv.m_pData, sizeof(n)); // the keys are hashes
+				return n;
+			}
+		};
+
+		typedef std::unordered_multimap<Merkle::Hash, Item, KeyHasher> MapKey;
+
+		struct HeightEntry {
+			Height m_Height;
+			uint64_t m_RowID;
+			Merkle::Hash m_Key;
+
+			bool operator < (const HeightEntry& x) const {
+				return (m_Height < x.m_Height) || ((m_Height == x.m_Height) && (m_RowID < x.m_RowID));
+			}
+		};
+
+		// Ordered by (Height, RowID). The kernels are added at the end, and removed from the beginning as the window moves up.
+		// Unlike a map, no allocation per kernel.
+		typedef std::deque<HeightEntry> VecHeight;
 
 		MapKey m_mapKey;
-		MapHeight m_mapHeight;
+		VecHeight m_vHeight;
 
 		bool m_On = false; // the index is suspended, and the window is valid
 		bool m_Stale = false; // tx rolled back, reload before use
@@ -1014,7 +1038,8 @@ private:
 		uint64_t m_nScans = 0; // lookups that fell back to the table scan
 
 		void Clear();
-		void Add(const Merkle::Hash&, Height, uint64_t rowid);
+		void Add(const Merkle::Hash&, Height, uint64_t rowid, bool bSorted = true); // !bSorted - added at the end, call Sort() after
+		void Sort();
 		void Erase(MapKey::iterator);
 		void Raise(Height hLo);
 	} m_KrnWnd;
