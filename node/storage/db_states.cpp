@@ -47,38 +47,46 @@ void NodeDB::get_State(uint64_t rowid, Block::SystemState::Full& out)
 
 uint64_t NodeDB::InsertState(const Block::SystemState::Full& s, const PeerID& peer)
 {
-	assert(s.m_Number.v);
-
-	// Is there a prev? Is it a tip currently?
-	Difficulty::Raw wrk = s.m_ChainWork - s.m_PoW.m_Difficulty;
-
-	Recordset rs(*this, Query::StateFind2, "SELECT rowid," TblStates_CountNext " FROM " TblStates " WHERE " TblStates_Number "=? AND " TblStates_Hash "=? AND " TblStates_ChainWork "=?");
-	rs.put(0, s.m_Number.v - 1);
-	rs.put(1, s.m_Prev);
-	rs.put(2, wrk);
-
-	uint32_t nPrevCountNext = 0; // initialized to suppress warning, not really needed
-	uint64_t rowPrev;
-
-	if (rs.Step())
-	{
-		rs.get(0, rowPrev);
-		rs.get(1, nPrevCountNext);
-	}
-	else
-		rowPrev = 0;
-
 	Merkle::Hash hash;
 	s.get_Hash(hash);
 
-	// Insert row
+	return InsertState(s, hash, peer, 0, false);
+}
+
+uint64_t NodeDB::InsertState(const Block::SystemState::Full& s, const Merkle::Hash& hash, const PeerID& peer, uint64_t rowPrevKnown, bool bNextFollows)
+{
+	assert(s.m_Number.v);
+
+	Recordset rs;
+
+	uint32_t nPrevCountNext = 0; // initialized to suppress warning, not really needed
+	uint64_t rowPrev = rowPrevKnown;
+
+	if (!rowPrev)
+	{
+		// Is there a prev? Is it a tip currently?
+		Difficulty::Raw wrk = s.m_ChainWork - s.m_PoW.m_Difficulty;
+
+		rs.Reset(*this, Query::StateFind2, "SELECT rowid," TblStates_CountNext " FROM " TblStates " WHERE " TblStates_Number "=? AND " TblStates_Hash "=? AND " TblStates_ChainWork "=?");
+		rs.put(0, s.m_Number.v - 1);
+		rs.put(1, s.m_Prev);
+		rs.put(2, wrk);
+
+		if (rs.Step())
+		{
+			rs.get(0, rowPrev);
+			rs.get(1, nPrevCountNext);
+		}
+	}
+
+	// Insert row. If the next one follows - account for it right away, and don't make this one a tip
 
 #define THE_MACRO_1(dbname, extname) TblStates_##dbname ","
 #define THE_MACRO_2(dbname, extname) "?,"
 
 	rs.Reset(*this, Query::StateIns, "INSERT INTO " TblStates
 		" (" TblStates_Hash "," StateCvt_Fields(THE_MACRO_1, THE_MACRO_NOP0) TblStates_Flags "," TblStates_CountNext "," TblStates_CountNextF "," TblStates_RowPrev "," TblStates_Peer ")"
-		" VALUES(?," StateCvt_Fields(THE_MACRO_2, THE_MACRO_NOP0) "0,0,?,?,?)");
+		" VALUES(?," StateCvt_Fields(THE_MACRO_2, THE_MACRO_NOP0) "0,?,?,?,?)");
 
 #undef THE_MACRO_1
 #undef THE_MACRO_2
@@ -90,6 +98,7 @@ uint64_t NodeDB::InsertState(const Block::SystemState::Full& s, const PeerID& pe
 	StateCvt_Fields(THE_MACRO_1, THE_MACRO_NOP0)
 #undef THE_MACRO_1
 
+	rs.put(iCol++, bNextFollows ? 1u : 0u); // next
 	rs.put(iCol++, 0u); // next functional, update it later if needed
 	if (rowPrev)
 		rs.put(iCol, rowPrev); // otherwise it'd be NULL
@@ -103,7 +112,7 @@ uint64_t NodeDB::InsertState(const Block::SystemState::Full& s, const PeerID& pe
 	uint64_t rowid = get_LastInsertRowID();
 	assert(rowid);
 
-	if (rowPrev)
+	if (rowPrev && !rowPrevKnown)
 	{
 		SetNextCount(rowPrev, nPrevCountNext + 1);
 
@@ -145,9 +154,12 @@ uint64_t NodeDB::InsertState(const Block::SystemState::Full& s, const PeerID& pe
 	}
 	
 	if (nCountAncestors)
-		SetNextCount(rowid, nCountAncestors);
+		SetNextCount(rowid, nCountAncestors + (bNextFollows ? 1 : 0));
 	else
-		TipAdd(rowid, s.m_Number);
+	{
+		if (!bNextFollows)
+			TipAdd(rowid, s.m_Number);
+	}
 
 	if (nCountNextF)
 		SetNextCountFunctional(rowid, nCountNextF);

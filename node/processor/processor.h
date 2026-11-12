@@ -514,6 +514,9 @@ public:
 
 	DataStatus::Enum OnState(const Block::SystemState::Full&, const PeerID&);
 	DataStatus::Enum OnStateSilent(const Block::SystemState::Full&, const PeerID&, Block::SystemState::ID&, bool bAlreadyChecked);
+	// A pack of headers in ascending order, each one is the prev of the next (see DecodedHdrPack::Decode). Their PoW must be verified by the caller.
+	// Returns false if a header is invalid, then nothing is inserted.
+	bool OnStatePack(const Block::SystemState::Full*, size_t nCount, const PeerID&);
 	DataStatus::Enum OnBlock(const Block::SystemState::ID&, const Blob& bbP, const Blob& bbE, const PeerID&);
 	DataStatus::Enum OnBlock(const NodeDB::StateID&, const Blob& bbP, const Blob& bbE, const PeerID&);
 	DataStatus::Enum OnTreasury(const Blob&);
@@ -1019,6 +1022,7 @@ public:
 
 private:
 	DataStatus::Enum OnStateInternal(const Block::SystemState::Full&, Block::SystemState::ID&, bool bAlreadyChecked);
+	DataStatus::Enum TestStateAcceptable(const Block::SystemState::Full&, const Block::SystemState::ID&); // except PoW
 };
 
 struct LogSid

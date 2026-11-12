@@ -959,10 +959,168 @@ namespace beam
 		}
 	}
 
+	void TestNodeDBStatePack()
+	{
+		// Inserting a pack of headers with the known prev and next (as NodeProcessor::OnStatePack does) must give the same
+		// as inserting them one by one: the links, the follower counts and the tips.
+		const uint32_t nCount = 48, iPack0 = 5, iPack1 = 40; // the pack is [iPack0, iPack1)
+
+		std::vector<Block::SystemState::Full> vStates;
+		vStates.resize(nCount);
+		memset0(&vStates.at(0), vStates.size());
+
+		Difficulty::Raw d0;
+		Difficulty(0).Unpack(d0);
+
+		for (uint32_t h = 0; h < nCount; h++)
+		{
+			Block::SystemState::Full& s = vStates[h];
+			s.m_Number.v = h + 1;
+			s.m_ChainWork = d0;
+
+			if (h)
+			{
+				s.m_ChainWork += vStates[h - 1].m_ChainWork;
+				vStates[h - 1].get_Hash(s.m_Prev);
+			}
+		}
+
+		// a child of a header inside the pack, received before the pack
+		Block::SystemState::Full sFork = vStates[20];
+		sFork.m_Definition.Inc();
+
+		PeerID peer;
+		memset(peer.m_pData, 0x66, peer.nBytes);
+
+		std::string pPath[2] = { std::string(g_sz2) + "-1", g_sz2 };
+		NodeDB pDb[2];
+
+		for (uint32_t iDb = 0; iDb < 2; iDb++)
+		{
+			DeleteFile(pPath[iDb].c_str());
+			NodeDB& db = pDb[iDb];
+			db.Open(pPath[iDb].c_str());
+
+			// already there: the prev of the pack, a header inside it, the fork, and the next of the pack
+			db.InsertState(vStates[iPack0 - 1], peer);
+			db.InsertState(vStates[30], peer);
+			db.InsertState(sFork, peer);
+			db.InsertState(vStates[iPack1], peer);
+		}
+
+		{
+			// the pack
+			NodeDB& db = pDb[0];
+
+			std::vector<bool> vNew;
+			for (uint32_t i = iPack0; i < iPack1; i++)
+			{
+				Block::SystemState::ID id;
+				vStates[i].get_ID(id);
+				vNew.push_back(!db.StateFindSafe(id));
+			}
+
+			uint64_t rowPrev = 0;
+			for (uint32_t i = iPack0; i < iPack1; i++)
+			{
+				uint32_t k = i - iPack0;
+				if (!vNew[k])
+				{
+					rowPrev = 0;
+					continue;
+				}
+
+				bool bNextFollows = (k + 1 < vNew.size()) && vNew[k + 1];
+
+				Merkle::Hash hv;
+				vStates[i].get_Hash(hv);
+				rowPrev = db.InsertState(vStates[i], hv, peer, rowPrev, bNextFollows);
+			}
+		}
+
+		for (uint32_t i = iPack0; i < iPack1; i++)
+		{
+			// one by one
+			NodeDB& db = pDb[1];
+
+			Block::SystemState::ID id;
+			vStates[i].get_ID(id);
+			if (!db.StateFindSafe(id))
+				db.InsertState(vStates[i], peer);
+		}
+
+		// the same rows (inserted in the same order) with the same prev
+		vStates.push_back(sFork);
+		uint32_t nRows = 0;
+
+		for (const auto& s : vStates)
+		{
+			Block::SystemState::ID id;
+			s.get_ID(id);
+
+			uint64_t pRow[2];
+			for (uint32_t iDb = 0; iDb < 2; iDb++)
+				pRow[iDb] = pDb[iDb].StateFindSafe(id);
+
+			verify_test(pRow[0] == pRow[1]);
+			if (!pRow[0])
+				continue;
+
+			nRows++;
+
+			for (uint32_t iDb = 0; iDb < 2; iDb++)
+				if (!pDb[iDb].get_Prev(pRow[iDb]))
+					pRow[iDb] = 0;
+
+			verify_test(pRow[0] == pRow[1]);
+		}
+
+		verify_test(nRows == iPack1 - iPack0 + 3);
+
+		// Delete the tips while there are any. The tips must be the same each time, and all the rows must be deleted.
+		// This tests the follower counts: a state becomes a tip once all its followers are deleted.
+		uint32_t nDeleted = 0;
+		while (true)
+		{
+			std::vector<uint64_t> pTips[2];
+			for (uint32_t iDb = 0; iDb < 2; iDb++)
+			{
+				NodeDB::WalkerState ws;
+				for (pDb[iDb].EnumTips(ws); ws.MoveNext(); )
+					pTips[iDb].push_back(ws.m_Sid.m_Row);
+				std::sort(pTips[iDb].begin(), pTips[iDb].end());
+			}
+
+			verify_test(pTips[0] == pTips[1]);
+			if (pTips[0].empty())
+				break;
+
+			for (uint32_t iDb = 0; iDb < 2; iDb++)
+			{
+				for (uint64_t row : pTips[iDb])
+				{
+					uint64_t rowPrev;
+					verify_test(pDb[iDb].DeleteState(row, rowPrev));
+				}
+			}
+
+			nDeleted += static_cast<uint32_t>(pTips[0].size());
+		}
+
+		verify_test(nDeleted == nRows);
+
+		for (uint32_t iDb = 0; iDb < 2; iDb++)
+		{
+			pDb[iDb].Close();
+			DeleteFile(pPath[iDb].c_str());
+		}
+	}
+
 	void TestNodeDB()
 	{
 		TestNodeDB(g_sz); // will create
 		TestNodeDBKernelWnd(g_sz);
+		TestNodeDBStatePack();
 
 		{
 			NodeDB db;

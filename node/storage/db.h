@@ -377,6 +377,11 @@ public:
 	};
 
 	uint64_t InsertState(const Block::SystemState::Full&, const PeerID&); // Fails if state already exists
+	// Same, for a header of a contiguous pack. hv is the state's hash.
+	// rowPrev: the prev state, if it was inserted right before, with bNextFollows. It already accounts for this one as its next, and it's not a tip.
+	// Otherwise 0, then the prev is looked up.
+	// bNextFollows: the next state is inserted right after this one, with rowPrev set to it. Must not exist yet.
+	uint64_t InsertState(const Block::SystemState::Full&, const Merkle::Hash& hv, const PeerID&, uint64_t rowPrev, bool bNextFollows);
 
 	uint64_t FindActiveStateStrict(Block::Number);
 	uint64_t StateFindSafe(const Block::SystemState::ID&);

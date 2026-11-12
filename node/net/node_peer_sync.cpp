@@ -259,23 +259,9 @@ void Node::Peer::OnMsg(proto::HdrPack&& msg)
 
 	NodeDB::Savepoint sp(m_This.m_Processor.get_DB());
 
-	for (size_t i = 0; i < v.size(); i++)
-	{
-		NodeProcessor::DataStatus::Enum eStatus = m_This.m_Processor.OnStateSilent(v[i], m_pInfo->m_ID.m_Key, idLast, true);
-		switch (eStatus)
-		{
-		case NodeProcessor::DataStatus::Invalid:
-			// though PoW was already tested, header can still be invalid. For instance, due to improper Timestamp
-			ThrowUnexpected();
-			break;
-
-		case NodeProcessor::DataStatus::Accepted:
-			// no break;
-
-		default:
-			break; // suppress warning
-		}
-	}
+	// though PoW is being tested, a header can still be invalid. For instance, due to improper Timestamp
+	if (!m_This.m_Processor.OnStatePack(&v.front(), v.size(), m_pInfo->m_ID.m_Key))
+		ThrowUnexpected();
 
 	if (!pow.Wait())
 		ThrowUnexpected(); // the savepoint rolls back the inserted headers

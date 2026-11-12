@@ -1126,6 +1126,11 @@ NodeProcessor::DataStatus::Enum NodeProcessor::OnStateInternal(const Block::Syst
 		return DataStatus::Invalid;
 	}
 
+	return TestStateAcceptable(s, id);
+}
+
+NodeProcessor::DataStatus::Enum NodeProcessor::TestStateAcceptable(const Block::SystemState::Full& s, const Block::SystemState::ID& id)
+{
 	const Rules& r = Rules::get();
 	if (Rules::Consensus::Pbft != r.m_Consensus)
 	{
@@ -1173,6 +1178,49 @@ NodeProcessor::DataStatus::Enum NodeProcessor::OnStateSilent(const Block::System
 		m_DB.InsertState(s, peer);
 
 	return ret;
+}
+
+bool NodeProcessor::OnStatePack(const Block::SystemState::Full* pV, size_t nCount, const PeerID& peer)
+{
+	if (!nCount)
+		return true;
+
+	// The hash of each header is the prev of the next one, only the last one is calculated
+	Merkle::Hash hvLast;
+	pV[nCount - 1].get_Hash(hvLast);
+
+	auto fnHash = [pV, nCount, &hvLast](size_t i) -> const Merkle::Hash& {
+		return (i + 1 < nCount) ? pV[i + 1].m_Prev : hvLast;
+	};
+
+	// Test all of them first. Then it's known in advance if the next header will be inserted right after the current one.
+	std::vector<DataStatus::Enum> vStatus(nCount);
+
+	for (size_t i = 0; i < nCount; i++)
+	{
+		Block::SystemState::ID id;
+		id.m_Number = pV[i].m_Number;
+		id.m_Hash = fnHash(i);
+
+		vStatus[i] = TestStateAcceptable(pV[i], id);
+		if (DataStatus::Invalid == vStatus[i])
+			return false;
+	}
+
+	uint64_t rowPrev = 0; // the previous header, if it was just inserted
+	for (size_t i = 0; i < nCount; i++)
+	{
+		if (DataStatus::Accepted != vStatus[i])
+		{
+			rowPrev = 0;
+			continue;
+		}
+
+		bool bNextFollows = (i + 1 < nCount) && (DataStatus::Accepted == vStatus[i + 1]);
+		rowPrev = m_DB.InsertState(pV[i], fnHash(i), peer, rowPrev, bNextFollows);
+	}
+
+	return true;
 }
 
 NodeProcessor::DataStatus::Enum NodeProcessor::OnBlock(const Block::SystemState::ID& id, const Blob& bbP, const Blob& bbE, const PeerID& peer)
