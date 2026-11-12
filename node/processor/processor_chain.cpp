@@ -883,15 +883,45 @@ void NodeProcessor::OnFastSyncOver(MultiblockContext& mbc, bool& bContextFail)
 	{
 		BEAM_LOG_INFO() << "Fast-sync succeeded";
 
-		// raise fossil height, hTxoLo, hTxoHi
-		RaiseHorizons(m_Cursor.m_Full.m_Number, m_Cursor.m_Full.m_Number, m_SyncData.m_TxoLo);
-
-		ZeroObject(m_SyncData);
-		SaveSyncData();
+		FinalizeFastSync();
 		m_BodyCache.m_Map.clear();
 
 		OnFastSyncSucceeded();
 	}
+}
+
+void NodeProcessor::FinalizeFastSync()
+{
+	assert(IsFastSync() && (m_Cursor.m_Full.m_Number.v >= m_SyncData.m_Target.m_Number.v));
+
+	// Raising the horizons rewrites many pages (the States and the TXOs), and the kernel index is rebuilt (see SaveSyncData).
+	// It's a single huge transaction. With the WAL each page is written twice: to the WAL on commit, and then to the DB by
+	// the checkpoint, which takes about a minute. With the rollback journal the new pages (the index) are written once, and
+	// the modified ones are journaled before being overwritten.
+	// The mode can't be changed within a transaction, so the applied blocks are committed first. If it's interrupted after that,
+	// it's done again on restart (see Initialize).
+	BEAM_LOG_INFO() << "Finalizing fast-sync...";
+
+	bool bTx = m_DbTx.IsInProgress();
+	if (bTx)
+		CommitMappingAndDB();
+
+	m_DB.SetJournalWal(false);
+	m_DbTx.Start(m_DB);
+
+	// raise fossil height, hTxoLo, hTxoHi
+	RaiseHorizons(m_Cursor.m_Full.m_Number, m_Cursor.m_Full.m_Number, m_SyncData.m_TxoLo);
+
+	ZeroObject(m_SyncData);
+	SaveSyncData();
+
+	CommitMappingAndDB();
+	m_DB.SetJournalWal(true);
+
+	if (bTx)
+		m_DbTx.Start(m_DB);
+
+	BEAM_LOG_INFO() << "Fast-sync finalized";
 }
 
 void NodeProcessor::RollbackTo(Block::Number num)

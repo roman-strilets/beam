@@ -948,6 +948,12 @@ void Node::Initialize()
 
 	RefreshAccounts();
 
+	if (m_Processor.m_bFastSyncFinalizedOnStart)
+	{
+		m_Processor.m_bFastSyncFinalizedOnStart = false;
+		m_Processor.OnFastSyncSucceeded();
+	}
+
 	ZeroObject(m_SyncStatus);
 	RefreshCongestions();
 

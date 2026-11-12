@@ -1723,7 +1723,9 @@ namespace beam
 
 	void TestNodeProcessor3(std::vector<BlockPlus::Ptr>& blockChain, bool bBodyWindows)
 	{
-		NodeProcessor np, npSrc;
+		auto pNp = std::make_unique<NodeProcessor>(); // re-created at the end, to test the restart
+		NodeProcessor& np = *pNp;
+		NodeProcessor npSrc;
 		np.m_Horizon.m_Branching = 5;
 		np.m_Horizon.m_Sync.Hi = 12;
 		np.m_Horizon.m_Sync.Lo = 30;
@@ -2057,6 +2059,25 @@ namespace beam
 		verify_test(!np.IsFastSync());
 		verify_test(np.get_DB().IsKernelIndexed()); // rebuilt at the end
 		verify_test(np.m_Cursor.m_Full.m_Number.v == blockChain.size());
+		verify_test(!np.m_bFastSyncFinalizedOnStart);
+
+		// Finalizing was interrupted: the blocks up to the target are committed, but the fast-sync mode isn't cleared yet
+		// (see FinalizeFastSync). It's finalized on restart.
+		np.m_SyncData.m_Target = np.m_Cursor.get_Sid();
+		np.SaveSyncData();
+		np.SuspendKernelIndex();
+		verify_test(np.IsFastSync());
+		verify_test(!np.get_DB().IsKernelIndexed());
+
+		pNp.reset(); // commits
+
+		pNp = std::make_unique<NodeProcessor>();
+		pNp->Initialize(g_sz);
+		verify_test(!pNp->IsFastSync());
+		verify_test(pNp->m_bFastSyncFinalizedOnStart);
+		verify_test(pNp->get_DB().IsKernelIndexed());
+		verify_test(pNp->m_Cursor.m_Full.m_Number.v == blockChain.size());
+		VerifyStatesConsistent(pNp->get_DB());
 	}
 
 	void TestNodeProcessorBodyWindows(std::vector<BlockPlus::Ptr>& blockChain)

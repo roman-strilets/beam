@@ -282,6 +282,8 @@ public:
 	}
 
 	void Vacuum();
+	// WAL (normally) or the rollback journal. Only outside a transaction
+	void SetJournalWal(bool);
 	void CheckIntegrity();
 
 	virtual void OnModified() {}
