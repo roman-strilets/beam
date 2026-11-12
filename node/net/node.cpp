@@ -545,6 +545,26 @@ void Node::TryAssignTask(Task& t)
 	}
 }
 
+bool Node::IsSyncTargetReachedBy(Peer& p)
+{
+	Block::SystemState::ID id;
+	id.m_Number = p.m_Tip.m_Full.m_Number;
+	id.m_Hash = p.m_Tip.m_hh.m_Hash;
+
+	Peer::SyncTargetReached& x = p.m_SyncTargetReached; // alias
+	const NodeDB::StateID& sidTrg = m_Processor.m_SyncData.m_Target; // alias
+
+	if ((x.m_idTip == id) && (x.m_sidTrg.m_Row == sidTrg.m_Row) && (x.m_sidTrg.m_Number.v == sidTrg.m_Number.v))
+		return true; // checked already
+
+	if (!m_Processor.IsSyncTargetReachedBy(id))
+		return false; // not cached: the missing headers may arrive
+
+	x.m_idTip = id;
+	x.m_sidTrg = sidTrg;
+	return true;
+}
+
 bool Node::TryAssignTask(Task& t, Peer& p)
 {
 	BEAM_LOG_VERBOSE() << "Peer " << p.m_RemoteAddr << " trying to assign task " << t.m_Key.first;
@@ -620,6 +640,12 @@ bool Node::TryAssignTask(Task& t, Peer& p)
 
 		const NodeProcessor::SyncData& sd = m_Processor.m_SyncData; // alias
 		bool bDiluted = (t.m_Key.first.m_Number.v <= sd.m_Target.m_Number.v);
+
+		if (bDiluted && m_Processor.IsFastSync() && !IsSyncTargetReachedBy(p))
+		{
+			BEAM_LOG_VERBOSE() << "sync target is not in the peer's chain";
+			return false;
+		}
 
 		// The top of the requested range. The peer anchors it in its active chain, and sends the blocks from the bottom up, but not above it.
 		// Diluted blocks are requested up to the target, or up to the end of the window (see NodeProcessor::BodyWindows)

@@ -412,6 +412,32 @@ bool NodeProcessor::get_CachedRows(const NodeDB::StateID& sid, Height nCountExtr
 	return false;
 }
 
+bool NodeProcessor::IsSyncTargetReachedBy(const Block::SystemState::ID& id)
+{
+	assert(IsFastSync());
+	const NodeDB::StateID& sidTrg = m_SyncData.m_Target; // alias
+
+	if (id.m_Number.v < sidTrg.m_Number.v)
+		return false;
+
+	NodeDB::StateID sid;
+	sid.m_Row = m_DB.StateFindSafe(id);
+	if (!sid.m_Row)
+		return false; // unknown header, can't tell
+	sid.m_Number = id.m_Number;
+
+	if (sid.m_Row == sidTrg.m_Row)
+		return true;
+
+	// The target isn't reachable yet (it's above the cursor), so its branch is in the congestion cache, down to the cursor.
+	// Each entry contains the rows of its branch down to the 1st non-reachable state.
+	for (auto& x : m_CongestionCache.m_lstTips)
+		if (x.IsContained(sid) && x.IsContained(sidTrg))
+			return true;
+
+	return false;
+}
+
 bool NodeProcessor::get_HdrGapLow(NodeDB::StateID& sid, const StateSet& setSkip)
 {
 	// Select by the estimated ChainWork, same as the sync target (see EnumCongestionsInternal). Neither the claimed ChainWork

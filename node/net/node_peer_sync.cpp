@@ -293,6 +293,11 @@ bool Node::Peer::GetBlock(proto::BodyBuffers& out, const NodeDB::StateID& sid, c
 		ThrowUnexpected();
 	}
 
+	// A diluted block depends on where its outputs are spent up to m_HorizonHi1 (the requester's sync target), in our active chain.
+	// Above our cursor it's unknown: such outputs would be sent as unspent, and the requester's fast sync would fail at its TxoLo.
+	if ((msg.m_HorizonHi1.v > sid.m_Number.v) && (msg.m_HorizonHi1.v > m_This.m_Processor.m_Cursor.m_Full.m_Number.v))
+		return false;
+
 	if (!m_This.m_Processor.GetBlock(sid, pE, pP, msg.m_Block0, msg.m_HorizonLo1, msg.m_HorizonHi1, bActive))
 		return false;
 

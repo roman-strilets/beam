@@ -382,6 +382,7 @@ private:
 
 	void TryAssignTask(Task&);
 	bool TryAssignTask(Task&, Peer&);
+	bool IsSyncTargetReachedBy(Peer&); // fast sync: diluted blocks can be requested from this peer
 	void AssignTask(Task&, Peer&); // the request is already sent
 	void DeleteUnassignedTask(Task&);
 
@@ -604,6 +605,13 @@ private:
 		beam::io::Address m_RemoteAddr; // for logging only
 
 		NodeProcessor::Tip m_Tip;
+
+		// The last tip of this peer that is known to contain the fast-sync target in its chain (see NodeProcessor::IsSyncTargetReachedBy)
+		struct SyncTargetReached
+		{
+			Block::SystemState::ID m_idTip;
+			NodeDB::StateID m_sidTrg;
+		} m_SyncTargetReached = {};
 
 		struct DependentContext
 		{

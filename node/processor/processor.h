@@ -594,6 +594,13 @@ public:
 
 	void EnumCongestions();
 	bool get_CachedRows(const NodeDB::StateID&, uint64_t nCountExtra, std::deque<uint64_t>::const_iterator& out); // out valid till next call to this func, or to EnumCongestions()
+
+	// Fast sync: is the sync target an ancestor of this state (a peer's tip), or the state itself. Valid after EnumCongestions().
+	// The diluted blocks (see GetBlock) are diluted wrt the active chain of the peer that serves them: the outputs are omitted or
+	// sent naked according to where they are spent in that chain. Hence they may be requested only from a peer whose active chain
+	// contains the target. Otherwise (e.g. a legacy peer that stayed on a fork that is invalid for us) the diluted blocks are
+	// inconsistent, and the fast sync fails only once the TxoLo is reached, with no peer to blame.
+	bool IsSyncTargetReachedBy(const Block::SystemState::ID&);
 	typedef std::set<std::pair<uint64_t, uint64_t> > StateSet; // (number, row)
 	// Valid after EnumCongestions(). Takes the branch with the biggest estimated ChainWork, ignoring the ones whose top is in setSkip.
 	// If it misses headers - returns its lowest known header (whose parent is missing)

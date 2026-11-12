@@ -1946,6 +1946,42 @@ namespace beam
 
 		verify_test(v == Requests({ {1, 10}, {11, 20}, {21, 30}, {31, 40} }));
 
+		{
+			// The diluted blocks may be requested only from the peers whose chain contains the target
+			Block::SystemState::ID id;
+			blockChain.back()->m_Hdr.get_ID(id);
+			verify_test(np.IsSyncTargetReachedBy(id)); // the tip
+
+			blockChain[numTrg - 1]->m_Hdr.get_ID(id);
+			verify_test(np.IsSyncTargetReachedBy(id)); // the target itself
+
+			blockChain[numTrg - 2]->m_Hdr.get_ID(id);
+			verify_test(!np.IsSyncTargetReachedBy(id)); // below the target
+
+			blockChain.back()->m_Hdr.get_ID(id);
+			id.m_Hash.Inc();
+			verify_test(!np.IsSyncTargetReachedBy(id)); // unknown
+
+			// a branch that diverges below the target, and goes above it
+			Merkle::Hash hvPrev;
+			blockChain[numTrg - 3]->m_Hdr.get_Hash(hvPrev);
+
+			for (uint64_t num = numTrg - 1; num <= numTrg + 1; num++)
+			{
+				Block::SystemState::Full s = blockChain[num - 1]->m_Hdr;
+				s.m_Prev = hvPrev;
+				if (numTrg - 1 == num)
+					s.m_TimeStamp++;
+
+				verify_test(np.OnState(s, pid) == NodeProcessor::DataStatus::Accepted);
+				s.get_Hash(hvPrev);
+				s.get_ID(id);
+			}
+
+			verify_test(np.Enum() == v); // the branch has less work, it's not requested
+			verify_test(!np.IsSyncTargetReachedBy(id));
+		}
+
 		auto Feed = [&](uint64_t n0, uint64_t n1)
 		{
 			for (Block::Number num(n0); num.v <= n1; num.v++)
