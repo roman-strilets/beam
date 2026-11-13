@@ -75,6 +75,7 @@ void NodeDB::InsertKernel(const Blob& key, Height h)
 {
 	assert(h);
 
+	m_KrnWnd.m_nChanges++;
 	bool bWnd = KrnWndEnsure(); // before the insert, the reload (if needed) must not see the new row
 
 	Recordset rs(*this, Query::KernelIns, "INSERT INTO " TblKernels "(" TblKernels_Key "," TblKernels_Height ") VALUES(?,?)");
@@ -94,6 +95,8 @@ void NodeDB::InsertKernel(const Blob& key, Height h)
 void NodeDB::DeleteKernel(const Blob& key, Height h)
 {
 	assert(h);
+
+	m_KrnWnd.m_nChanges++;
 
 	if (KrnWndEnsure())
 	{
@@ -176,6 +179,8 @@ bool NodeDB::IsKernelIndexed()
 
 void NodeDB::KernelIndexSuspend(Height hLo, Height dh)
 {
+	m_KrnWnd.m_nChanges++;
+
 	if (IsKernelIndexed())
 	{
 		BEAM_LOG_INFO() << "Dropping kernel index";
@@ -192,6 +197,7 @@ void NodeDB::KernelIndexSuspend(Height hLo, Height dh)
 
 void NodeDB::KernelIndexRestore()
 {
+	m_KrnWnd.m_nChanges++;
 	m_KrnWnd.Clear();
 
 	if (IsKernelIndexed())
@@ -231,6 +237,7 @@ void NodeDB::KrnWndLoad()
 	m_KrnWnd.Sort();
 	m_KrnWnd.m_On = true;
 	m_KrnWnd.m_Stale = false;
+	m_KrnWnd.m_nLoads++;
 
 	BEAM_LOG_INFO() << "Kernel index suspended, kernels in memory: " << m_KrnWnd.m_mapKey.size() << ", from height " << m_KrnWnd.m_hLo;
 }
@@ -280,10 +287,12 @@ bool NodeDB::KrnWndEnsure()
 	return m_KrnWnd.m_On;
 }
 
-void NodeDB::OnTxRolledBack()
+void NodeDB::OnTxRolledBack(uint64_t nKrnChanges)
 {
-	// the window may contain the rolled-back changes (or the suspend/restore itself may be rolled back)
-	if (m_KrnWnd.m_dh)
+	// the window may contain the rolled-back changes (or the suspend/restore itself may be rolled back).
+	// If neither was done since the tx/savepoint start (e.g. only headers were inserted), the window still matches the DB.
+	// A lowered window bottom is fine too: the lowering loads the kernels, doesn't change them
+	if (m_KrnWnd.m_dh && (m_KrnWnd.m_nChanges != nKrnChanges))
 		m_KrnWnd.m_Stale = true;
 }
 

@@ -486,6 +486,7 @@ void NodeDB::Transaction::Start(NodeDB& db)
 	assert(!m_pDB);
 	db.ExecStep(Query::Begin, "BEGIN");
 	m_pDB = &db;
+	m_nKrnChanges = db.m_KrnWnd.m_nChanges;
 }
 
 void NodeDB::Transaction::Commit()
@@ -500,7 +501,7 @@ void NodeDB::Transaction::Rollback()
 	if (m_pDB)
 	{
 		m_pDB->ExecStep(Query::Rollback, "ROLLBACK");
-		m_pDB->OnTxRolledBack();
+		m_pDB->OnTxRolledBack(m_nKrnChanges);
 		m_pDB = nullptr;
 	}
 }
@@ -510,6 +511,7 @@ NodeDB::Savepoint::Savepoint(NodeDB& db)
 {
 	db.ExecStep(Query::SavepointSet, "SAVEPOINT sp");
 	m_pDB = &db;
+	m_nKrnChanges = db.m_KrnWnd.m_nChanges;
 }
 
 NodeDB::Savepoint::~Savepoint()
@@ -521,7 +523,7 @@ NodeDB::Savepoint::~Savepoint()
 		// ROLLBACK TO leaves the savepoint on the stack, it must be released too
 		m_pDB->ExecStep(Query::SavepointRollback, "ROLLBACK TO sp");
 		m_pDB->ExecStep(Query::SavepointRelease, "RELEASE sp");
-		m_pDB->OnTxRolledBack();
+		m_pDB->OnTxRolledBack(m_nKrnChanges);
 	}
 	catch (...) {
 		// ignore

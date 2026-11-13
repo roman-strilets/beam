@@ -930,6 +930,15 @@ namespace beam
 
 			tr.Commit();
 
+			// tx rollback without kernel changes: the window is not reloaded
+			uint32_t nLoads = db.get_KrnWndLoads();
+			{
+				NodeDB::Transaction tr1(db);
+				verify_test(db.FindKernel(hv3, 6) == 15);
+			} // rolled back
+			verify_test(db.FindKernel(hv3, 6) == 15);
+			verify_test(db.get_KrnWndLoads() == nLoads);
+
 			// tx rollback: the window is reloaded
 			NodeDB::Transaction tr2(db);
 			db.InsertKernel(hv2, 16);
@@ -940,6 +949,7 @@ namespace beam
 			verify_test(!db.IsKernelIndexed());
 			verify_test(db.FindKernel(hv2, 6) == 0);
 			verify_test(db.FindKernel(hv3, 6) == 15);
+			verify_test(db.get_KrnWndLoads() == nLoads + 1);
 
 			// delete below the window: the index is rebuilt
 			db.DeleteKernel(hv1, 3);
@@ -970,6 +980,38 @@ namespace beam
 			verify_test(db.FindKernel(hv1, 25) == 0);
 			verify_test(db.FindKernel(hv2, 25) == 40);
 			verify_test(db.FindKernel(hv3, 25) == 30);
+
+			// savepoint rollback without kernel changes (e.g. a rejected headers pack): the window is not reloaded
+			nLoads = db.get_KrnWndLoads();
+			{
+				NodeDB::Savepoint sp(db);
+				verify_test(db.FindKernel(hv3, 22) == 30); // the window is lowered to 22, the kernels are not changed
+			}
+			verify_test(db.FindKernel(hv1, 22) == 0);
+			verify_test(db.FindKernel(hv2, 22) == 40);
+			verify_test(db.FindKernel(hv3, 22) == 30);
+			verify_test(db.get_KrnWndLoads() == nLoads);
+
+			// nested savepoints: the changes of the released one are rolled back with the outer one
+			{
+				NodeDB::Savepoint sp(db);
+				{
+					NodeDB::Savepoint sp2(db);
+					db.InsertKernel(hv1, 45); // window bottom raised to 35
+					sp2.Release();
+				}
+				{
+					NodeDB::Savepoint sp2(db);
+					verify_test(db.FindKernel(hv1, 35) == 45);
+				} // no changes, not reloaded
+				verify_test(db.FindKernel(hv1, 35) == 45);
+				verify_test(db.get_KrnWndLoads() == nLoads);
+			} // rolled back, the window is reloaded from 35
+			verify_test(db.FindKernel(hv1, 22) == 0); // the window is lowered to 22 again
+			verify_test(db.FindKernel(hv2, 22) == 40);
+			verify_test(db.FindKernel(hv3, 22) == 30);
+			verify_test(db.get_KrnWndLoads() == nLoads + 1);
+
 			db.DeleteKernel(hv3, 30);
 			db.DeleteKernel(hv2, 40);
 			verify_test(!db.IsKernelIndexed());

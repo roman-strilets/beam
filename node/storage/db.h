@@ -345,6 +345,7 @@ public:
 
 	class Transaction {
 		NodeDB* m_pDB;
+		uint64_t m_nKrnChanges; // at the start, see OnTxRolledBack
 	public:
 		Transaction(NodeDB* = NULL);
 		Transaction(NodeDB& db) :Transaction(&db) {}
@@ -360,6 +361,7 @@ public:
 	// Nested in the current transaction (if any). Rolls back the changes made since it was set, unless released
 	class Savepoint {
 		NodeDB* m_pDB;
+		uint64_t m_nKrnChanges; // when set, see OnTxRolledBack
 	public:
 		Savepoint(NodeDB&);
 		~Savepoint();
@@ -661,6 +663,7 @@ public:
 	bool IsKernelIndexed();
 	void KernelIndexSuspend(Height hLo, Height dh); // drops the index if it exists, loads the recent kernels
 	void KernelIndexRestore(); // rebuilds the index if it doesn't exist
+	uint32_t get_KrnWndLoads() const { return m_KrnWnd.m_nLoads; } // full reloads of the window, for tests
 
 	uint64_t FindStateWorkGreater(const Difficulty::Raw&);
 
@@ -1038,6 +1041,8 @@ private:
 
 		bool m_On = false; // the index is suspended, and the window is valid
 		bool m_Stale = false; // tx rolled back, reload before use
+		uint64_t m_nChanges = 0; // kernel inserts/deletes and index drops/rebuilds. Unchanged since the tx/savepoint start - no reload on its rollback
+		uint32_t m_nLoads = 0;
 		Height m_hLo = 0;
 		Height m_dh = 0;
 		uint64_t m_nScans = 0; // lookups that fell back to the table scan
@@ -1053,7 +1058,7 @@ private:
 	void KrnWndLoad();
 	void KrnWndLower(Height hLo); // loads the kernels in [hLo, m_hLo)
 	bool KrnWndEnsure(); // returns true if the window is active (index suspended)
-	void OnTxRolledBack();
+	void OnTxRolledBack(uint64_t nKrnChanges); // the m_KrnWnd.m_nChanges at the tx/savepoint start
 };
 
 
