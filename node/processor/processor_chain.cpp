@@ -389,6 +389,9 @@ void NodeProcessor::RequestBodyWindows(CongestionCache::TipCongestion& x, Block:
 		if ((num1 >= numTrg) || (i >= m_BodyWindows.m_Ahead))
 			break;
 
+		if (m_BodyWindows.m_MaxCache && (m_BodyCache.m_Size >= m_BodyWindows.m_MaxCache))
+			break; // too much received ahead of the cursor, the lowest window is requested anyway, otherwise the sync stalls
+
 		num0 = num1 + 1;
 	}
 }
@@ -621,11 +624,11 @@ bool NodeProcessor::TryGoUpCached()
 
 	if (!IsFastSync())
 	{
-		m.clear(); // should not happen
+		m_BodyCache.Clear(); // should not happen
 		return false;
 	}
 
-	m.erase(m.begin(), m.upper_bound(m_Cursor.m_Full.m_Number.v)); // stale
+	m_BodyCache.Erase(m.begin(), m.upper_bound(m_Cursor.m_Full.m_Number.v)); // stale
 
 	std::vector<uint64_t> vPath;
 	for (auto it = m.begin(); (m.end() != it) && (it->first == m_Cursor.m_Full.m_Number.v + vPath.size() + 1); ++it)
@@ -680,8 +683,7 @@ void NodeProcessor::ApplyPath(const std::vector<uint64_t>& vPath, bool bCached)
 			if (bValid)
 			{
 				// take it out of the cache: the cache can be cleared while the block is handled (fast-sync failure)
-				ce = std::move(it->second);
-				m_BodyCache.m_Map.erase(it);
+				ce = m_BodyCache.Extract(it);
 				pidFwd = ce.m_Peer;
 
 				m_DB.get_StateForApply(sidFwd.m_Row, s, sfa);
@@ -884,7 +886,7 @@ void NodeProcessor::OnFastSyncOver(MultiblockContext& mbc, bool& bContextFail)
 		BEAM_LOG_INFO() << "Fast-sync succeeded";
 
 		FinalizeFastSync();
-		m_BodyCache.m_Map.clear();
+		m_BodyCache.Clear();
 
 		OnFastSyncSucceeded();
 	}
@@ -1100,7 +1102,7 @@ void NodeProcessor::ManualRollbackInternal(Block::Number num)
 
 		ZeroObject(m_SyncData);
 		SaveSyncData();
-		m_BodyCache.m_Map.clear();
+		m_BodyCache.Clear();
 
 		bChanged = true;
 	}
@@ -1314,10 +1316,14 @@ NodeProcessor::DataStatus::Enum NodeProcessor::OnBlock(const NodeDB::StateID& si
 		}
 
 		// a new one, or replaces a block of another branch
+		m_BodyCache.m_Size -= e.get_Size();
+
 		e.m_Row = sid.m_Row;
 		bbP.Export(e.m_Body.m_Perishable);
 		bbE.Export(e.m_Body.m_Eternal);
 		e.m_Peer = peer;
+
+		m_BodyCache.m_Size += e.get_Size();
 
 		return DataStatus::Accepted;
 	}
@@ -1355,10 +1361,37 @@ const NodeProcessor::BodyCache::Entry* NodeProcessor::BodyCache::Find(const Node
 	return &it->second;
 }
 
+NodeProcessor::BodyCache::Entry NodeProcessor::BodyCache::Extract(Map::iterator it)
+{
+	assert(m_Size >= it->second.get_Size());
+	m_Size -= it->second.get_Size();
+
+	Entry e = std::move(it->second);
+	m_Map.erase(it);
+	return e;
+}
+
+void NodeProcessor::BodyCache::Erase(Map::iterator itBegin, Map::iterator itEnd)
+{
+	for (auto it = itBegin; itEnd != it; ++it)
+	{
+		assert(m_Size >= it->second.get_Size());
+		m_Size -= it->second.get_Size();
+	}
+
+	m_Map.erase(itBegin, itEnd);
+}
+
 void NodeProcessor::BodyCache::DeleteRange(Block::Number numMin, Block::Number numMax)
 {
 	if (numMin.v <= numMax.v)
-		m_Map.erase(m_Map.lower_bound(numMin.v), m_Map.upper_bound(numMax.v));
+		Erase(m_Map.lower_bound(numMin.v), m_Map.upper_bound(numMax.v));
+}
+
+void NodeProcessor::BodyCache::Clear()
+{
+	m_Map.clear();
+	m_Size = 0;
 }
 
 bool NodeProcessor::IsBlockReceived(const NodeDB::StateID& sid)

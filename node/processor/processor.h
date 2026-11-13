@@ -184,12 +184,19 @@ class NodeProcessor
 			uint64_t m_Row;
 			proto::BodyBuffers m_Body;
 			PeerID m_Peer;
+
+			size_t get_Size() const { return m_Body.m_Perishable.size() + m_Body.m_Eternal.size(); }
 		};
 
-		std::map<uint64_t, Entry> m_Map; // by Number, at most one state per Number (the branch of the sync target)
+		typedef std::map<uint64_t, Entry> Map;
+		Map m_Map; // by Number, at most one state per Number (the branch of the sync target). Entries are removed only by the methods below, they keep m_Size
+		size_t m_Size = 0; // total size of the bodies in m_Map
 
 		const Entry* Find(const NodeDB::StateID&) const;
+		Entry Extract(Map::iterator);
+		void Erase(Map::iterator itBegin, Map::iterator itEnd);
 		void DeleteRange(Block::Number numMin, Block::Number numMax); // inclusive
+		void Clear();
 
 	} m_BodyCache;
 
@@ -341,10 +348,12 @@ public:
 	// Fast sync: the missing blocks up to the target are requested in windows, so that they can be downloaded in parallel.
 	// Each window ends at a multiple of m_Size. The lowest one starts at the first missing block, up to m_Ahead windows above it
 	// are requested too. m_Size == 0: disabled, a single request from the first missing block.
+	// While the size of the bodies in m_BodyCache is at least m_MaxCache, only the lowest window is requested (0 - unlimited).
 	struct BodyWindows
 	{
 		uint32_t m_Size = 0;
 		uint32_t m_Ahead = 0;
+		uint64_t m_MaxCache = 0;
 	} m_BodyWindows;
 
 	// Fast sync: the max time of applying the cached blocks (see BodyCache) within a single TryGoUp(), 0 - unlimited.

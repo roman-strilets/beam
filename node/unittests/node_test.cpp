@@ -2292,6 +2292,11 @@ namespace beam
 		Feed(24, 30);
 		verify_test(np.Enum() == Requests({ {1, 10}, {11, 20}, {31, 40} }));
 
+		// too much is received ahead of the cursor: only the lowest window is requested
+		np.m_BodyWindows.m_MaxCache = 1;
+		verify_test(np.Enum() == Requests({ {1, 10} }));
+		np.m_BodyWindows.m_MaxCache = 0;
+
 		np.TryGoUp();
 		VerifyStatesConsistent(np.get_DB());
 		verify_test(np.m_Cursor.m_Full.m_Number.v == 0); // nothing is reachable
@@ -2309,6 +2314,11 @@ namespace beam
 		VerifyStatesConsistent(np.get_DB());
 		verify_test(np.m_Cursor.m_Full.m_Number.v == 30);
 		verify_test(np.Enum() == Requests({ {31, 40}, {41, 50}, {51, 60}, {61, 70} }));
+
+		// all the cached bodies are applied, nothing is accounted for them
+		np.m_BodyWindows.m_MaxCache = 1;
+		verify_test(np.Enum() == Requests({ {31, 40}, {41, 50}, {51, 60}, {61, 70} }));
+		np.m_BodyWindows.m_MaxCache = 0;
 
 		Feed(31, 70);
 		np.TryGoUp();

@@ -83,6 +83,9 @@ struct Node
 		// By default the window is the max pack size of the serving node (see m_BandwidthCtl.m_MaxBodyPackCount)
 		uint32_t m_BodyWindow = 3000;
 		uint32_t m_BodyWindowsAhead = 16;
+		// Fast sync: while the received bodies that are not applied yet take at least this many bytes, the windows above the lowest one
+		// aren't requested. A safety net for the memory, normally they take much less. 0 - unlimited
+		uint64_t m_BodyCacheMax = 512ULL << 20;
 		// Fast sync: max time of applying the received blocks at once, so that the download continues meanwhile. 0 - unlimited
 		uint32_t m_GoUpBudget_ms = 250;
 		// Fast sync: if the pack right above the cursor is requested for longer than this, it's requested from another peer as well.
