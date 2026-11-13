@@ -126,6 +126,27 @@ namespace proto {
 				bool DecodeAndCheck(const HdrPack& msg);
 				// builds the states, links them by hashes. No PoW verification
 				static void Decode(std::vector<Block::SystemState::Full>&, const HdrPack& msg);
+
+				// PoW of the states, verified by the executor threads while the caller may do something else. The states must stay
+				// intact until it's waited for, the destructor waits too. Without an executor it's verified right away in Start().
+				// The sanity of the states isn't verified here.
+				class PoWCheck
+				{
+					struct MyTask;
+
+					Executor* m_pExec;
+					std::shared_ptr<std::atomic<bool> > m_pValid;
+					bool m_Pending = false;
+
+				public:
+					PoWCheck(Executor*);
+					~PoWCheck();
+					PoWCheck(const PoWCheck&) = delete;
+					PoWCheck& operator = (const PoWCheck&) = delete;
+
+					void Start(const std::vector<Block::SystemState::Full>&);
+					bool Wait();
+				};
 			};
 			struct EnumHdrs :public DecodedHdrPack {
 				proto::EnumHdrs m_Msg;

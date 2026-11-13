@@ -292,47 +292,105 @@ bool FlyClient::Data::DecodedHdrPack::DecodeAndCheck(const HdrPack& msg)
     std::vector<Block::SystemState::Full> v;
     Decode(v, msg);
 
+    for (size_t i = 0; i < v.size(); i++)
+        if (!v[i].IsSane())
+            return false;
+
     // PoW verification is heavy for big packs. Do it in parallel
+    PoWCheck pow(Executor::s_pInstance);
+    pow.Start(v);
 
-    struct MyTask
-        :public Executor::TaskSync
+    if (!pow.Wait())
+        return false;
+
+    m_vStates = std::move(v);
+    return true;
+}
+
+struct FlyClient::Data::DecodedHdrPack::PoWCheck::MyTask
+    :public Executor::TaskAsync
+{
+    const Block::SystemState::Full* m_pV;
+    uint32_t m_Count;
+    std::shared_ptr<std::atomic<bool> > m_pValid;
+
+    void Exec(Executor::Context&) override
     {
-        const Block::SystemState::Full* m_pV;
-        uint32_t m_Count;
-        bool m_Valid;
+        Verify(m_pV, m_Count, *m_pValid);
+    }
 
-        virtual ~MyTask() {}
-
-        void Exec(Executor::Context& ctx) override
+    static void Verify(const Block::SystemState::Full* pV, uint32_t nCount, std::atomic<bool>& valid)
+    {
+        for (uint32_t i = 0; i < nCount; i++)
         {
-            uint32_t i0, nCount;
-            ctx.get_Portion(i0, nCount, m_Count);
-            TestRange(i0, nCount);
+            if (!valid)
+                break; // already failed
+            if (!pV[i].IsValidPoW())
+            {
+                valid = false;
+                break;
+            }
         }
+    }
+};
 
-        void TestRange(uint32_t i0, uint32_t nCount)
-        {
-            nCount += i0;
-            for (; i0 < nCount; i0++)
-                if (!m_pV[i0].IsValid())
-                    m_Valid = false;
-        }
-    };
+FlyClient::Data::DecodedHdrPack::PoWCheck::PoWCheck(Executor* pExec)
+    :m_pExec(pExec)
+    ,m_pValid(std::make_shared<std::atomic<bool> >(true))
+{
+}
 
-    MyTask t;
-    t.m_pV = &v.front();
-    t.m_Count = static_cast<uint32_t>(v.size());
-    t.m_Valid = true;
+FlyClient::Data::DecodedHdrPack::PoWCheck::~PoWCheck()
+{
+    try {
+        Wait(); // the tasks reference the states
+    }
+    catch (...) {
+        // ignore
+    }
+}
 
-    if (Executor::s_pInstance)
-        Executor::s_pInstance->ExecAll(t);
-    else
-        t.TestRange(0, t.m_Count);
+void FlyClient::Data::DecodedHdrPack::PoWCheck::Start(const std::vector<Block::SystemState::Full>& v)
+{
+    assert(!m_Pending);
+    uint32_t nTotal = static_cast<uint32_t>(v.size());
 
-    if (t.m_Valid)
-        m_vStates = std::move(v);
+    if (!m_pExec || !nTotal)
+    {
+        MyTask::Verify(v.data(), nTotal, *m_pValid);
+        return;
+    }
 
-    return t.m_Valid;
+    // Several chunks per thread: the cores differ in speed (performance vs efficiency ones), and the pack is done
+    // when the slowest chunk is. Not too small though, each one is a separate task.
+    const uint32_t nMinChunk = 32;
+    uint32_t nChunks = std::min(m_pExec->get_Threads() * 4, (nTotal + nMinChunk - 1) / nMinChunk);
+    nChunks = std::max(nChunks, 1U);
+
+    m_Pending = true;
+
+    for (uint32_t iChunk = 0, i0 = 0; iChunk < nChunks; iChunk++)
+    {
+        uint32_t i1 = static_cast<uint32_t>(static_cast<uint64_t>(nTotal) * (iChunk + 1) / nChunks);
+
+        auto pTask = std::make_unique<MyTask>();
+        pTask->m_pV = v.data() + i0;
+        pTask->m_Count = i1 - i0;
+        pTask->m_pValid = m_pValid;
+        m_pExec->Push(std::move(pTask));
+
+        i0 = i1;
+    }
+}
+
+bool FlyClient::Data::DecodedHdrPack::PoWCheck::Wait()
+{
+    if (m_Pending)
+    {
+        m_pExec->Flush(0);
+        m_Pending = false;
+    }
+    return *m_pValid;
 }
 
 bool FlyClient::NetworkStd::Connection::SendRequest(RequestEnumHdrs& req)
