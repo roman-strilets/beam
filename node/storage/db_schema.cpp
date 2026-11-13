@@ -37,7 +37,10 @@ void NodeDB::Open(const char* szPath)
 	// WAL avoids writing the rollback journal during the transaction and fsync on every commit.
 	// With synchronous=NORMAL a power loss may drop the last transactions, but the DB stays consistent
 	// (the UTXO image is rebuilt if its stamp no longer matches).
-	ExecTextOut("PRAGMA journal_mode=WAL");
+	std::string sMode = ExecTextOut("PRAGMA journal_mode=WAL"); // returns the new mode
+	m_bWal = (sMode == "wal");
+	if (!m_bWal)
+		BEAM_LOG_WARNING() << "DB journal mode " << sMode << ", WAL unavailable";
 	ExecTextOut("PRAGMA synchronous=NORMAL");
 	ExecTextOut("PRAGMA wal_autocheckpoint=16384"); // checkpoint every 64 MiB of WAL, so hot pages are written back less often
 

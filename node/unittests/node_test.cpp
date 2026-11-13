@@ -1192,6 +1192,16 @@ namespace beam
 		{
 			NodeDB db;
 			db.Open(g_sz); // test to open already-existing DB
+			db.SetJournalWal(false);
+			db.SetJournalWal(true);
+		}
+
+		{
+			// in-memory DB: no WAL, the journal mode is left as it is
+			NodeDB db;
+			db.Open(":memory:");
+			db.SetJournalWal(false);
+			db.SetJournalWal(true);
 		}
 	}
 

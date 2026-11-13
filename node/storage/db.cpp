@@ -263,6 +263,9 @@ const void* NodeDB::Recordset::get_BlobStrict(int col, uint32_t n)
 
 void NodeDB::SetJournalWal(bool bWal)
 {
+	if (!m_bWal)
+		return; // the DB stays in its original mode
+
 	std::string s = ExecTextOut(bWal ? "PRAGMA journal_mode=WAL" : "PRAGMA journal_mode=DELETE"); // returns the new mode
 	if (s != (bWal ? "wal" : "delete"))
 		ThrowError("journal mode");

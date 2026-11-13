@@ -283,7 +283,8 @@ public:
 	}
 
 	void Vacuum();
-	// WAL (normally) or the rollback journal. Only outside a transaction
+	// WAL (normally) or the rollback journal. Only outside a transaction.
+	// Does nothing if WAL couldn't be enabled on open (e.g. an in-memory DB), the DB stays in its own mode
 	void SetJournalWal(bool);
 	void CheckIntegrity();
 
@@ -915,6 +916,7 @@ public:
 private:
 
 	sqlite3* m_pDb;
+	bool m_bWal = false; // WAL got enabled on open
 
 	// The last blob of the Streams table, kept open between StreamIO() calls. A blob is 1 MiB, and SQLite reaches an offset in it
 	// by walking its overflow pages. An open handle caches them, so a write of a single MMR element doesn't walk the whole chain.
