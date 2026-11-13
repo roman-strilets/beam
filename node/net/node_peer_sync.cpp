@@ -480,20 +480,17 @@ void Node::Peer::OnMsg(proto::BodyPack&& msg)
 	}
 	ModifyRatingWrtData(nSize);
 
-	// A hedged task that's no longer needed: the other reply came first (see HedgeLowBody)
-	bool bRedundant = t.m_bHedged && !t.m_bNeeded;
-
 	NodeProcessor::DataStatus::Enum eStatus = NodeProcessor::DataStatus::Rejected;
-	if (!msg.m_Bodies.empty() && !bRedundant && ShouldAcceptBodyPack())
+	if (!msg.m_Bodies.empty() && ShouldAcceptBodyPack())
 	{
 		std::deque<uint64_t>::const_iterator itRows;
 		if (p.get_CachedRows(t.m_sidTrgRequested, hCountExtra, itRows))
 		{
-			BEAM_LOG_INFO() << id << " Block pack received " << id.m_Number.v << "-" << (id.m_Number.v + msg.m_Bodies.size() - 1);
+			const uint64_t num1 = id.m_Number.v + msg.m_Bodies.size() - 1;
+			uint64_t nNew = 0;
+			uint64_t n = 0;
 
-			eStatus = NodeProcessor::DataStatus::Accepted;
-
-			for (uint64_t n = 0; n < msg.m_Bodies.size(); n++)
+			for (; n < msg.m_Bodies.size(); n++)
 			{
 				NodeDB::StateID sid;
 				sid.m_Row = itRows[hCountExtra - n];
@@ -501,13 +498,34 @@ void Node::Peer::OnMsg(proto::BodyPack&& msg)
 
 				const proto::BodyBuffers& bb = msg.m_Bodies[n];
 
+				// The bodies received already are rejected: the reply of a hedged task that comes second (see HedgeLowBody),
+				// or a pack that overlaps a partial reply
 				NodeProcessor::DataStatus::Enum es2 = p.OnBlock(sid, bb.m_Perishable, bb.m_Eternal, m_pInfo->m_ID.m_Key);
 				if (NodeProcessor::DataStatus::Invalid == es2)
 				{
 					p.OnPeerInsane(m_pInfo->m_ID.m_Key);
 					break;
 				}
+
+				if (NodeProcessor::DataStatus::Accepted == es2)
+					nNew++;
 			}
+
+			if (nNew)
+			{
+				eStatus = NodeProcessor::DataStatus::Accepted;
+
+				if (nNew == msg.m_Bodies.size())
+				{
+					BEAM_LOG_INFO() << id << " Block pack received " << id.m_Number.v << "-" << num1;
+				}
+				else
+				{
+					BEAM_LOG_INFO() << id << " Block pack received " << id.m_Number.v << "-" << num1 << ", new: " << nNew;
+				}
+			}
+			else if (n == msg.m_Bodies.size())
+				BEAM_LOG_INFO() << id << " Block pack " << id.m_Number.v << "-" << num1 << ": nothing new";
 		}
 	}
 

@@ -1309,7 +1309,7 @@ NodeProcessor::DataStatus::Enum NodeProcessor::OnBlock(const NodeDB::StateID& si
 
 		if (e.m_Row == sid.m_Row)
 		{
-			BEAM_LOG_WARNING() << LogSid(m_DB, sid) << " Block already received";
+			BEAM_LOG_DEBUG() << LogSid(m_DB, sid) << " Block already received";
 			return DataStatus::Rejected;
 		}
 
@@ -1324,7 +1324,7 @@ NodeProcessor::DataStatus::Enum NodeProcessor::OnBlock(const NodeDB::StateID& si
 
 	if (NodeDB::StateFlags::Functional & m_DB.GetStateFlags(sid.m_Row))
 	{
-		BEAM_LOG_WARNING() << LogSid(m_DB, sid) << " Block already received";
+		BEAM_LOG_DEBUG() << LogSid(m_DB, sid) << " Block already received";
 		return DataStatus::Rejected;
 	}
 

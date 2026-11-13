@@ -344,7 +344,7 @@ private:
 		uint32_t m_TimeAssigned_ms;
 		uint32_t m_TimeRequested_ms; // unlike m_TimeAssigned_ms, not reset when the task becomes the first one of the peer
 		bool m_bHedge = false; // a duplicate of a body pack task, requested from another peer (see HedgeLowBody)
-		bool m_bHedged = false; // there's (or was) a duplicate of this task. The reply that comes second is not needed
+		bool m_bHedged = false; // there's (or was) a duplicate of this task. The bodies of the reply that comes second are mostly received already
 		NodeDB::StateID m_sidTrg;
 		NodeDB::StateID m_sidTrgRequested;
 		Block::Number m_n0; // those 2 are fast-sync params at the moment of task assignment
