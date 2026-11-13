@@ -138,6 +138,9 @@ Height NodeDB::FindKernel(const Blob& key, Height hMin /* = 0 */)
 {
 	if (KrnWndEnsure())
 	{
+		if (hMin && (hMin < m_KrnWnd.m_hLo))
+			KrnWndLower(hMin); // after a rollback, otherwise there'd be a table scan per lookup until the top is reached again
+
 		Height hRet = 0;
 
 		auto r = m_KrnWnd.m_mapKey.equal_range(KrnWndKey(key));
@@ -230,6 +233,36 @@ void NodeDB::KrnWndLoad()
 	m_KrnWnd.m_Stale = false;
 
 	BEAM_LOG_INFO() << "Kernel index suspended, kernels in memory: " << m_KrnWnd.m_mapKey.size() << ", from height " << m_KrnWnd.m_hLo;
+}
+
+void NodeDB::KrnWndLower(Height hLo)
+{
+	// full table scan, once per rollback. The window bottom only follows the highest inserted kernel upwards
+	assert(hLo < m_KrnWnd.m_hLo);
+
+	std::vector<KrnWnd::HeightEntry> v;
+
+	Recordset rs(*this, Query::KernelEnumRange, "SELECT rowid," TblKernels_Key "," TblKernels_Height " FROM " TblKernels " WHERE " TblKernels_Height ">=? AND " TblKernels_Height "<?");
+	rs.put(0, hLo);
+	rs.put(1, m_KrnWnd.m_hLo);
+
+	while (rs.Step())
+	{
+		auto& x = v.emplace_back();
+		rs.get(0, x.m_RowID);
+		rs.get(1, x.m_Key);
+		rs.get(2, x.m_Height);
+	}
+
+	for (const auto& x : v)
+		m_KrnWnd.m_mapKey.emplace(x.m_Key, KrnWnd::Item{ x.m_Height, x.m_RowID });
+
+	// all below the current window
+	std::sort(v.begin(), v.end());
+	m_KrnWnd.m_vHeight.insert(m_KrnWnd.m_vHeight.begin(), v.begin(), v.end());
+
+	BEAM_LOG_INFO() << "Kernel window lowered from height " << m_KrnWnd.m_hLo << " to " << hLo << ", kernels loaded: " << v.size();
+	m_KrnWnd.m_hLo = hLo;
 }
 
 bool NodeDB::KrnWndEnsure()

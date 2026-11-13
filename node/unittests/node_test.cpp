@@ -949,6 +949,31 @@ namespace beam
 			db.DeleteKernel(hv3, 15);
 			verify_test(db.FindKernel(hv3) == 0);
 
+			// rollback within the window: a lookup below its bottom lowers it
+			db.InsertKernel(hv1, 4);
+			db.KernelIndexSuspend(0, 10);
+			db.InsertKernel(hv2, 20); // window bottom raised to 10, hv1 is no longer in memory
+			db.DeleteKernel(hv2, 20);
+			verify_test(db.FindKernel(hv1, 4) == 4); // the window is lowered to 4
+			db.DeleteKernel(hv1, 4); // in the window, the index is not rebuilt
+			verify_test(!db.IsKernelIndexed());
+			verify_test(db.FindKernel(hv1, 4) == 0);
+
+			db.InsertKernel(hv3, 30); // window bottom raised to 20
+			db.InsertKernel(hv2, 40); // window bottom raised to 30
+			{
+				NodeDB::Savepoint sp(db);
+				db.DeleteKernel(hv2, 40);
+				verify_test(db.FindKernel(hv3, 25) == 30); // the window is lowered to 25
+				db.InsertKernel(hv1, 26);
+			} // rolled back, the window is reloaded from 25
+			verify_test(db.FindKernel(hv1, 25) == 0);
+			verify_test(db.FindKernel(hv2, 25) == 40);
+			verify_test(db.FindKernel(hv3, 25) == 30);
+			db.DeleteKernel(hv3, 30);
+			db.DeleteKernel(hv2, 40);
+			verify_test(!db.IsKernelIndexed());
+
 			// restore is idempotent
 			db.KernelIndexSuspend(0, 10);
 			db.KernelIndexRestore();

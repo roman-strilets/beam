@@ -174,6 +174,7 @@ public:
 			KernelDel,
 			KernelDelByRowID,
 			KernelEnumFrom,
+			KernelEnumRange,
 			KernelIndexExists,
 			TxoAdd,
 			TxoDel,
@@ -655,7 +656,8 @@ public:
 
 	// The kernel index (random inserts by hash) may be dropped during the initial sync, and rebuilt at the end.
 	// Meanwhile the recent kernels are kept in memory: all the kernels with Height >= hLo, where hLo follows the
-	// highest inserted kernel at distance dh. Lookups of older kernels scan the whole table.
+	// highest inserted kernel at distance dh. After a rollback a lookup below hLo lowers it (reloads the missing range once).
+	// Lookups of older kernels (hMin == 0) scan the whole table.
 	bool IsKernelIndexed();
 	void KernelIndexSuspend(Height hLo, Height dh); // drops the index if it exists, loads the recent kernels
 	void KernelIndexRestore(); // rebuilds the index if it doesn't exist
@@ -1049,6 +1051,7 @@ private:
 
 	static const Merkle::Hash& KrnWndKey(const Blob&);
 	void KrnWndLoad();
+	void KrnWndLower(Height hLo); // loads the kernels in [hLo, m_hLo)
 	bool KrnWndEnsure(); // returns true if the window is active (index suspended)
 	void OnTxRolledBack();
 };
