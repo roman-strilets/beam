@@ -203,7 +203,6 @@ void NodeProcessor::Initialize(const char* szPath, const StartParams& sp, ILongA
 		// the blocks up to the target were applied and verified, but finalizing was interrupted (see FinalizeFastSync)
 		BEAM_LOG_INFO() << "Fast-sync target is reached, finalizing";
 		FinalizeFastSync();
-		m_bFastSyncFinalizedOnStart = true; // the owner should call OnFastSyncSucceeded() once it's ready (e.g. the accounts are loaded)
 	}
 
 	CommitDB();

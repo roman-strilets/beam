@@ -553,7 +553,7 @@ public:
 	void DeleteAccountOnly(AccountIndex);
 	void DeleteAccountWithEvents(AccountIndex);
 	void EnumAccounts(WalkerAccount&);
-	void SetAccountTxoHi(WalkerAccount::Data&);
+	void SetAccountsTxoHi(Height); // all the accounts
 
 	void EnumEvents(WalkerEvent&, AccountIndex, Height hMin);
 	void FindEvents(WalkerEvent&, AccountIndex, const Blob& key); // in case of duplication the most recently added comes first

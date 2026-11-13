@@ -178,14 +178,7 @@ void Node::Processor::OnFastSyncSucceeded()
 	if (m_vAccounts.empty())
 		return;
 
-	auto hTxoHi = Num2Height(m_Extra.m_TxoHi);
-
-	for (auto& acc : m_vAccounts)
-	{
-		acc.m_hTxoHi = hTxoHi;
-		get_DB().SetAccountTxoHi(acc);
-	}
-
+	// the accounts' hTxoHi is already updated (see FinalizeFastSync), notify the owners
 	for (PeerList::iterator it = get_ParentObj().m_lstPeers.begin(); get_ParentObj().m_lstPeers.end() != it; ++it)
 	{
 		Peer& peer = *it;

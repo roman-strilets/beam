@@ -912,6 +912,13 @@ void NodeProcessor::FinalizeFastSync()
 	// raise fossil height, hTxoLo, hTxoHi
 	RaiseHorizons(m_Cursor.m_Full.m_Number, m_Cursor.m_Full.m_Number, m_SyncData.m_TxoLo);
 
+	// The TXOs spent below hTxoHi are gone, the accounts must report it to their owners. Update them in the same transaction.
+	// On restart (see Initialize) the accounts aren't loaded yet, they'll be loaded with the updated value.
+	Height hTxoHi = Num2Height(m_Extra.m_TxoHi);
+	m_DB.SetAccountsTxoHi(hTxoHi);
+	for (auto& acc : m_vAccounts)
+		acc.m_hTxoHi = hTxoHi;
+
 	ZeroObject(m_SyncData);
 	SaveSyncData();
 

@@ -454,7 +454,6 @@ public:
 	void SaveSyncData();
 	void SuspendKernelIndex();
 	void FinalizeFastSync(); // the blocks up to the target are applied and verified
-	bool m_bFastSyncFinalizedOnStart = false; // was interrupted, and finalized by Initialize(). OnFastSyncSucceeded() wasn't called
 	void LogSyncData();
 
 	struct ContractInvokeExtraInfoBase

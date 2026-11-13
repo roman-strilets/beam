@@ -102,14 +102,11 @@ void NodeDB::EnumAccounts(WalkerAccount& wlk)
 	wlk.m_Rs.Reset(*this, Query::AccountEnum, "SELECT " TblAccounts_Index "," TblAccounts_OwnerID "," TblAccounts_Serif "," TblAccounts_TxoHi " FROM " TblAccounts " ORDER BY " TblAccounts_Index);
 }
 
-void NodeDB::SetAccountTxoHi(WalkerAccount::Data& d)
+void NodeDB::SetAccountsTxoHi(Height h)
 {
-	Recordset rs(*this, Query::AccountUpdTxoHi, "UPDATE " TblAccounts " SET " TblAccounts_TxoHi "=? WHERE " TblAccounts_Index "=?");
-	rs.put(0, d.m_hTxoHi);
-	rs.put(1, d.m_iAccount);
-
+	Recordset rs(*this, Query::AccountUpdTxoHi, "UPDATE " TblAccounts " SET " TblAccounts_TxoHi "=?");
+	rs.put(0, h);
 	rs.Step();
-	TestChanged1Row();
 }
 
 bool NodeDB::WalkerAccount::MoveNext()

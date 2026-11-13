@@ -828,7 +828,7 @@ namespace beam
 			db.InsertAccount(acc);
 
 			acc.m_hTxoHi = 99;
-			db.SetAccountTxoHi(acc);
+			db.SetAccountsTxoHi(acc.m_hTxoHi);
 
 			NodeDB::WalkerAccount wlk;
 			db.EnumAccounts(wlk);
@@ -1790,6 +1790,25 @@ namespace beam
 		verify_test(!np.get_DB().IsKernelIndexed()); // suspended for the initial sync
 		verify_test(np.m_SyncData.m_TxoLo.v); // should be used on the 1st attempt
 
+		// an account created during the fast sync. Its hTxoHi should be raised when the fast sync is finalized
+		{
+			NodeDB::WalkerAccount::DataPlus acc;
+			Merkle::Hash hvOwner = 5u;
+			acc.m_Owner = hvOwner;
+			acc.m_hTxoHi = 0;
+			acc.m_iAccount = 1;
+			acc.m_Serif = 6u;
+			np.get_DB().InsertAccount(acc);
+		}
+
+		auto fnAccountTxoHi = [](NodeProcessor& x)
+		{
+			NodeDB::WalkerAccount wlk;
+			x.get_DB().EnumAccounts(wlk);
+			verify_test(wlk.MoveNext());
+			return wlk.m_Data.m_hTxoHi;
+		};
+
 		// 1st attempt - tamper with txlo. Remove arbitrary input
 		bool bTampered = false;
 		for (Block::Number num(1); num.v <= npSrc.m_Cursor.m_Full.m_Number.v; num.v++)
@@ -2084,13 +2103,14 @@ namespace beam
 		verify_test(!np.IsFastSync());
 		verify_test(np.get_DB().IsKernelIndexed()); // rebuilt at the end
 		verify_test(np.m_Cursor.m_Full.m_Number.v == blockChain.size());
-		verify_test(!np.m_bFastSyncFinalizedOnStart);
+		verify_test(fnAccountTxoHi(np) && (fnAccountTxoHi(np) == np.Num2Height(np.m_Extra.m_TxoHi)));
 
 		// Finalizing was interrupted: the blocks up to the target are committed, but the fast-sync mode isn't cleared yet
 		// (see FinalizeFastSync). It's finalized on restart.
 		np.m_SyncData.m_Target = np.m_Cursor.get_Sid();
 		np.SaveSyncData();
 		np.SuspendKernelIndex();
+		np.get_DB().SetAccountsTxoHi(0);
 		verify_test(np.IsFastSync());
 		verify_test(!np.get_DB().IsKernelIndexed());
 
@@ -2099,7 +2119,7 @@ namespace beam
 		pNp = std::make_unique<NodeProcessor>();
 		pNp->Initialize(g_sz);
 		verify_test(!pNp->IsFastSync());
-		verify_test(pNp->m_bFastSyncFinalizedOnStart);
+		verify_test(fnAccountTxoHi(*pNp) && (fnAccountTxoHi(*pNp) == pNp->Num2Height(pNp->m_Extra.m_TxoHi)));
 		verify_test(pNp->get_DB().IsKernelIndexed());
 		verify_test(pNp->m_Cursor.m_Full.m_Number.v == blockChain.size());
 		VerifyStatesConsistent(pNp->get_DB());
